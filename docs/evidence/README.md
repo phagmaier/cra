@@ -77,3 +77,13 @@ the complete sampled configuration and uncertainty live in each result JSON.
 The conditional-density fixture and its analytical expressions are preserved
 as source with the measured deterministic output. No unbiasedness or
 convergence claim follows for the main online learner.
+
+## M3-01 plastic state
+
+The [M3-01 summary](m3-01/summary.md) records the first plastic-state
+implementation: `P`/`E` separate from immutable `W0`, both plastic masks,
+`persistent` versus `no_decay_diagnostic` trace policies, one
+effective-weight cache writer, and validated `PlasticSnapshot`
+serialization. Source hashes identify the reviewed snapshot. It is a
+code-only task with deterministic fixture tests and no lifetime simulation,
+so it contains no run directory, seed consumption, or acquisition claim.

@@ -9,13 +9,16 @@
 //! [`motor`]; the continuously running no-learning actor (B3) lives in
 //! [`no_learning`]; read-only watchdog/summary/selected-trace observation
 //! lives in [`health`]; the pure conditional score (M2-01) lives in
-//! [`score`]. Plasticity and search arrive in later milestones;
-//! this module must not grow that code ahead of them.
+//! [`score`]; plastic offsets/eligibility/masks and the single
+//! effective-weight refresh (M3-01) live in [`plasticity`]. Gates and
+//! search arrive in later milestones; this module must not grow that code
+//! ahead of them.
 
 pub mod actor;
 pub mod health;
 pub mod motor;
 pub mod no_learning;
+pub mod plasticity;
 pub mod score;
 pub mod topology;
 pub mod weights;

@@ -30,19 +30,20 @@ and [continuation guide](docs/handoff.md).
 
 | Field | Current value |
 | --- | --- |
-| Current milestone | M3 ready; M2-GATE passed 2026-09-21 UTC |
+| Current milestone | M3 in progress; M2-GATE passed 2026-09-21 UTC; M3-01 verified 2026-09-21 UTC |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M2-GATE — complete score diagnostic package verified |
+| Last verified task | M3-01 — plastic offsets, eligibility, and masks |
 | Claimed task | None |
-| Next eligible task | M3-01 |
+| Next eligible task | M3-02 |
 | Current blocker | None |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | 2026-09-21 UTC M2-06/M2-GATE; docs/evidence/m2-06/summary.md and ledger below |
+| Last evidence record | 2026-09-21 UTC M3-01; docs/evidence/m3-01/summary.md and ledger below |
 
 ### Session ownership and handoffs
 
 | Owner/session | Task IDs | Files or interfaces owned | Status / handoff |
 | --- | --- | --- | --- |
+| opencode 2026-09-21 M3-01 | M3-01 | src/agent/{plasticity,actor,mod}.rs, src/lib.rs, tests/plasticity.rs, docs/evidence/m3-01/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; 16 new tests and full checks pass; next M3-02 |
 | Codex 2026-09-21 M2-06 | M2-06, M2-GATE | scripts/run_score_diagnostics.sh, docs/evidence/m2-06/, README.md, docs/{experiments,handoff}.md, docs/evidence/README.md, to-do.md | Done; all diagnostics freshly passed; M2-GATE verified, next M3-01 |
 | Codex 2026-09-21 M2-05 | M2-05 | tests/score_recurrent.rs, docs/evidence/m2-05/, README.md, docs/{experiments,handoff}.md, to-do.md | Done; three Monte Carlo comparisons and full checks pass; next M2-06 |
 | Codex 2026-09-21 M2-04 | M2-04 | src/experiments/{mod,finite_rollout}.rs, tests/finite_rollout.rs, README.md, docs/{decisions,handoff}.md, docs/evidence/m2-04/, to-do.md | Done; 8 integration and 2 compile-fail checks pass; next M2-05 |
@@ -282,9 +283,10 @@ Validate the conditional Gaussian score and restricted finite-rollout interpreta
 
 Demonstrate learning from delayed terminal rewards in a deliberately episodic diagnostic before removing resets.
 
-- [ ] **M3-01 - Add plastic offsets, eligibility, and plastic masks**
+- [x] **M3-01 - Add plastic offsets, eligibility, and plastic masks**
   - Deliver: Store P and E separately from immutable W0. Support motor-afferent-only and all-existing-recurrent-edge plastic masks. Add explicit no-decay diagnostic accumulation and persistent-decay policy as separate configurations.
   - Verify: Missing/nonplastic edges never acquire updates. Effective weight caches are refreshed in one tested location. All new state participates in checkpoint serialization and compatibility validation.
+  - Evidence: `docs/evidence/m3-01/summary.md` (2026-09-21 UTC). `src/agent/plasticity.rs` stores `P`/`E` separately from `W0`, builds both masks, implements `persistent` vs `no_decay_diagnostic`, and exposes `refresh_effective` as the single cache writer; `PlasticSnapshot` (schema 1, `deny_unknown_fields`) is validated on restore. `src/agent/actor.rs` adds the effective-weight transition sharing the `W0` core. 16 new tests in `tests/plasticity.rs`; 232 fast Rust tests pass, 3 default ignores, 2 compile-fail doc checks, clean fmt/Clippy. Checkpoint embedding/replay with nonzero `P`/`E` remains M3-10/M4-06.
 
 - [ ] **M3-02 - Implement exactly-once feedback updates and baseline arithmetic**
   - Deliver: Read old E/gates/P/baseline, compute delta, clamp raw updates per edge, clamp resulting P, and update the baseline once after delta. Fixed mode uses gate 1; the diagnostic baseline follows its declared fixed-rollout policy.
@@ -2653,6 +2655,66 @@ Tracker boxes updated: M2-06 and M2-GATE checked after fresh verification.
 Next eligible task: M3-01.
 ```
 
+```text
+Date / agent or session: 2026-09-21 / opencode (M3-01 session)
+Task IDs: M3-01
+Spec sections: 7.3 (persistent eligibility), 7.5 (offsets/effective weights),
+  7.7 (event-reset diagnostic contrast), 10.3 (plastic mask), 10.4 (birth
+  P = E = 0), 17.2 (missing/nonplastic never accrue; one cache location)
+Change and affected files: src/agent/plasticity.rs (new: PlasticState storing
+  P/E separately from immutable W0, PlasticMaskKind {all_recurrent_edges,
+  motor_afferent_only}, TracePolicy {persistent, no_decay_diagnostic}, single
+  refresh_effective cache writer, versioned PlasticSnapshot + restore
+  validation); src/agent/actor.rs (new step_with_effective_weights and
+  step_with_effective_and_perturbations sharing the W0 arithmetic core via
+  advance_new_with_recurrence; step/step_with_perturbations delegate through
+  &weights.w0); src/agent/mod.rs, src/lib.rs (module wiring/scope docs);
+  tests/plasticity.rs (new, 16 tests); README.md, docs/{decisions,handoff}.md,
+  docs/evidence/m3-01/summary.md, to-do.md (docs/evidence only).
+Code revision / dirty-tree state: base 38c4ffd clean at start; M3-01 files
+  untracked/modified at run time (dirty=true in any fresh manifest).
+Commands actually executed:
+  cargo fmt --all
+  cargo test --locked --test plasticity (16 passed)
+  cargo fmt --all -- --check (clean)
+  cargo clippy --all-targets --locked -- -D warnings (clean)
+  cargo test --all-targets --locked (232 passed, 0 failed, 3 ignored)
+  cargo test --locked --doc (2 compile-fail checks passed)
+Outcome and checks passed: P/E birth zero with effective == W0 for both masks
+  and both trace policies; masks are structural subsets with motor-only
+  restricted to motor receivers; eligibility uses receiver xi on all incoming
+  plastic edges, one alpha, actual sigma, rejects zero/invalid noise, zero r
+  gives zero score; spec 17.3 eligibility arithmetic gives 0.67 (persistent,
+  lambda 0.9) versus 0.70 (no-decay), proving the policies are distinct;
+  nonzero P/E on missing/nonplastic edges rejected at construct/advance/
+  refresh/restore; snapshot JSON round-trip plus explicit rejection of wrong
+  schema, dimensions, mask disagreement, unknown policy, bad tau_e,
+  unknown/missing fields, and nonfinite P/E; effective actor path reproduces
+  step bitwise at P = 0 and applies validated offsets without touching B/bias;
+  W0 never mutated. Hash of verified behavior in the evidence record.
+Checks not run / failures / blockers: No CLI smoke or Python audit rerun:
+  this task adds storage and an actor entry point but enables no new
+  production execution mode (simulate guards still reject enabled learning).
+  Slow M2 Monte Carlo diagnostics not rerun (unchanged). No failures.
+Configuration and suite hashes: configs/{debug_stationary,actor_no_learning,
+  env_smoke}.toml unchanged; no seeds consumed (unit/fixture tests only,
+  development namespace where used).
+Seed namespace / outer seeds / lifetime count: No lifetimes simulated; only
+  deterministic fixtures. No new seeds consumed.
+Artifact paths and checksums where relevant: docs/evidence/m3-01/summary.md;
+  source hashes for src/agent/plasticity.rs (2c9909c3...), src/agent/actor.rs
+  (08b9a7b4...), tests/plasticity.rs (53b82f91...) recorded there.
+Interpretation and claim limits: Storage and eligibility only. No reward
+  update, baseline, acquisition, or continuous-learning claim. The
+  no_decay_diagnostic policy is a named diagnostic and is rejected under
+  birth_only by config validation. Top-level checkpoint schema stays 2; the
+  versioned PlasticSnapshot is not yet embedded and split replay with
+  nonzero P/E is M3-10/M4-06. M3-02 next.
+Tracker boxes updated: M3-01 checked after verification; status/ownership/
+  ledger updated.
+Next eligible task: M3-02.
+```
+
 ## Blockers and decision register - keep current
 
 No blockers. M1-GATE re-verified after the 2026-09-21 UTC owner-requested
@@ -2662,8 +2724,12 @@ M2-GATE passed after M2-06 package execution: 27 fast score diagnostics,
 two compile-fail docs and both explicit Monte Carlo diagnostics pass with
 original seeds/tolerances. Full 212-test suite and fmt/Clippy pass. Three
 default ignores: both Monte Carlo checks passed separately this session;
-existing weight-printing probe unrun. No acquisition evidence yet.
-Next: M3-01; M3 implementation has not started.
+existing weight-printing probe unrun.
+M3-01 verified 2026-09-21 UTC: 16 new plasticity tests and the full 232-test
+fast suite plus 2 compile-fail docs pass; plastic offsets, eligibility, both
+masks, and the single effective-weight refresh exist. This is storage only:
+no reward update or acquisition evidence yet.
+Next: M3-02 (exactly-once feedback updates and baseline arithmetic).
 M1 findings, corrections and claim limits: `docs/m1-review.md`.
 M0 historical evidence remains in `docs/m0-review.md`.
 Scientific decisions remain in the append-only `docs/decisions.md`.

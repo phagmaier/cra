@@ -8,6 +8,13 @@
 //! Motor filters and commitment arrive in M1-06; the perturbation schedule
 //! audit in M1-04; numerical health summaries in M1-08.
 //!
+//! M3-01 adds [`ActorState::step_with_effective_weights`] (and its
+//! injected-perturbation variant), which reads the plastic effective
+//! recurrent matrix `W0 + P` from the single
+//! [`crate::agent::plasticity::PlasticState`] refresh location. It shares
+//! the same compute core and still reads `B`/bias from inherited
+//! parameters, so `P = 0` reproduces the `W0` path bitwise.
+//!
 //! Draw schedule (spec 18.4, verified in M1-04): `step` draws exactly one
 //! perturbation per actor neuron on every call from the dedicated
 //! `actor_noise` stream, unconditionally — input values, saturation, and
@@ -252,6 +259,102 @@ impl ActorState {
         swap_and_refresh(h, a, r, h_next, a_next, r_next);
         Ok(())
     }
+
+    /// One transition using plastic effective recurrent weights (M3-01).
+    ///
+    /// Recurrent drive reads `effective[j,i]` (`W0 + P` from the single
+    /// [`crate::agent::plasticity::PlasticState`] refresh location);
+    /// sensory projection, bias, adaptation, leak, and noise handling are
+    /// the shared core below, so `effective == W0` reproduces [`Self::step`]
+    /// bitwise. `effective` must be `N x N`, finite, and exactly `0.0` on
+    /// missing structural edges (missing edges stay absent). Existing-edge
+    /// values may differ from `W0` only through validated `P`.
+    pub fn step_with_effective_weights(
+        &mut self,
+        actor: &Actor,
+        params: &InheritedParams,
+        effective: &[Vec<f64>],
+        input: &[f64],
+        rng: &mut ChaCha8Rng,
+    ) -> Result<(), ActorError> {
+        check_step_dims(self.n, actor, params, input.len(), self.n)?;
+        check_effective_dims(self.n, params, effective)?;
+        let Self {
+            h,
+            a,
+            r,
+            h_next,
+            a_next,
+            r_next,
+            drive,
+            xi_buf,
+            ..
+        } = self;
+        {
+            let mut stream = NormalStream::new(rng);
+            for z in xi_buf.iter_mut() {
+                *z = stream.next_standard();
+            }
+        }
+        advance_new_with_recurrence(
+            actor,
+            effective,
+            &params.weights.input_weights,
+            &params.weights.bias,
+            input,
+            xi_buf,
+            h,
+            a,
+            r,
+            h_next,
+            a_next,
+            drive,
+        )?;
+        swap_and_refresh(h, a, r, h_next, a_next, r_next);
+        Ok(())
+    }
+
+    /// Deterministic-perturbation variant of
+    /// [`Self::step_with_effective_weights`] for fixtures.
+    pub fn step_with_effective_and_perturbations(
+        &mut self,
+        actor: &Actor,
+        params: &InheritedParams,
+        effective: &[Vec<f64>],
+        input: &[f64],
+        xi: &[f64],
+    ) -> Result<(), ActorError> {
+        check_step_dims(self.n, actor, params, input.len(), xi.len())?;
+        check_effective_dims(self.n, params, effective)?;
+        let Self {
+            h,
+            a,
+            r,
+            h_next,
+            a_next,
+            r_next,
+            drive,
+            xi_buf,
+            ..
+        } = self;
+        xi_buf.copy_from_slice(xi);
+        advance_new_with_recurrence(
+            actor,
+            effective,
+            &params.weights.input_weights,
+            &params.weights.bias,
+            input,
+            xi,
+            h,
+            a,
+            r,
+            h_next,
+            a_next,
+            drive,
+        )?;
+        swap_and_refresh(h, a, r, h_next, a_next, r_next);
+        Ok(())
+    }
 }
 
 /// Validate everything the transition reads: state/weight/input/xi shapes
@@ -317,6 +420,41 @@ fn check_step_dims(
     Ok(())
 }
 
+/// Effective-weight validation for the plastic path: square, finite, and
+/// exactly `0.0` on missing structural edges. Existing edges may carry any
+/// finite value (validated `P` offsets enter only through the single
+/// plasticity refresh location).
+fn check_effective_dims(
+    state_n: usize,
+    params: &InheritedParams,
+    effective: &[Vec<f64>],
+) -> Result<(), ActorError> {
+    let n = params.topology.neuron_count;
+    if n != state_n {
+        return Err(ActorError::DimensionMismatch(format!(
+            "inherited topology has {n} neurons but state has {state_n}"
+        )));
+    }
+    if effective.len() != n || effective.iter().any(|row| row.len() != n) {
+        return Err(ActorError::DimensionMismatch(format!(
+            "effective weights must be {n}x{n}"
+        )));
+    }
+    for (j, row) in effective.iter().enumerate() {
+        for (i, &w) in row.iter().enumerate() {
+            if !w.is_finite() {
+                return Err(ActorError::NonFiniteState("effective".to_owned()));
+            }
+            if !params.topology.mask[j][i] && w != 0.0 {
+                return Err(ActorError::DimensionMismatch(format!(
+                    "effective[{j},{i}] must be 0.0 on missing edge"
+                )));
+            }
+        }
+    }
+    Ok(())
+}
+
 /// Shared compute core: dense drive accumulation from old arrays only,
 /// leak, post-integration noise, and the adaptation update into the
 /// scratch buffers. No allocation, no clipping. Buffer swaps and the fresh
@@ -334,17 +472,51 @@ fn advance_new(
     a_next: &mut [f64],
     drive: &mut [f64],
 ) -> Result<(), ActorError> {
+    advance_new_with_recurrence(
+        actor,
+        &weights.w0,
+        &weights.input_weights,
+        &weights.bias,
+        input,
+        xi,
+        h,
+        a,
+        r,
+        h_next,
+        a_next,
+        drive,
+    )
+}
+
+/// Recurrence-parameterized core shared by the `W0` and plastic effective
+/// paths. `w_rec` is the dense recurrent matrix; sensory projection and
+/// bias always come from inherited parameters (never plastic in M3).
+#[allow(clippy::too_many_arguments)]
+fn advance_new_with_recurrence(
+    actor: &Actor,
+    w_rec: &[Vec<f64>],
+    input_weights: &[Vec<f64>],
+    bias: &[f64],
+    input: &[f64],
+    xi: &[f64],
+    h: &[f64],
+    a: &[f64],
+    r: &[f64],
+    h_next: &mut [f64],
+    a_next: &mut [f64],
+    drive: &mut [f64],
+) -> Result<(), ActorError> {
     let alpha_h = leak_alpha(actor.tau_h);
     let alpha_a = leak_alpha(actor.tau_a);
 
     // Dense recurrent + sensory drive from OLD activity/adaptation only.
     // Missing edges contribute their exact 0.0 through the dense storage.
     for (j, dj) in drive.iter_mut().enumerate() {
-        let mut d = weights.bias[j] - actor.adaptation_strength * a[j];
-        for (w, r_old) in weights.w0[j].iter().zip(r.iter()) {
+        let mut d = bias[j] - actor.adaptation_strength * a[j];
+        for (w, r_old) in w_rec[j].iter().zip(r.iter()) {
             d += w * r_old;
         }
-        for (w, x) in weights.input_weights[j].iter().zip(input.iter()) {
+        for (w, x) in input_weights[j].iter().zip(input.iter()) {
             d += w * x;
         }
         *dj = d;

@@ -696,3 +696,46 @@ make code or a result look successful.**
   These are engineering choices implementing the restricted diagnostic, not
   revisions to the main learning rule. M2-05 supplies the recurrent empirical
   check. Verification and artifact hashes: [M2-04 evidence](evidence/m2-04/summary.md).
+
+## 2026-09-21 UTC — M3-01 plastic state, eligibility, masks (spec 7.3, 7.5, 10.3–10.4, 17.2)
+
+- **Scope.** Lifetime plastic storage first: `P`/`E` separate from immutable
+  `W0`, two plastic masks, two trace policies, one effective-weight refresh,
+  and a versioned snapshot. Feedback-gated updates, the reward baseline, and
+  the episodic runner are M3-02/M3-04; gating is M6. Affected spec sections:
+  7.3 (persistent eligibility), 7.5 (offsets/effective weights), 7.7
+  (event-reset diagnostic contrast), 10.3 (plastic mask), 10.4 (birth
+  `P = E = 0`), 17.2 (missing/nonplastic never accrue; one cache location).
+- **Trace policies are named configurations, not a large `tau_e`.** The
+  module exposes `persistent` (`lambda_e = exp(-1 / tau_e)`, applied on
+  every transition) and `no_decay_diagnostic` (`lambda = 1.0`, exact
+  summation). Config validation (M0) already rejects `no_decay_diagnostic`
+  under `birth_only`, so the diagnostic can never masquerade as the main
+  continuous rule. `tau_e` is validated finite and `> 0` for both policies
+  to keep one config-checking path; the diagnostic ignores its value.
+- **Effective weights have one writer.** `PlasticState::refresh_effective`
+  is the only function that writes the `W0 + P` cache, and it re-validates
+  `w0` finiteness, zero-on-missing, and the `P`-zero-on-nonplastic
+  invariant first. The cache is `N x N` dense with exact `0.0` on missing
+  edges. The new actor entry points
+  (`step_with_effective_weights`, `step_with_effective_and_perturbations`)
+  read that cache; sensory `B` and bias still come from inherited
+  parameters, preserving the 7.5 rule that they are not lifetime-plastic.
+  The no-learning `step` path delegates to the same core through
+  `&weights.w0`, so B3 behavior is bitwise unchanged.
+- **`PlasticSnapshot` now, checkpoint bump later.** The snapshot is versioned
+  (`PLASTIC_SNAPSHOT_SCHEMA_VERSION = 1`, `deny_unknown_fields`) and its
+  restore validates schema, dimensions, finiteness, mask agreement, and
+  `tau_e`, recomputing the cache rather than trusting stored bytes. The
+  top-level M1 `Checkpoint` schema stays 2 and still rejects files claiming
+  plasticity; embedding this snapshot and proving split replay with nonzero
+  `P`/`E` is M3-10/M4-06 work. This avoids claiming exact continuation
+  before the feedback-update and runner paths exist.
+- **Eligibility contract.** `advance_eligibility` takes old presynaptic
+  activity plus this transition's receiver perturbations, one `alpha_h`,
+  and the actual positive `sigma`; it calls the verified M2-01 score and
+  writes only plastic edges. Zero noise is rejected even when activity and
+  perturbation are zero (7.2/6.3). Scores created on the feedback tick
+  cannot explain that tick's feedback: the public entry point is
+  transition-ordered and the future runner (M4-01) owns apply-before-advance
+  ordering. Verification and hashes: [M3-01 evidence](evidence/m3-01/summary.md).

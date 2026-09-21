@@ -15,8 +15,12 @@
 //! runner), and M1-08 read-only numerical health plus selected traces
 //! ([`agent::health`]: conservative watchdog, summaries, stable sampling).
 //! M1-09 adds exact lifetime pause/resume ([`checkpoint`]: versioned file,
-//! config hash, checksum, atomic writes).
-//! Plasticity, search, and
+//! config hash, checksum, atomic writes). M3-01 adds plastic offsets,
+//! eligibility traces, plastic masks, and the single effective-weight
+//! refresh ([`agent::plasticity`]: `P`/`E` stored separately from immutable
+//! `W0`, `persistent` versus `no_decay_diagnostic` traces, versioned
+//! snapshots).
+//! Feedback-gated updates, gating, search, and
 //! comparative analysis remain later milestones.
 
 pub mod agent;

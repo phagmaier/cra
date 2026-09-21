@@ -7,14 +7,17 @@ feedback?
 
 Status: **M0 complete and re-verified; M1 complete and re-verified (continuous
 nonplastic actor demo, bitwise replay on linux/x86_64 — explicitly not
-learning); M2-GATE passed (restricted score diagnostics);
-next task M3-01.** The simulator core exists as a library
+learning); M2-GATE passed (restricted score diagnostics); M3-01 implemented
+(plastic offsets, eligibility, masks, effective-weight refresh — storage
+only, no reward update yet); next task M3-02.** The simulator core exists as
+a library
 (`src/environment/`, `src/agent/` nonplastic dynamics plus `B3`
 harness, `src/checkpoint.rs`, `src/logging/`) with deterministic
 fixtures, randomized checks, baseline/actor runners, replay proofs, and
-an offline log audit. No production lifetime plasticity, gating, evolution, or comparison
-pipeline exists yet. Anything listed under "Planned" is a target from
-spec Section 18 / `to-do.md`, not working code.
+an offline log audit. Lifetime plastic state now exists but no reward
+update, gating, evolution, or comparison
+pipeline is wired into a runner yet. Anything listed under "Planned" is a
+target from spec Section 18 / `to-do.md`, not working code.
 
 M0 was re-reviewed and corrected without changing the original smoke
 trajectories. See [the review](docs/m0-review.md) for findings, verification,
@@ -25,7 +28,7 @@ records checkpoint/diagnostic fixes and fresh measured evidence.
 
 Start with [AGENTS.md](AGENTS.md), the [current tracker](to-do.md), and
 the [agent continuation guide](docs/handoff.md). The guide maps existing
-code/tests to M3-01 and records the integration limits to preserve.
+code/tests to M3-02 and records the integration limits to preserve.
 
 | Document | Responsibility |
 | --- | --- |
@@ -154,9 +157,27 @@ transitions), using the original development seeds and tolerances. The
 [complete M2 verification](docs/evidence/m2-06/summary.md) freshly passed
 27 fast diagnostic tests, two compile-fail API checks and both Monte Carlo
 tests; sampled results exactly reproduce the original evidence. Full suite:
-212 passed, three default ignores, clean fmt/Clippy. **M2-GATE passed;
-M3-01 is next.** These fixed-weight diagnostic results do not prove
-unbiasedness or convergence of the main online learner.
+212 passed, three default ignores, clean fmt/Clippy. **M2-GATE passed.**
+
+M3-01 adds `agent::plasticity`: `PlasticState` stores plastic offsets `P`
+and eligibility `E` separately from immutable `W0`, builds the
+`all_recurrent_edges` or `motor_afferent_only` mask, accumulates
+eligibility under either the `persistent` or `no_decay_diagnostic` trace
+policy, and refreshes the `W0 + P` effective-weight cache in one validated
+location. `PlasticSnapshot` is a versioned, strict serialization unit with
+explicit restore validation. The actor gains
+`step_with_effective_weights` sharing the `W0` arithmetic core, so the
+no-learning path is bitwise unchanged. This is storage/eligibility only:
+no reward update, baseline, gating, or runner is enabled yet.
+
+```bash
+cargo test --locked --test plasticity
+```
+
+Its [evidence record](docs/evidence/m3-01/summary.md) documents 16 new
+tests, **232 fast Rust tests passed**, three default ignores, two
+compile-fail doc checks, and clean fmt/Clippy. **M3-02 is next.** These
+checks do not demonstrate learning.
 
 To save the bounded observability tests' measured diagnostics, choose a fresh
 output directory (existing evidence files are never overwritten):
