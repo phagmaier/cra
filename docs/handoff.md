@@ -1,8 +1,9 @@
 # Agent continuation guide
 
-Updated 2026-09-21 UTC after M1-06, from code revision `585f36c`
-(`m1-05`) with M1-06 changes uncommitted. This is a working handoff.
-Check the tracker and Git state for newer work before claiming a task.
+Updated 2026-09-21 UTC after M1-07, from code revision `0df0f04`
+(mislabeled m1-07 carrying M1-06) with M1-07 changes uncommitted. This is
+a working handoff. Check the tracker and Git state for newer work before
+claiming a task.
 
 ## Start here
 
@@ -18,16 +19,18 @@ Check the tracker and Git state for newer work before claiming a task.
 
 ## Current position and evidence
 
-**M0-GATE passed and was re-verified. M1-06 verified. Next task: M1-07.**
-There is no outstanding M1-06 blocker. The claim track remains `family_only`.
+**M0-GATE passed and was re-verified. M1-07 verified. Next task: M1-08.**
+There is no outstanding M1-07 blocker. The claim track remains `family_only`.
 No reserved final-test outcomes have been inspected.
 
-M1-06 added `src/agent/motor.rs` (fixed pool means, leaky filter, new-q
-commitment, tie-only RNG draws) with 7 tests in `tests/motor.rs` plus 1
-unit test. Strict decisions consume zero RNG (the no-exploration proof);
-exact ties draw one fair coin. Full suite is 129 Rust tests passing with
-clean fmt/clippy; see the M1-06 tracker ledger entry. All prior results
-unchanged.
+M1-07 added `src/agent/no_learning.rs` (B3 `NoLearningActor`: birth-zero
+state, outer-seed paired inheritance, per-lifetime noise/tie streams,
+dedup-only feedback, per-tick actor plus fixed motor advance) with 10
+tests in `tests/no_learning.rs` plus 1 unit test, `validate_actor_no_learning_execution`
+in `src/config.rs`, and `run_actor_ordinary` sharing the ordinary loop in
+`src/experiments/baseline.rs`. Full suite is 140 Rust tests passing (1
+ignored) with clean fmt/clippy and 14 Python tests; see the M1-07 tracker
+ledger entry. All prior results unchanged.
 
 The [M0 review](m0-review.md) records 73 Rust tests and 14 Python tests
 passing, clean fmt/clippy, four original runs audited, and seven fresh
@@ -42,36 +45,31 @@ is available for a quick audit. Reproduce missing raw runs using the saved
 commands/configs into new directories; preserve historical evidence paths
 and distinguish reruns from the original execution.
 
-## Next task: M1-07
+## Next task: M1-08
 
-**Deliver:** the nonplastic actor integrated through the common runner —
-continuously available motor output on every tick, public reward processed
-as sensory input with no weight learning, and the inherited weights
-provably unchanged across a lifetime. Uses an explicit actor-no-learning
-profile for B3.
+**Deliver:** numerical health plus selected actor traces — sampled
+activity/adaptation/motor histories, saturation, margins, and state
+finiteness with a conservative watchdog and explicit failure records
+rather than clipping `h`.
 
-Read spec Sections 3.4, 5.6–5.8, and 9 alongside the
+Read spec Sections 6.5 and 10.6 alongside the
 [M1 task queue](../to-do.md#m1---build-a-continuous-actor-with-no-learning).
-Inspect `src/experiments/baseline.rs` (`OrdinaryPolicy`, `run_ordinary`),
-`src/environment/mod.rs` (tick driver, `commit`, consumption ledger),
-`src/agent/{actor,motor,weights}.rs`, and `src/run.rs` (run provenance)
-first. The agent must implement the ordinary `Agent` trait so the
-information boundary is type-level, like B0/B1.
+Inspect `src/agent/no_learning.rs` (`NoLearningActor` state, tick count,
+`NonFiniteState` mapping), `src/agent/{actor,motor}.rs` (transition and
+filter failure paths), and `src/logging/events.rs` (schema versioning)
+first. Trace selection must be stable and draw no simulation randomness;
+diagnostic output is file-based, never a mandatory notebook.
 
-- Advance the network on every phase (quiet/cue/gap/response/delay/
-  feedback); never reset state at cue/reward/change boundaries; keep
-  `W0` bit-identical throughout (hash or compare before/after).
-- Keep environment scheduling identical to M0 (same tick counts, same
-  exogenous streams; agent draws come only from `actor_noise`/`tie_break`
-  like B0 does).
-- Preserve the feedback ordering the runner already enforces
-  (`apply_feedback` before `advance`); selection reads policy state only.
-- Verify with the stated checks (phase continuity, weight invariance,
-  logging on/off invariance), then run the applicable full quality
-  checks and append tracker evidence.
+- Build the watchdog on the existing explicit-error paths (nonfinite
+  `h`/`a` already fails in `actor.rs`); do not add silent clipping.
+- Keep the M1-07 runner ordering (`apply_feedback` before `advance`,
+  selection from policy state) and the paired `init` / per-lifetime
+  noise/tie stream separation unchanged.
+- Verify with a forced-nonfinite failure, then run the applicable full
+  quality checks and append tracker evidence.
 
-Keep M1-08 traces/watchdog and later learning/search work in their task
-order. Completing M1-07 alone does not pass M1-GATE.
+Keep M1-09 checkpoints/replay and later learning/search work in their
+task order. Completing M1-08 alone does not pass M1-GATE.
 
 ## Implementation map
 
@@ -81,7 +79,7 @@ order. Completing M1-07 alone does not pass M1-GATE.
 | Seed derivation and stream names | `src/rng.rs` | `tests/seed_streams.rs`; existing golden seeds and environment schedules |
 | Environment phases and commitments | `src/environment/{mod,schedule}.rs` | `tests/environment_contract.rs`, `tests/event_order.rs` |
 | Public inputs versus hidden truth | `src/environment/{observation,hidden_state}.rs` | `tests/leakage.rs`; only ordinary data reaches `Agent` |
-| B0/B1 and isolated O1 runner | `src/experiments/baseline.rs` | `tests/baselines.rs`, `tests/randomized_env.rs` |
+| B0/B1/B3 and isolated O1 runner | `src/experiments/baseline.rs` | `tests/baselines.rs`, `tests/no_learning.rs`, `tests/randomized_env.rs` |
 | Run ownership and provenance | `src/run.rs` | atomic allocation unit tests, `tests/event_logging.rs` |
 | Inherited topology (M1-01) | `src/agent/topology.rs` | `tests/topology.rs`; mask/motor/order fixtures, rejection logging |
 | Inherited weights (M1-02) | `src/agent/weights.rs` | `tests/weights.rs`; row-scale/B/bias fixtures, golden draw sequence |
@@ -89,20 +87,21 @@ order. Completing M1-07 alone does not pass M1-GATE.
 | Perturbation schedule (M1-04) | `src/agent/actor.rs` + `weights.rs` | `tests/actor_noise.rs`; per-tick draws, moments, resume primitive |
 | Adaptation at strength 0 (M1-05) | `src/agent/actor.rs` (verified) | `tests/adaptation.rs`; inertness, sign, persistence, config pin |
 | Motor readout (M1-06) | `src/agent/motor.rs` | `tests/motor.rs`; golden filters, new-q commitment, tie-only draws |
+| Nonplastic actor (M1-07, B3) | `src/agent/no_learning.rs` | `tests/no_learning.rs`; continuity, W0 invariance, schedule parity, guard separation |
 | Ordinary/hidden event serialization | `src/logging/events.rs` | `tests/event_logging.rs`, `analysis/test_validate_logs.py` |
-| CLI dispatch | `src/main.rs` | `validate-config` and baseline-only `simulate` |
+| CLI dispatch | `src/main.rs` | `validate-config` and baseline-only `simulate` (actor CLI waits for M1-12) |
 
 ## Carry-forward integration constraints
 
 | Topic | Current implementation | Next responsibility |
 | --- | --- | --- |
-| Tick API | `Lifetime::advance` builds a tick and advances the environment before returning. `commit` follows a final response output. | M1-07 introduces the observe/finish split before neural integration. Preserve tick-20/delay-3 and final-feedback-transition fixtures. |
-| Agent feedback | Ordinary runner calls `apply_feedback` once before `advance(features)`; selection reads policy state only. | Keep this ordering and information boundary when adding the actor. `TickOutput` belongs to the driver/evaluator. |
+| Tick API | `Lifetime::advance` builds a tick and advances the environment before returning. `commit` follows a final response output. `run_actor_ordinary` preserves this loop with the actor advanced every tick. | M1-09 introduces checkpoint splits; preserve tick-20/delay-3 and final-feedback-transition fixtures. The earlier observe/finish-split note is satisfied by the ordered `apply_feedback`-before-`advance` runner, not a new `Lifetime` API. |
+| Agent feedback | Ordinary runners call `apply_feedback` once before `advance(features)`; B3 dedups without learning; selection reads policy state only. | Keep this ordering and information boundary for plasticity (M3) and gates (M6). `TickOutput` belongs to the driver/evaluator. |
 | Warmup | Replaces the first quiet interval; zero starts directly at cue presentation. | Preserve the documented M0 convention; use measured ticks for budgets. An additive-warmup change needs an explicit decision and new evidence. |
 | Noise/hazard assignment | Stable membership shuffled at birth; noise rates cycle by cue index. | M5-02 owns factorial counterbalancing; current assignment is not a completed training-distribution implementation. |
 | Event identity | IDs/choice indices restart per lifetime. Ordinary records carry lifetime identity; hidden rows align within contiguous lifetime blocks. | M1-09 must preserve exactly-once continuation and explicitly specify any schema change. A bare event ID is not a cross-lifetime join key. |
-| Logging | `event_log=false` omits event streams; audit coverage then stops at provenance/completion. | Extend Rust validation, Python audit, fixtures, and versioning together when adding quantities. |
-| Execution guards | M0 rejects neural/search sections, diagnostic resets, isolated reversal, and long life. | Enable each mode with its implementation/tests; never bypass guards to make a future config appear runnable. |
+| Logging | `event_log=false` omits event streams; audit coverage then stops at provenance/completion. Actor reads draw nothing (M1-07 logging invariance). | Extend Rust validation, Python audit, fixtures, and versioning together when adding quantities (M1-08 traces first). |
+| Execution guards | M0 still rejects neural/search sections for baselines; M1-07 adds `validate_actor_no_learning_execution` (actor required, learning disabled/absent, modulator absent/fixed, evolution disabled/absent). | Enable plasticity (M3), gates (M6), and search (M7) with their implementations/tests; never bypass guards to make a future config appear runnable. |
 | Performance | Tick observations allocate; run logs are buffered. Simulation is serial. | Measure before scaling. M1 preallocates actor buffers; broader profiling/budget work remains in its queued milestones. |
 
 The [decision log](decisions.md) preserves the rationale and superseding

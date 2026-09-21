@@ -30,14 +30,14 @@ and [continuation guide](docs/handoff.md).
 
 | Field | Current value |
 | --- | --- |
-| Current milestone | M1 open; M1-06 verified 2026-09-21 UTC, M1-GATE still open |
+| Current milestone | M1 open; M1-07 verified 2026-09-21 UTC, M1-GATE still open |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M1-06 (motor readout); M0 scope verification remains M0-REVIEW |
+| Last verified task | M1-07 (nonplastic actor integration); M0 scope verification remains M0-REVIEW |
 | Claimed task | None |
-| Next eligible task | M1-07 |
+| Next eligible task | M1-08 |
 | Current blocker | None |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | 2026-09-21 UTC M1-06 ledger entry (this file); M0 simulation evidence in docs/evidence/m0-review/ |
+| Last evidence record | 2026-09-21 UTC M1-07 ledger entry (this file); M0 simulation evidence in docs/evidence/m0-review/ |
 
 ### Session ownership and handoffs
 
@@ -55,6 +55,7 @@ and [continuation guide](docs/handoff.md).
 | agent 2026-09-21 | M1-04 | src/agent/actor.rs, tests/actor_noise.rs, docs/decisions.md | Done, verified; handoff to M1-05 |
 | agent 2026-09-21 | M1-05 | tests/adaptation.rs | Done, verified; handoff to M1-06 |
 | agent 2026-09-21 | M1-06 | src/agent/{mod,motor}.rs, tests/motor.rs, docs/decisions.md | Done, verified; handoff to M1-07 |
+| agent 2026-09-21 | M1-07 | src/agent/{mod,no_learning}.rs, src/config.rs, src/experiments/baseline.rs, src/lib.rs, tests/no_learning.rs, docs/decisions.md | Done, verified; handoff to M1-08 |
 
 Parallel work requires settled interfaces and satisfied dependencies. Do not parallelize successive scientific milestones or let two agents independently redefine feedback ordering, RNG policy, or checkpoint schema. Coordinate changes to this tracker through one integrator.
 
@@ -194,7 +195,7 @@ Establish correct, continuously evolving actor dynamics and replay before introd
   - Deliver: Average new activities within the two fixed disjoint motor populations, apply the leaky motor filter, and choose the higher filtered output at commitment with a dedicated fair tie RNG.
   - Verify: Golden filter recurrences pass. Commitment reads the new q values; exact ties use only the tie stream. No trained decoder, softmax exploration, or epsilon-greedy actor policy is added.
 
-- [ ] **M1-07 - Integrate the nonplastic actor through the common runner**
+- [x] **M1-07 - Integrate the nonplastic actor through the common runner**
   - Deliver: Expose continuously available motor output and the Section 18 agent boundary. Process public reward as sensory input without weight learning. Use an explicit actor-no-learning profile for B3.
   - Verify: All phases advance the network; no cue/reward/hidden-change boundary resets it. The inherited weights remain identical throughout. Environment scheduling is unchanged from M0.
 
@@ -1859,6 +1860,80 @@ Interpretation and claim limits: Fixed readout only. No decoder, no
   decisions), no learning claim. M1-GATE remains open.
 Tracker boxes updated: M1-06 checked.
 Next eligible task: M1-07.
+```
+
+```text
+Date / agent or session: 2026-09-21 UTC / agent (M1-07 integration session)
+Task IDs: M1-07
+Spec sections: 3.4 (simulator/agent boundary), 5.5-5.8 (observable
+  features, forbidden inputs, event timing, commitment), 6.1/6.4 (actor
+  transition, motor readout), 9 (feedback before transition, no double
+  apply), 10.4 (birth h=a=q=0), 13.1 (B3 same-actor no-update control)
+Change and affected files: src/agent/no_learning.rs (new: NoLearningActor
+  with birth-zero state, outer-seed init pairing, per-lifetime
+  actor_noise/tie_break streams, Agent apply_feedback dedup-only plus
+  advance through actor step and fixed motor filter, select_action from
+  newest readout, NoLearningError); src/agent/mod.rs + src/lib.rs
+  (register/document no_learning); src/config.rs (new
+  validate_actor_no_learning_execution: requires [actor] and birth_only,
+  allows only learning disabled/absent, modulator absent/fixed, evolution
+  disabled/absent); src/experiments/baseline.rs (OrdinaryPolicy for
+  NoLearningActor, run_actor_ordinary sharing the ordinary tick/commit/
+  record loop with its own guard, run_ordinary refactored through
+  run_ordinary_inner); tests/no_learning.rs (new, 10 tests);
+  docs/decisions.md (M1-07 conventions entry); docs/handoff.md (M1-08
+  continuation).
+Code revision / dirty-tree state: base 0df0f04 (mislabeled m1-07 carrying
+  M1-06); clean at start, M1-07 files new or modified and uncommitted at
+  handoff (M src/agent/mod.rs, src/config.rs,
+  src/experiments/baseline.rs, src/lib.rs, to-do.md, docs/decisions.md,
+  docs/handoff.md; ?? src/agent/no_learning.rs, tests/no_learning.rs).
+Commands actually executed:
+  cargo test --locked --test no_learning (10/10 pass)
+  cargo test --all-targets --locked (140 pass, 1 ignored: 27 lib incl. 1
+    new no_learning unit + 0 bin + 7 actor + 7 actor_noise + 5 adaptation
+    + 7 motor + 10 no_learning + 7 baselines + 4 config + 20 contract + 5
+    logging + 3 order + 5 leakage + 5 randomized + 5 seeds + 13 topology
+    + 10 weights)
+  cargo fmt --all -- --check (clean after cargo fmt)
+  cargo clippy --all-targets --locked -- -D warnings (clean)
+  python3 analysis/test_validate_logs.py (14/14 pass, unchanged layer)
+  cargo run --release --locked -- validate-config
+    configs/debug_stationary.toml (OK) and
+    cargo run --release --locked -- simulate --config
+    configs/env_smoke.toml --baseline oracle --lifetimes 2 --seed 1
+    (O1 2 lifetimes, 16/16 outcomes, mean 1.0; fresh run dir removed
+    afterward, no new committed artifacts)
+Outcome and checks passed: Birth zeros with paired init sharing across
+  lifetimes under one outer seed and variation across outer seeds;
+  tick-by-tick lifetime shows state moves every tick, post-feedback
+  membranes/filters nonzero (no boundary reset), W0/B/bias bit-identical
+  afterward; actor vs B1 paired lifetimes share cue/noise/event/tick
+  schedules while rewards follow own XOR actions; reward 0 vs 1 features
+  diverge trajectories while apply_feedback moves nothing and W0 stays
+  fixed; duplicates/backwards/invalid rewards and width mismatches fail
+  without tick or state change; interleaved reads reproduce bitwise and
+  reruns reproduce choices; guards accept the no-learning profile (and
+  explicitly disabled learning) while rejecting env-only-as-actor,
+  enabled learning/evolution, non-fixed gates, diagnostic resets, and
+  reserved env kinds; bad namespaces/sections explicit.
+Checks not run / failures / blockers: None. One test initially expected
+  InvalidConfig for a bad namespace and got the explicit Params BadSeed
+  from init validation; fixed the expectation (no code change).
+Configuration and suite hashes: actor_no_learning_test profile (env_smoke
+  timing, N=16/m=2/p=0.25, 6 outcomes, no learning/modulator/evolution);
+  init outer 1 vs 2 pairing fixtures; development namespace; no suites
+  consumed.
+Artifact paths and checksums where relevant: src/agent/no_learning.rs,
+  tests/no_learning.rs (no run directories produced; smoke rerun dir
+  removed).
+Interpretation and claim limits: Continuous nonplastic dynamics only.
+  Reward enters as sensory channels; no P/E/gates/search. B3 is the
+  same-actor no-update control, not a B7 activity-only optimum. The
+  configs/actor_no_learning.toml file and simulate wiring stay M1-12
+  work. M1-GATE remains open.
+Tracker boxes updated: M1-07 checked.
+Next eligible task: M1-08.
 ```
 
 ## Blockers and decision register - keep current

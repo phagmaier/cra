@@ -1,28 +1,31 @@
-//! B0 (random action), B1 (constant action), and the O1 hidden-state oracle
-//! (M0-10, spec 13.1/13.3).
+//! B0 (random action), B1 (constant action), B3 (nonplastic actor), and
+//! the O1 hidden-state oracle (M0-10, M1-07, spec 13.1/13.3).
 //!
 //! Information discipline:
 //!
-//! - B0/B1 implement the ordinary [`Agent`] trait: they receive only
-//!   `Observation`s and their own state. Their `advance` ignores features
+//! - B0/B1/B3 implement the ordinary [`Agent`] trait: they receive only
+//!   `Observation`s and their own state. B0/B1 `advance` ignores features
 //!   (no motor circuit exists at M0; the harness commits their
-//!   `select_action`), and `apply_feedback` only deduplicates events. This
+//!   `select_action`); B3 advances its inherited actor plus fixed motor
+//!   filter on every tick and commits from its own readout. `apply_feedback`
+//!   only deduplicates events (B3 performs no weight change). This
 //!   type-level conformance is the proof they use only permitted
 //!   information.
 //! - O1 deliberately does *not* implement `Agent`. It reads [`HiddenState`]
 //!   directly through an evaluator-only method. It must never appear on an
 //!   ordinary code path; the harness keeps the two runners separate
-//!   (`run_ordinary` vs `run_oracle`).
+//!   (`run_ordinary`/`run_actor_ordinary` vs `run_oracle`).
 //!
-//! Scheduling fairness: every baseline runs the same [`Lifetime`] driver
-//! with the same production [`commit`](Lifetime::commit) path. Same seed
-//! tuples yield the same exogenous schedule — including the same per-choice
-//! noise bits — while each baseline's reward follows its own action. No
-//! forced or shared rewards cross agents.
+//! Scheduling fairness: every ordinary runner uses the same [`Lifetime`]
+//! driver with the same production [`commit`](Lifetime::commit) path. Same
+//! seed tuples yield the same exogenous schedule — including the same
+//! per-choice noise bits — while each policy's reward follows its own
+//! action. No forced or shared rewards cross agents.
 
 use rand::Rng;
 use rand_chacha::ChaCha8Rng;
 
+use crate::agent::no_learning::NoLearningActor;
 use crate::config::Config;
 use crate::environment::{
     Agent, Feedback, HiddenAnnotation, HiddenState, Lifetime, MotorOutput, SimError,
@@ -135,6 +138,16 @@ impl OrdinaryPolicy for ConstantBaseline {
     }
 }
 
+/// B3 ordinary commitment for the nonplastic actor: reads only the actor's
+/// own latest motor readout, with exact ties broken on the dedicated
+/// `tie_break` stream. The impl lives here (rather than in `agent`) so the
+/// agent crate never depends on the experiment harness.
+impl OrdinaryPolicy for NoLearningActor {
+    fn select_action(&mut self) -> u8 {
+        NoLearningActor::select_action(self)
+    }
+}
+
 /// O1: hidden-state oracle (privileged, researcher-only). Chooses the
 /// preferred action at every commitment, so latent correctness is exactly 1
 /// and observed reward on cue `c` averages `1 - epsilon[c]` (spec 13.3).
@@ -221,6 +234,55 @@ pub fn run_ordinary(
 ) -> Result<BaselineSummary, SimError> {
     crate::config::validate_baseline_execution(cfg)
         .map_err(|e| SimError::InvalidConfiguration(e.to_string()))?;
+    run_ordinary_inner(
+        cfg,
+        root_seed,
+        namespace,
+        outer_seed,
+        lifetime_index,
+        policy_name,
+        policy,
+    )
+}
+
+/// Run the nonplastic actor (B3) through one full lifetime.
+///
+/// Identical tick/commit/record loop to [`run_ordinary`]: the same
+/// [`Lifetime`] driver, the same production commit path, feedback consumed
+/// before the neural transition, and the actor advanced on every tick
+/// (quiet/cue/gap/response/delay/feedback) with no boundary resets. Only
+/// the execution guard differs (actor profile instead of env-only).
+pub fn run_actor_ordinary(
+    cfg: &Config,
+    root_seed: u64,
+    namespace: &str,
+    outer_seed: u64,
+    lifetime_index: u64,
+    policy_name: &'static str,
+    policy: &mut dyn OrdinaryPolicy,
+) -> Result<BaselineSummary, SimError> {
+    crate::config::validate_actor_no_learning_execution(cfg)
+        .map_err(|e| SimError::InvalidConfiguration(e.to_string()))?;
+    run_ordinary_inner(
+        cfg,
+        root_seed,
+        namespace,
+        outer_seed,
+        lifetime_index,
+        policy_name,
+        policy,
+    )
+}
+
+fn run_ordinary_inner(
+    cfg: &Config,
+    root_seed: u64,
+    namespace: &str,
+    outer_seed: u64,
+    lifetime_index: u64,
+    policy_name: &'static str,
+    policy: &mut dyn OrdinaryPolicy,
+) -> Result<BaselineSummary, SimError> {
     let mut lifetime = Lifetime::new(cfg, root_seed, namespace, outer_seed, lifetime_index)?;
     let mut choices = Vec::new();
     let mut annotations = Vec::new();

@@ -405,6 +405,48 @@ pub fn validate_baseline_execution(cfg: &Config) -> Result<(), ConfigError> {
     Ok(())
 }
 
+/// No-learning actor execution (M1-07, B3): the continuous environment plus
+/// the inherited actor with plasticity disabled.
+///
+/// Requires an `[actor]` section and the M0 `birth_only` timing contract.
+/// A `[learning]` section is allowed only with `enabled = false` (enabled
+/// plasticity arrives in M3); a `[modulator]` section is allowed only in
+/// `fixed` mode and is ignored (gates arrive in M6); `[evolution]` is
+/// allowed only with `enabled = false` (search arrives in M7). Schema
+/// validation still applies to every present section.
+pub fn validate_actor_no_learning_execution(cfg: &Config) -> Result<(), ConfigError> {
+    validate_environment_execution(cfg)?;
+    if cfg.actor.is_none() {
+        return Err(ConfigError::UnsupportedExecution(
+            "no-learning actor execution requires an [actor] section".to_owned(),
+        ));
+    }
+    if let Some(learning) = &cfg.learning
+        && learning.enabled
+    {
+        return Err(ConfigError::UnsupportedExecution(
+            "no-learning actor execution requires learning.enabled = false (plastic updates arrive in M3)".to_owned(),
+        ));
+    }
+    if let Some(modulator) = &cfg.modulator
+        && modulator.mode != "fixed"
+    {
+        return Err(ConfigError::UnsupportedExecution(format!(
+            "no-learning actor execution supports only modulator mode 'fixed'; found '{}' (gates arrive in M6)",
+            modulator.mode
+        )));
+    }
+    if let Some(evolution) = &cfg.evolution
+        && evolution.enabled
+    {
+        return Err(ConfigError::UnsupportedExecution(
+            "no-learning actor execution requires evolution.enabled = false (search arrives in M7)"
+                .to_owned(),
+        ));
+    }
+    Ok(())
+}
+
 fn validate_environment(env: &Environment) -> Result<(), ConfigError> {
     if !SUPPORTED_ENVIRONMENT_KINDS.contains(&env.kind.as_str()) {
         return Err(ConfigError::UnknownEnvironmentKind {

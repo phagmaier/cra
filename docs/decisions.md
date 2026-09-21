@@ -444,3 +444,40 @@ make code or a result look successful.**
   `decide_action` takes them explicitly. Birth state is `q = [0, 0]`
   (spec 10.4); `from_q` serves fixtures and M1-09 restore with a
   finiteness check.
+
+## 2026-09-21 UTC — M1-07 nonplastic actor integration (spec 3.4, 5.5–5.8, 6.1/6.4, 9–10, 13.1)
+
+- **Scope:** the continuously running no-learning actor (B3) through the
+  common ordinary runner. No plastic offsets, eligibility, gates, or
+  search; `W0` is immutable and `apply_feedback` performs no learning.
+  Affected spec sections: 3.4 (agent boundary), 5.5–5.8 (public
+  features, forbidden inputs, timing, commitment), 6.1/6.4 (transition,
+  readout), 9 (feedback before transition, no double apply), 10.4
+  (birth zeros), 13.1 (B3 control).
+- **One runner, two guards.** `run_actor_ordinary` shares the exact
+  tick/feedback/commit/record loop with `run_ordinary` through
+  `run_ordinary_inner`; only the execution guard differs
+  (`validate_actor_no_learning_execution` vs
+  `validate_baseline_execution`). Alternative (one guard accepting both)
+  rejected: M0 baselines must still refuse neural sections, and actor
+  profiles must refuse env-only configs. Consequence: scheduling
+  fairness is structural — same `Lifetime` driver, same production
+  commit, same exogenous streams.
+- **Seed pairing by construction.** Inherited sampling uses
+  `(root, namespace, outer, lifetime 0, "init")` so lifetimes under one
+  outer seed share mask/`W0`/`B` (future B4/B5/B6 pair on this);
+  per-lifetime `actor_noise`/`tie_break` streams use the lifetime index.
+  The environment never draws agent streams, so actor stepping cannot
+  shift cue/change/noise/timing schedules (tested against B1).
+- **Reward as input, not as update.** `apply_feedback` validates
+  `event_id` ordering and `reward in {0, 1}` then records the id only;
+  `advance` carries the public outcome channels through `B` on the next
+  transition. Consequence: different outcome values diverge trajectories
+  while `W0` stays bit-identical; duplicate/invalid feedback changes
+  nothing (tested with snapshots).
+- **No new CLI yet.** `simulate --baseline` stays env-only/oracle; the
+  `configs/actor_no_learning.toml` file and actor simulate wiring are
+  M1-12 work. M1-07 tests use an explicit in-code no-learning profile
+  (env-smoke timing, `N = 16`, six outcomes, no learning/modulator/
+  evolution sections). `OrdinaryPolicy` for the actor is implemented in
+  `experiments::baseline` so `agent` never depends on the harness.
