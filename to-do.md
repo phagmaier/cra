@@ -30,19 +30,21 @@ and [continuation guide](docs/handoff.md).
 
 | Field | Current value |
 | --- | --- |
-| Current milestone | M3 in progress; M2-GATE passed 2026-09-21 UTC; M3-01 verified 2026-09-21 UTC |
+| Current milestone | M3 in progress; M2-GATE passed 2026-09-21 UTC; M3-03 verified 2026-09-21 UTC |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M3-01 — plastic offsets, eligibility, and masks |
+| Last verified task | M3-03 — hand-calculated golden update fixture |
 | Claimed task | None |
-| Next eligible task | M3-02 |
+| Next eligible task | M3-04 |
 | Current blocker | None |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | 2026-09-21 UTC M3-01; docs/evidence/m3-01/summary.md and ledger below |
+| Last evidence record | 2026-09-21 UTC M3-03; docs/evidence/m3-03/summary.md and ledger below |
 
 ### Session ownership and handoffs
 
 | Owner/session | Task IDs | Files or interfaces owned | Status / handoff |
 | --- | --- | --- | --- |
+| opencode 2026-09-21 M3-03 | M3-03 | tests/golden_updates.rs, docs/evidence/m3-03/, README.md, docs/{decisions,evidence/README,handoff}.md, to-do.md | Done; 4 new tests (fixture only) and full checks pass; next M3-04 |
+| opencode 2026-09-21 M3-02 | M3-02 | src/agent/plasticity.rs, tests/feedback_updates.rs, docs/evidence/m3-02/, README.md, docs/{decisions,evidence/README,handoff}.md, to-do.md | Done; 11 new tests and full checks pass; next M3-03 |
 | opencode 2026-09-21 M3-01 | M3-01 | src/agent/{plasticity,actor,mod}.rs, src/lib.rs, tests/plasticity.rs, docs/evidence/m3-01/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; 16 new tests and full checks pass; next M3-02 |
 | Codex 2026-09-21 M2-06 | M2-06, M2-GATE | scripts/run_score_diagnostics.sh, docs/evidence/m2-06/, README.md, docs/{experiments,handoff}.md, docs/evidence/README.md, to-do.md | Done; all diagnostics freshly passed; M2-GATE verified, next M3-01 |
 | Codex 2026-09-21 M2-05 | M2-05 | tests/score_recurrent.rs, docs/evidence/m2-05/, README.md, docs/{experiments,handoff}.md, to-do.md | Done; three Monte Carlo comparisons and full checks pass; next M2-06 |
@@ -288,13 +290,15 @@ Demonstrate learning from delayed terminal rewards in a deliberately episodic di
   - Verify: Missing/nonplastic edges never acquire updates. Effective weight caches are refreshed in one tested location. All new state participates in checkpoint serialization and compatibility validation.
   - Evidence: `docs/evidence/m3-01/summary.md` (2026-09-21 UTC). `src/agent/plasticity.rs` stores `P`/`E` separately from `W0`, builds both masks, implements `persistent` vs `no_decay_diagnostic`, and exposes `refresh_effective` as the single cache writer; `PlasticSnapshot` (schema 1, `deny_unknown_fields`) is validated on restore. `src/agent/actor.rs` adds the effective-weight transition sharing the `W0` core. 16 new tests in `tests/plasticity.rs`; 232 fast Rust tests pass, 3 default ignores, 2 compile-fail doc checks, clean fmt/Clippy. Checkpoint embedding/replay with nonzero `P`/`E` remains M3-10/M4-06.
 
-- [ ] **M3-02 - Implement exactly-once feedback updates and baseline arithmetic**
+- [x] **M3-02 - Implement exactly-once feedback updates and baseline arithmetic**
   - Deliver: Read old E/gates/P/baseline, compute delta, clamp raw updates per edge, clamp resulting P, and update the baseline once after delta. Fixed mode uses gate 1; the diagnostic baseline follows its declared fixed-rollout policy.
   - Verify: Duplicate feedback is rejected without changing state. eta=0, gate=0, and delta=0 give zero task-dependent changes. W0 never changes. Tests separate raw, limited, and actual update values at both clipping boundaries.
+  - Evidence: `docs/evidence/m3-02/summary.md` (2026-09-21 UTC). `PlasticState::apply_feedback_once` reads old `E`/per-receiver gates/`P`/baseline, reports `delta` plus full raw/limited/actual matrices, enforces ordered `max_update`/`plastic_bound` clamps, updates the baseline once after `delta`, marks monotonic dedup, and refreshes the single cache; `E` never resets, `W0` never mutates. `PlasticSnapshot` schema 2 carries baseline plus required `last_feedback`. 11 new tests in `tests/feedback_updates.rs`; 243 fast Rust tests pass, 3 default ignores, 2 compile-fail doc checks, clean fmt/Clippy. No runner/gate/acquisition wired; M3-03 golden and M3-04 episodic runner remain.
 
-- [ ] **M3-03 - Pass the hand-calculated golden update fixture**
+- [x] **M3-03 - Pass the hand-calculated golden update fixture**
   - Deliver: Implement Section 17.3 independently of ordinary configured time constants: score 0.4, new eligibility 0.67, delta 0.4, raw update 0.00067, new P 0.10067, and new baseline 0.64.
   - Verify: Use tight stated floating-point tolerances. Assert the old baseline is used for delta, and test both clipped and unclipped cases separately. Save the fixture in tests/golden_updates.rs.
+  - Evidence: `docs/evidence/m3-03/summary.md` (2026-09-21 UTC). Fixture-only `tests/golden_updates.rs` drives the 17.3 chain through `conditional_score`/`advance_eligibility`/`apply_feedback_once` with explicit `alpha_h = 0.5`, `lambda_e = 0.9`; unclipped golden plus separate per-edge and bound clamps at `1e-12`–`1e-15` (1-ulp allowance on one `actual == limited` comparison). 4 new tests; 247 fast Rust tests pass, 3 default ignores, 2 compile-fail doc checks, clean fmt/Clippy. No production change; M3-04 episodic runner remains.
 
 - [ ] **M3-04 - Create the explicitly episodic clean-learning runner**
   - Deliver: Use two unknown cue-action mappings, zero noise, no reversals or blank gap, short delay, reset state/traces between diagnostic rollouts, no trace decay, and one terminal update. Name this profile episodic_stationary, separate from continuous debug_stationary.
@@ -2715,6 +2719,103 @@ Tracker boxes updated: M3-01 checked after verification; status/ownership/
 Next eligible task: M3-02.
 ```
 
+```text
+Date / agent or session: 2026-09-21 / opencode (M3-02 session)
+Task IDs: M3-02
+Spec sections: 7.4 (teaching signal/running baseline), 7.5 (gated update,
+  ordered clamps, mask restriction), 9 step 2 (exactly-once pre-transition
+  consumption), 10.4 (birth baseline 0.5), 10.6 (explicit errors), 17.2
+  (zero-change cases, clipping order, W0 invariance, no trace reset)
+Change and affected files: src/agent/plasticity.rs (extended: baseline +
+  dedup lifetime state, apply_feedback_once with per-call validated
+  eta/max_update/bound/beta/gates, FeedbackOutcome raw/limited/actual
+  report, DuplicateFeedback error, snapshot schema 2 with baseline +
+  required last_feedback, from_learning_config baseline carriage);
+  tests/feedback_updates.rs (new, 11 tests); README.md,
+  docs/{decisions,evidence/README,handoff}.md, docs/evidence/m3-02/summary.md,
+  to-do.md (docs/evidence only).
+Code revision / dirty-tree state: base 3fdc541 clean at start; M3-02 files
+  modified/new at run time (dirty=true in any fresh manifest).
+Commands actually executed:
+  cargo test --locked --test feedback_updates (11 passed)
+  cargo test --locked --test plasticity (16 passed)
+  cargo fmt --all
+  cargo fmt --all -- --check (clean)
+  cargo clippy --all-targets --locked -- -D warnings (clean)
+  cargo test --all-targets --locked (243 passed, 0 failed, 3 ignored)
+  cargo test --locked --doc (2 compile-fail checks passed)
+Outcome and checks passed: delta from old baseline with one post-delta
+  update and chained second-outcome deltas; duplicate and older ids rejected
+  with bit-identical P/E/baseline/cache; eta=0, all-zero gates, and delta=0
+  move no P; max_update clipping separates raw/limited on both signs;
+  plastic_bound clipping separates limited/actual on both bounds; caller W0
+  unchanged with effective==W0+P; motor-only nonplastic zero reports;
+  per-receiver gate sharing with doubling; all invalid reward/gate/
+  hyperparameter/w0 inputs rejected without state change; snapshot v2
+  round-trip with nonzero P/baseline/dedup plus post-restore dedup.
+Checks not run / failures / blockers: No CLI smoke or Python audit rerun:
+  this task adds a unit-level entry point but enables no new production
+  execution mode (simulate guards still reject enabled learning; no runner
+  calls apply_feedback_once). Slow M2 Monte Carlo diagnostics not rerun
+  (unchanged). No failures.
+Configuration and suite hashes: configs/{debug_stationary,actor_no_learning,
+  env_smoke}.toml unchanged; no seeds consumed (unit/fixture tests only,
+  development namespace where used).
+Seed namespace / outer seeds / lifetime count: No lifetimes simulated; only
+  deterministic fixtures. No new seeds consumed.
+Artifact paths and checksums where relevant: docs/evidence/m3-02/summary.md;
+  source hashes for src/agent/plasticity.rs (e9975e72...), 
+  tests/feedback_updates.rs (4bf26bcc...) recorded there.
+Interpretation and claim limits: Update arithmetic and exactly-once
+  bookkeeping only. No runner, learned gates, or acquisition/control claim.
+  The 17.3 golden is M3-03; the episodic runner is M3-04; top-level
+  checkpoint schema stays 2 with embedding/replay at M3-10/M4-06.
+Tracker boxes updated: M3-02 checked after verification; status/ownership/
+  ledger updated.
+Next eligible task: M3-03.
+```
+
+```text
+Date / agent or session: 2026-09-21 / opencode (M3-03 session)
+Task IDs: M3-03
+Spec sections: 17.3 (golden score/eligibility/update), 17.2 (clipped vs
+  unclipped separation, W0 invariance)
+Change and affected files: tests/golden_updates.rs (new, 4 tests:
+  golden score 0.4, eligibility 0.67, unclipped feedback chain
+  0.4/0.00067/0.10067/0.64, separate per-edge and bound clamps);
+  README.md, docs/{decisions,evidence/README,handoff}.md,
+  docs/evidence/m3-03/summary.md, to-do.md (docs/evidence only; no
+  production change).
+Code revision / dirty-tree state: base 3fdc541 with uncommitted M3-02/M3-03
+  work in tree at run time (dirty=true in any fresh manifest).
+Commands actually executed:
+  cargo test --locked --test golden_updates (4 passed)
+  cargo fmt --all
+  cargo fmt --all -- --check (clean)
+  cargo clippy --all-targets --locked -- -D warnings (clean)
+  cargo test --all-targets --locked (247 passed, 0 failed, 3 ignored)
+  cargo test --locked --doc (2 compile-fail checks passed)
+Outcome and checks passed: score/eligibility/delta/raw/P/baseline golden
+  at 1e-12-1e-15 through public entry points with explicit alpha/lambda;
+  old baseline produces delta with one post-delta update; clipped cases
+  distinct from unclipped on both clamp kinds. One initial overly strict
+  assert_eq! (actual vs limited, 1-ulp add/subtract round-trip) fixed to a
+  documented 1e-15 close; no method change.
+Checks not run / failures / blockers: No CLI smoke or Python audit rerun:
+  fixture-only task with no production execution change. Slow M2 Monte Carlo
+  diagnostics not rerun (unchanged). No failures beyond the fixed assertion.
+Configuration and suite hashes: configs unchanged; no seeds consumed
+  (deterministic fixtures only).
+Seed namespace / outer seeds / lifetime count: No lifetimes simulated.
+Artifact paths and checksums where relevant: docs/evidence/m3-03/summary.md;
+  tests/golden_updates.rs (7b81be19...) recorded there.
+Interpretation and claim limits: Arithmetic chain only. No runner,
+  controls, or acquisition claim. M3-04 episodic runner next.
+Tracker boxes updated: M3-03 checked after verification; status/ownership/
+  ledger updated.
+Next eligible task: M3-04.
+```
+
 ## Blockers and decision register - keep current
 
 No blockers. M1-GATE re-verified after the 2026-09-21 UTC owner-requested
@@ -2729,7 +2830,15 @@ M3-01 verified 2026-09-21 UTC: 16 new plasticity tests and the full 232-test
 fast suite plus 2 compile-fail docs pass; plastic offsets, eligibility, both
 masks, and the single effective-weight refresh exist. This is storage only:
 no reward update or acquisition evidence yet.
-Next: M3-02 (exactly-once feedback updates and baseline arithmetic).
+M3-02 verified 2026-09-21 UTC: 11 new feedback-update tests and the full
+243-test fast suite plus 2 compile-fail docs pass; exactly-once gated `P`
+updates, running baseline, separated raw/limited/actual reports, and
+snapshot v2 exist. This is unit-level arithmetic: no runner, gate, or
+acquisition evidence yet.
+M3-03 verified 2026-09-21 UTC: 4 new golden-fixture tests and the full
+247-test fast suite plus 2 compile-fail docs pass; Section 17.3 chain and
+separate clipped cases exist. Fixture only: no acquisition evidence yet.
+Next: M3-04 (explicitly episodic clean-learning runner).
 M1 findings, corrections and claim limits: `docs/m1-review.md`.
 M0 historical evidence remains in `docs/m0-review.md`.
 Scientific decisions remain in the append-only `docs/decisions.md`.

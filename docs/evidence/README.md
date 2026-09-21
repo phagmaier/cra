@@ -87,3 +87,21 @@ effective-weight cache writer, and validated `PlasticSnapshot`
 serialization. Source hashes identify the reviewed snapshot. It is a
 code-only task with deterministic fixture tests and no lifetime simulation,
 so it contains no run directory, seed consumption, or acquisition claim.
+
+## M3-02 feedback updates
+
+The [M3-02 summary](m3-02/summary.md) records the exactly-once gated `P`
+update and running baseline: old-baseline `delta`, ordered raw/limited/`P`
+clamps with separated reports at both boundaries, duplicate rejection with
+unchanged state, and snapshot v2 carrying baseline plus dedup. Source
+hashes identify the reviewed snapshot. It is a code-only task with
+deterministic fixture tests and no lifetime simulation or acquisition
+claim.
+
+## M3-03 golden fixture
+
+The [M3-03 summary](m3-03/summary.md) records the Section 17.3
+hand-calculated chain (`0.4` / `0.67` / `0.4` / `0.00067` / `0.10067` /
+`0.64`) through the public score/eligibility/update entry points, plus
+separate clipped cases. Fixture-only task with no production change and
+no acquisition claim.

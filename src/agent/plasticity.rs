@@ -1,17 +1,23 @@
-//! Plastic offsets, eligibility traces, and plastic masks (M3-01).
+//! Plastic offsets, eligibility traces, and plastic masks (M3-01) plus
+//! exactly-once feedback updates and baseline arithmetic (M3-02).
 //!
-//! Spec: 7.3 (persistent eligibility `E <- lambda_e * E + S`), 7.5 (offsets
-//! `P` on plastic actor edges only; `W_effective = W0 + P`), 10.3 (plastic
-//! mask choices), 10.4 (birth `P = E = 0`), 17.2 (missing/nonplastic edges
-//! never acquire updates; one effective-weight refresh location).
+//! Spec: 7.3 (persistent eligibility `E <- lambda_e * E + S`), 7.4 (reward
+//! baseline `delta = R - baseline_old`, one baseline update after `delta`),
+//! 7.5 (offsets `P` on plastic actor edges only; `W_effective = W0 + P`),
+//! 9 (feedback consumed before the current neural transition; exactly once),
+//! 10.3 (plastic mask choices), 10.4 (birth `P = E = 0`, baseline `0.5`),
+//! 17.2 (missing/nonplastic edges never acquire updates; one
+//! effective-weight refresh location).
 //!
-//! Scope: lifetime state `P`/`E` stored separately from immutable `W0`,
-//! two plastic-mask kinds (`all_recurrent_edges`, `motor_afferent_only`),
-//! and two trace policies (`persistent`, `no_decay_diagnostic`) as distinct
-//! configurations. Feedback-gated `P` updates, the reward baseline, and the
-//! episodic runner arrive in M3-02/M3-04; this module owns storage,
-//! eligibility accumulation, the single effective-weight refresh, and a
-//! versioned snapshot for future checkpoint embedding (M3-10/M4-06).
+//! Scope: lifetime state `P`/`E`/baseline/dedup stored separately from
+//! immutable `W0`, two plastic-mask kinds (`all_recurrent_edges`,
+//! `motor_afferent_only`), and two trace policies (`persistent`,
+//! `no_decay_diagnostic`) as distinct configurations. This module owns
+//! storage, eligibility accumulation, the single effective-weight refresh,
+//! the exactly-once gated `P` update with its raw/limited/actual report,
+//! and a versioned snapshot for future checkpoint embedding (M3-10/M4-06).
+//! Fixed (ungated) plasticity passes gate `1`; gate heads arrive in M6.
+//! The episodic runner arrives in M3-04.
 //!
 //! Information boundary: `P`/`E` cover recurrent actor edges only (`N x N`).
 //! Biases, sensory projection `B`, and modulator weights are never plastic
@@ -33,12 +39,14 @@
 //! through [`PlasticState::effective_weights`]. `W0` slices passed in are
 //! never mutated (tested).
 //!
-//! Checkpoint note: [`PlasticSnapshot`] is versioned (`deny_unknown_fields`)
-//! and validated on restore (dimensions, finiteness, mask agreement, zero
-//! on nonplastic/missing, `tau_e`). The top-level [`crate::checkpoint`]
-//! schema stays 2 for the nonplastic M1 actor; embedding this snapshot
-//! plus replay with nonzero `P`/`E` is M3-10/M4-06 work. This module
-//! establishes the serializable state and its compatibility rules now.
+//! Checkpoint note: [`PlasticSnapshot`] is versioned (`deny_unknown_fields`,
+//! currently schema 2 with baseline and exactly-once bookkeeping) and
+//! validated on restore (dimensions, finiteness, mask agreement, zero on
+//! nonplastic/missing, `tau_e`, finite baseline). The top-level
+//! [`crate::checkpoint`] schema stays 2 for the nonplastic M1 actor;
+//! embedding this snapshot plus replay with nonzero `P`/`E` is M3-10/M4-06
+//! work. This module establishes the serializable state and its
+//! compatibility rules now.
 
 use serde::{Deserialize, Serialize};
 
@@ -48,10 +56,13 @@ use crate::config::{Learning, SUPPORTED_PLASTIC_MASKS, SUPPORTED_TRACE_POLICIES}
 
 /// Version for [`PlasticSnapshot`]. Bumped only with a documented format
 /// change; older snapshots are rejected, never silently migrated.
-pub const PLASTIC_SNAPSHOT_SCHEMA_VERSION: u32 = 1;
+/// v2 adds the running reward baseline and exactly-once feedback bookkeeping
+/// (M3-02); v1 files lack those lifetime states and are incompatible.
+pub const PLASTIC_SNAPSHOT_SCHEMA_VERSION: u32 = 2;
 
-/// Plastic-state construction, advance, and snapshot failures. Every
-/// variant is an explicit error, never a silent default or a clipped state.
+/// Plastic-state construction, advance, feedback-update, and snapshot
+/// failures. Every variant is an explicit error, never a silent default or
+/// a clipped state. Duplicate feedback leaves all state unchanged.
 #[derive(Clone, Debug, PartialEq, thiserror::Error, Serialize, Deserialize)]
 pub enum PlasticityError {
     #[error("plastic dimension mismatch: {0}")]
@@ -64,6 +75,8 @@ pub enum PlasticityError {
     UnknownTracePolicy(String),
     #[error("nonfinite plastic state in {0}")]
     NonFiniteState(String),
+    #[error("duplicate feedback event {0}")]
+    DuplicateFeedback(u64),
     #[error("incompatible plastic snapshot: {0}")]
     Incompatible(String),
     #[error("corrupt plastic snapshot: {0}")]
@@ -200,15 +213,17 @@ impl TracePolicy {
     }
 }
 
-/// Lifetime plastic state: offsets `P`, traces `E`, and the single
+/// Lifetime plastic state: offsets `P`, traces `E`, the running reward
+/// baseline, exactly-once feedback bookkeeping, and the single
 /// effective-weight cache `W0 + P`.
 ///
 /// `p`/`e`/`w_effective` are `N x N`; missing and nonplastic entries stay
 /// exactly `0.0` (`w_effective` equals `w0` there, which is `0.0` on
 /// missing edges). Fields are private so the cache can only be refreshed
-/// through [`Self::refresh_effective`] and `P`/`E` can only change through
-/// [`Self::advance_eligibility`] (M3-02 adds the feedback update path) or
-/// validated snapshot restore.
+/// through [`Self::refresh_effective`], `P`/baseline/dedup can only change
+/// through [`Self::apply_feedback_once`] or validated snapshot restore,
+/// and `E` can only change through [`Self::advance_eligibility`] or
+/// validated restore. `E` is never reset by feedback (spec 7.7).
 #[derive(Clone, Debug, PartialEq)]
 pub struct PlasticState {
     n: usize,
@@ -221,14 +236,42 @@ pub struct PlasticState {
     p: Vec<Vec<f64>>,
     e: Vec<Vec<f64>>,
     w_effective: Vec<Vec<f64>>,
+    reward_baseline: f64,
+    last_feedback: Option<u64>,
+}
+
+/// Per-feedback update report (spec 7.5): the teaching signal plus the
+/// three update stages on every edge. `raw_updates` is the unbounded
+/// `eta * delta * gate * E`; `limited_updates` clamps each raw value to
+/// `[-max_update, +max_update]`; `actual_updates` is the realized `P`
+/// change after the `[-plastic_bound, +plastic_bound]` clamp, so
+/// bound saturation makes `actual != limited`. All three are `N x N` with
+/// exactly `0.0` on missing/nonplastic edges.
+#[derive(Clone, Debug, PartialEq)]
+pub struct FeedbackOutcome {
+    pub event_id: u64,
+    pub reward: f64,
+    pub delta: f64,
+    pub baseline_old: f64,
+    pub baseline_new: f64,
+    pub raw_updates: Vec<Vec<f64>>,
+    pub limited_updates: Vec<Vec<f64>>,
+    pub actual_updates: Vec<Vec<f64>>,
 }
 
 impl PlasticState {
-    /// Birth state (spec 10.4): `P = E = 0`, `W_effective = W0`.
+    /// Birth state (spec 10.4): `P = E = 0`, `W_effective = W0`,
+    /// `reward_baseline = 0.5`, no feedback consumed yet.
     ///
     /// Validates topology/`w0` agreement (square, finite, zero on missing),
     /// the mask and trace-policy names, and `tau_e`. The cache is written
     /// once through the single refresh location before returning.
+    /// Per-feedback hyperparameters (`eta`, `max_update`, `plastic_bound`,
+    /// baseline `beta`) are supplied to [`Self::apply_feedback_once`], not
+    /// stored, so one state can be exercised with explicit values in tests
+    /// while the runner passes its resolved configuration consistently.
+    /// [`Self::from_learning_config`] sets the baseline from the validated
+    /// TOML `reward_baseline_initial`.
     pub fn new(
         topology: &Topology,
         w0: &[Vec<f64>],
@@ -253,25 +296,39 @@ impl PlasticState {
             p: vec![vec![0.0; n]; n],
             e: vec![vec![0.0; n]; n],
             w_effective: vec![vec![0.0; n]; n],
+            reward_baseline: 0.5,
+            last_feedback: None,
         };
         state.refresh_effective(w0)?;
         Ok(state)
     }
 
     /// Build from a validated [`Learning`] section, keeping TOML strings as
-    /// the source of truth for mask/trace/`tau_e`.
+    /// the source of truth for mask/trace/`tau_e` and the baseline initial
+    /// value. Update hyperparameters (`eta`, `max_update`, `plastic_bound`,
+    /// `beta`) remain per-call arguments to [`Self::apply_feedback_once`].
     pub fn from_learning_config(
         topology: &Topology,
         w0: &[Vec<f64>],
         learning: &Learning,
     ) -> Result<Self, PlasticityError> {
-        Self::new(
+        if !(learning.reward_baseline_initial.is_finite()
+            && (0.0..=1.0).contains(&learning.reward_baseline_initial))
+        {
+            return Err(PlasticityError::InvalidParams(format!(
+                "reward_baseline_initial must be finite in [0, 1]; found {}",
+                learning.reward_baseline_initial
+            )));
+        }
+        let mut state = Self::new(
             topology,
             w0,
             &learning.plastic_mask,
             &learning.trace_policy,
             learning.tau_e,
-        )
+        )?;
+        state.reward_baseline = learning.reward_baseline_initial;
+        Ok(state)
     }
 
     /// Neuron count.
@@ -334,6 +391,19 @@ impl PlasticState {
     #[must_use]
     pub fn effective_weights(&self) -> &[Vec<f64>] {
         &self.w_effective
+    }
+
+    /// Running reward baseline (spec 7.4, 10.4): `0.5` at birth, updated
+    /// once per consumed feedback after `delta` is computed.
+    #[must_use]
+    pub fn reward_baseline(&self) -> f64 {
+        self.reward_baseline
+    }
+
+    /// Highest consumed feedback id, if any (exactly-once bookkeeping).
+    #[must_use]
+    pub fn last_feedback(&self) -> Option<u64> {
+        self.last_feedback
     }
 
     /// Recompute the cache from `w0`: `w_effective = w0 + p`.
@@ -476,9 +546,165 @@ impl PlasticState {
         Ok(())
     }
 
+    /// Apply one bounded plastic update at feedback arrival (spec 7.4-7.5,
+    /// 9 step 2, 17.2): read old `E`/gates/`P`/baseline, compute `delta`
+    /// from the old baseline, clamp per-edge raw updates, clamp the
+    /// resulting `P`, then update the baseline once and mark the event
+    /// consumed. `E` is read, never reset.
+    ///
+    /// ```text
+    /// delta = reward - reward_baseline_old
+    /// raw[j,i] = eta * delta * gate[j] * E_old[j,i]
+    /// limited[j,i] = clamp(raw[j,i], -max_update, +max_update)
+    /// P_new[j,i] = clamp(P_old[j,i] + limited[j,i], -plastic_bound, +plastic_bound)
+    /// baseline_new = baseline_old + beta * delta
+    /// ```
+    ///
+    /// Fixed (ungated) plasticity passes `gates = [1.0; N]`; gate heads
+    /// arrive in M6. `gates` is per receiving neuron, shared by its
+    /// incoming plastic edges, finite in `[0, 1]`. Only plastic edges are
+    /// written; missing/nonplastic entries stay exactly `0.0` in `P` and
+    /// in all three update reports. `w0` is read to refresh the single
+    /// effective cache and is never mutated. The diagnostic fixed-baseline
+    /// policy lives in [`crate::experiments::finite_rollout`] (frozen
+    /// baseline, no running update); this method always performs the one
+    /// running-baseline update above.
+    ///
+    /// Exactly-once: an `event_id` at or below [`Self::last_feedback`] is
+    /// rejected as [`PlasticityError::DuplicateFeedback`] with all state
+    /// unchanged. All other inputs are validated before any mutation, so a
+    /// rejected call also leaves `P`/baseline/cache/dedup unchanged.
+    /// `eta = 0`, all-zero gates, or `delta = 0` yield zero task-dependent
+    /// `P` changes (the baseline still updates once when `delta != 0`).
+    #[allow(clippy::too_many_arguments)]
+    pub fn apply_feedback_once(
+        &mut self,
+        event_id: u64,
+        reward: f64,
+        gates: &[f64],
+        eta: f64,
+        max_update: f64,
+        plastic_bound: f64,
+        baseline_beta: f64,
+        w0: &[Vec<f64>],
+    ) -> Result<FeedbackOutcome, PlasticityError> {
+        if self.last_feedback.is_some_and(|last| event_id <= last) {
+            return Err(PlasticityError::DuplicateFeedback(event_id));
+        }
+        if !(reward.is_finite() && (reward == 0.0 || reward == 1.0)) {
+            return Err(PlasticityError::InvalidParams(format!(
+                "reward must be 0.0 or 1.0; found {reward}"
+            )));
+        }
+        if gates.len() != self.n {
+            return Err(PlasticityError::DimensionMismatch(format!(
+                "gates (len {}) must match {} neurons",
+                gates.len(),
+                self.n
+            )));
+        }
+        if !gates
+            .iter()
+            .all(|g| g.is_finite() && (0.0..=1.0).contains(g))
+        {
+            return Err(PlasticityError::InvalidParams(
+                "gates must be finite in [0, 1]".to_owned(),
+            ));
+        }
+        if !(eta.is_finite() && eta >= 0.0) {
+            return Err(PlasticityError::InvalidParams(format!(
+                "eta must be finite and >= 0; found {eta}"
+            )));
+        }
+        if !(max_update.is_finite() && max_update > 0.0) {
+            return Err(PlasticityError::InvalidParams(format!(
+                "max_update must be finite and > 0; found {max_update}"
+            )));
+        }
+        if !(plastic_bound.is_finite() && plastic_bound > 0.0) {
+            return Err(PlasticityError::InvalidParams(format!(
+                "plastic_bound must be finite and > 0; found {plastic_bound}"
+            )));
+        }
+        if !(baseline_beta.is_finite() && (0.0..=1.0).contains(&baseline_beta)) {
+            return Err(PlasticityError::InvalidParams(format!(
+                "baseline_beta must be finite in [0, 1]; found {baseline_beta}"
+            )));
+        }
+        if !self.reward_baseline.is_finite() {
+            return Err(PlasticityError::NonFiniteState("baseline".to_owned()));
+        }
+        if !self.p.iter().flatten().all(|v| v.is_finite())
+            || !self.e.iter().flatten().all(|v| v.is_finite())
+        {
+            return Err(PlasticityError::NonFiniteState("P/E".to_owned()));
+        }
+        check_w0_shape(self.n, w0)?;
+        for (j, (w_row, s_row)) in w0.iter().zip(self.structural_mask.iter()).enumerate() {
+            for (i, (&w, &structural)) in w_row.iter().zip(s_row.iter()).enumerate() {
+                if !w.is_finite() {
+                    return Err(PlasticityError::NonFiniteState("w0".to_owned()));
+                }
+                if !structural && w != 0.0 {
+                    return Err(PlasticityError::DimensionMismatch(format!(
+                        "w0[{j},{i}] must be 0.0 on missing edge"
+                    )));
+                }
+            }
+        }
+
+        let baseline_old = self.reward_baseline;
+        let delta = reward - baseline_old;
+        if !delta.is_finite() {
+            return Err(PlasticityError::NonFiniteState("delta".to_owned()));
+        }
+        let n = self.n;
+        let mut raw = vec![vec![0.0; n]; n];
+        let mut limited = vec![vec![0.0; n]; n];
+        let mut actual = vec![vec![0.0; n]; n];
+        let mut next_p = self.p.clone();
+        for &(j, i) in &self.plastic_edges {
+            let unbounded = eta * delta * gates[j] * self.e[j][i];
+            if !unbounded.is_finite() {
+                return Err(PlasticityError::NonFiniteState("raw update".to_owned()));
+            }
+            let bounded = unbounded.clamp(-max_update, max_update);
+            let candidate = self.p[j][i] + bounded;
+            if !candidate.is_finite() {
+                return Err(PlasticityError::NonFiniteState("P".to_owned()));
+            }
+            let clamped = candidate.clamp(-plastic_bound, plastic_bound);
+            raw[j][i] = unbounded;
+            limited[j][i] = bounded;
+            actual[j][i] = clamped - self.p[j][i];
+            next_p[j][i] = clamped;
+        }
+        let baseline_new = baseline_old + baseline_beta * delta;
+        if !baseline_new.is_finite() {
+            return Err(PlasticityError::NonFiniteState("baseline".to_owned()));
+        }
+
+        self.p = next_p;
+        self.reward_baseline = baseline_new;
+        self.last_feedback = Some(event_id);
+        self.refresh_effective(w0)?;
+        Ok(FeedbackOutcome {
+            event_id,
+            reward,
+            delta,
+            baseline_old,
+            baseline_new,
+            raw_updates: raw,
+            limited_updates: limited,
+            actual_updates: actual,
+        })
+    }
+
     /// Versioned snapshot for checkpoint embedding (M3-10/M4-06). The
     /// effective cache is not stored: restore recomputes it through the
-    /// single refresh location from the supplied `w0`.
+    /// single refresh location from the supplied `w0`. The running baseline
+    /// and exactly-once bookkeeping round-trip so a resumed lifetime
+    /// continues its teaching signal and dedup without silent resets.
     #[must_use]
     pub fn snapshot(&self) -> PlasticSnapshot {
         PlasticSnapshot {
@@ -489,12 +715,16 @@ impl PlasticState {
             tau_e: self.tau_e_config,
             p: self.p.clone(),
             e: self.e.clone(),
+            reward_baseline: self.reward_baseline,
+            last_feedback: self.last_feedback,
         }
     }
 
     /// Restore validated state onto a topology plus its immutable `w0`.
-    /// Rejects schema, dimension, finiteness, mask-agreement, and nonzero
-    /// `P`/`E` on missing/nonplastic entries instead of defaulting them.
+    /// Rejects schema, dimension, finiteness, mask-agreement, nonzero
+    /// `P`/`E` on missing/nonplastic entries, and nonfinite baseline
+    /// instead of defaulting them. v1 snapshots predate the M3-02 baseline
+    /// and dedup state and are rejected as incompatible.
     pub fn restore(
         snapshot: PlasticSnapshot,
         topology: &Topology,
@@ -529,6 +759,11 @@ impl PlasticState {
             || !snapshot.e.iter().flatten().all(|v| v.is_finite())
         {
             return Err(PlasticityError::Corrupt("P/E must be finite".to_owned()));
+        }
+        if !snapshot.reward_baseline.is_finite() {
+            return Err(PlasticityError::Corrupt(
+                "reward_baseline must be finite".to_owned(),
+            ));
         }
         let expected_mask = mask_kind.build_mask(topology);
         for (j, (((exp_row, topo_row), p_row), e_row)) in expected_mask
@@ -569,6 +804,8 @@ impl PlasticState {
             p: snapshot.p,
             e: snapshot.e,
             w_effective: vec![vec![0.0; n]; n],
+            reward_baseline: snapshot.reward_baseline,
+            last_feedback: snapshot.last_feedback,
         };
         state.refresh_effective(w0)?;
         Ok(state)
@@ -577,6 +814,8 @@ impl PlasticState {
 
 /// Versioned plastic-state snapshot. `deny_unknown_fields` rejects files
 /// claiming future plasticity fields instead of silently defaulting them.
+/// `last_feedback` must be present even when null so v1 files without
+/// exactly-once bookkeeping fail to parse instead of defaulting.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PlasticSnapshot {
@@ -587,6 +826,9 @@ pub struct PlasticSnapshot {
     pub tau_e: f64,
     pub p: Vec<Vec<f64>>,
     pub e: Vec<Vec<f64>>,
+    pub reward_baseline: f64,
+    #[serde(deserialize_with = "crate::checkpoint::required_option")]
+    pub last_feedback: Option<u64>,
 }
 
 fn check_w0_shape(n: usize, w0: &[Vec<f64>]) -> Result<(), PlasticityError> {

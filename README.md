@@ -8,14 +8,17 @@ feedback?
 Status: **M0 complete and re-verified; M1 complete and re-verified (continuous
 nonplastic actor demo, bitwise replay on linux/x86_64 — explicitly not
 learning); M2-GATE passed (restricted score diagnostics); M3-01 implemented
-(plastic offsets, eligibility, masks, effective-weight refresh — storage
-only, no reward update yet); next task M3-02.** The simulator core exists as
+(plastic offsets, eligibility, masks, effective-weight refresh); M3-02
+implemented (exactly-once gated `P` updates, running baseline, separated
+raw/limited/actual reports — unit level, no runner yet); M3-03 implemented
+(Section 17.3 golden fixture, fixture-only); next task M3-04.**
+The simulator core exists as
 a library
 (`src/environment/`, `src/agent/` nonplastic dynamics plus `B3`
 harness, `src/checkpoint.rs`, `src/logging/`) with deterministic
 fixtures, randomized checks, baseline/actor runners, replay proofs, and
-an offline log audit. Lifetime plastic state now exists but no reward
-update, gating, evolution, or comparison
+an offline log audit. Lifetime plastic state plus the feedback update now
+exist but no gating, evolution, or comparison
 pipeline is wired into a runner yet. Anything listed under "Planned" is a
 target from spec Section 18 / `to-do.md`, not working code.
 
@@ -28,7 +31,7 @@ records checkpoint/diagnostic fixes and fresh measured evidence.
 
 Start with [AGENTS.md](AGENTS.md), the [current tracker](to-do.md), and
 the [agent continuation guide](docs/handoff.md). The guide maps existing
-code/tests to M3-02 and records the integration limits to preserve.
+code/tests to M3-04 and records the integration limits to preserve.
 
 | Document | Responsibility |
 | --- | --- |
@@ -176,8 +179,38 @@ cargo test --locked --test plasticity
 
 Its [evidence record](docs/evidence/m3-01/summary.md) documents 16 new
 tests, **232 fast Rust tests passed**, three default ignores, two
-compile-fail doc checks, and clean fmt/Clippy. **M3-02 is next.** These
+compile-fail doc checks, and clean fmt/Clippy. These
 checks do not demonstrate learning.
+
+M3-02 adds `PlasticState::apply_feedback_once`: exactly-once gated `P`
+updates with old-baseline `delta`, ordered `max_update`/`plastic_bound`
+clamps, one baseline update, dedup bookkeeping, separated raw/limited/
+actual reports, and snapshot schema 2 carrying baseline plus dedup. Fixed
+mode passes gate `1`; the finite-rollout diagnostic keeps its frozen
+baseline separately.
+
+```bash
+cargo test --locked --test feedback_updates
+```
+
+Its [evidence record](docs/evidence/m3-02/summary.md) documents 11 new
+tests, **243 fast Rust tests passed**, three default ignores, two
+compile-fail doc checks, and clean fmt/Clippy. These
+checks prove update arithmetic, not acquisition.
+
+M3-03 adds `tests/golden_updates.rs`: the Section 17.3 chain (`0.4` /
+`0.67` / `0.4` / `0.00067` / `0.10067` / `0.64`) through the public
+entry points with tight tolerances, plus separate clipped cases. No
+production change.
+
+```bash
+cargo test --locked --test golden_updates
+```
+
+Its [evidence record](docs/evidence/m3-03/summary.md) documents 4 new
+tests, **247 fast Rust tests passed**, three default ignores, two
+compile-fail doc checks, and clean fmt/Clippy. **M3-04 is next.** This
+fixture proves arithmetic, not acquisition.
 
 To save the bounded observability tests' measured diagnostics, choose a fresh
 output directory (existing evidence files are never overwritten):

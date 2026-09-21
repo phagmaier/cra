@@ -739,3 +739,54 @@ make code or a result look successful.**
   cannot explain that tick's feedback: the public entry point is
   transition-ordered and the future runner (M4-01) owns apply-before-advance
   ordering. Verification and hashes: [M3-01 evidence](evidence/m3-01/summary.md).
+
+## 2026-09-21 UTC — M3-02 exactly-once feedback updates and baseline (spec 7.4–7.5, 9, 10.4, 10.6, 17.2)
+
+- **Scope.** Unit-level gated update only: `delta` from the old baseline,
+  per-edge raw/limited clamps in order, `P` bound clamp, one baseline
+  update after `delta`, dedup marking, and the single cache refresh.
+  Affected spec sections: 7.4 (teaching signal and running baseline), 7.5
+  (update equation and mask restriction), 9 step 2 (exactly-once
+  pre-transition consumption), 10.4 (birth baseline `0.5`), 10.6 (explicit
+  duplicate/nonfinite errors), 17.2 (zero-change cases, clipping order,
+  `W0` invariance, no trace reset). The Section 17.3 golden is M3-03; the
+  episodic runner is M3-04; gate heads are M6.
+- **Hyperparameters ride per call.** `apply_feedback_once` takes `eta`,
+  `max_update`, `plastic_bound`, and baseline `beta` as validated arguments
+  rather than storing inherited values, so fixture tests state exact
+  numbers and the future runner passes its resolved configuration
+  unchanged each outcome. Lifetime memory (`P`, baseline, `last_feedback`)
+  is stored; `E` is read-only here. An `eta = 0`, all-zero-gate, or
+  `delta = 0` call moves no `P` while still performing the one baseline
+  update when `delta != 0`. No `P` decay is applied.
+- **Reports stay separated for logging.** The outcome returns full `N x N`
+  raw, limited, and actual matrices (zero on missing/nonplastic) so the
+  `max_update` and `plastic_bound` boundaries are distinguishable even
+  when both clip on the same event. This feeds the future
+  `record_raw_and_applied_updates` event fields; current tests assert both
+  boundaries on both signs. Duplicate and other rejected calls mutate
+  nothing, preserving the exactly-once guarantee needed for split replay.
+- **`PlasticSnapshot` schema 2, top-level checkpoint still 2.** The snapshot
+  gains the finite baseline and the required `last_feedback` (v1 files are
+  incompatible, never migrated). The M1 top-level `Checkpoint` is untouched
+  and still rejects plasticity; embedding plus nonzero-`P`/`E` replay is
+  M3-10/M4-06. The fixed-baseline diagnostic policy stays in
+  `experiments::finite_rollout` and is not conflated with this running
+  baseline. Verification and hashes: [M3-02 evidence](evidence/m3-02/summary.md).
+
+## 2026-09-21 UTC — M3-03 golden update fixture (spec 17.3)
+
+- **Fixture-only, no production change.** `tests/golden_updates.rs` drives
+  the Section 17.3 chain (`0.4` / `0.67` / `0.4` / `0.00067` / `0.10067` /
+  `0.64`) through `conditional_score`, `advance_eligibility`, and
+  `apply_feedback_once` with explicit `alpha_h = 0.5` and `lambda_e = 0.9`
+  (`tau_e = -1 / ln(0.9)`), independent of actor/config time constants.
+  Clipped and unclipped cases are separate tests. Affected spec section:
+  17.3; method under test is the M3-02 entry point, unchanged here.
+- **One tolerance is 1 ulp, not bitwise.** `limited == raw` without
+  per-edge clipping is an exact `clamp` identity (`assert_eq!`), but
+  `actual = (P_old + limited) - P_old` adds then subtracts, so the
+  unclipped `actual == limited` comparison uses `1e-15` (observed
+  `3.8e-18` difference). All golden values otherwise compare at
+  `1e-12`–`1e-15`. Verification and hashes:
+  [M3-03 evidence](evidence/m3-03/summary.md).

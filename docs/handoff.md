@@ -1,9 +1,10 @@
 # Agent continuation guide
 
-Updated 2026-09-21 UTC after M3-01. The M3-01 session began at `38c4ffd`
-(`m2 done`) clean; it adds `src/agent/plasticity.rs`, effective-weight actor
-entry points, and `tests/plasticity.rs` with uncommitted packaging/docs at
-record time. Check Git and the tracker for newer work before claiming.
+Updated 2026-09-21 UTC after M3-03. The M3-03 session began at `3fdc541`
+with uncommitted M3-02 work in the tree; it adds fixture-only
+`tests/golden_updates.rs` (no production change) with uncommitted
+packaging/docs at record time. Check Git and the tracker for newer work
+before claiming.
 
 ## Start here
 
@@ -20,9 +21,29 @@ record time. Check Git and the tracker for newer work before claiming.
 ## Current position and evidence
 
 **M0-GATE passed and was re-verified. M1-GATE and M2-GATE passed. M3-01
-verified 2026-09-21 UTC. Next task: M3-02.**
+through M3-03 verified 2026-09-21 UTC. Next task: M3-04.**
 There is no outstanding milestone blocker. The claim track remains `family_only`.
 No reserved final-test outcomes have been inspected.
+
+M3-02 extends `agent::plasticity::PlasticState` with
+`apply_feedback_once`: old-`E`/gate/`P`/baseline read, `delta` from the old
+baseline, ordered `max_update`/`plastic_bound` clamps with separated
+raw/limited/actual reports, one baseline update after `delta`, monotonic
+dedup, and the single cache refresh. `E` is never reset; `W0` never
+mutates. `PlasticSnapshot` is schema 2 with baseline plus required
+`last_feedback`. This is unit-level arithmetic: no runner, gate heads, or
+acquisition is wired. Full checks at M3-02 time: **243 fast Rust tests
+passed** (11 new), three default ignores, two compile-fail doc checks,
+clean fmt/Clippy. Commands, hashes, and claim limits:
+[M3-02 evidence](evidence/m3-02/summary.md).
+
+M3-03 adds fixture-only `tests/golden_updates.rs`: the Section 17.3 chain
+(`0.4` / `0.67` / `0.4` / `0.00067` / `0.10067` / `0.64`) through the
+public entry points at `1e-12`–`1e-15`, plus separate clipped cases. No
+production code changes. Full checks: **247 fast Rust tests passed** (4
+new), three default ignores, two compile-fail doc checks, clean
+fmt/Clippy. Commands, hashes, and claim limits:
+[M3-03 evidence](evidence/m3-03/summary.md).
 
 M3-01 adds `agent::plasticity::PlasticState`: `P`/`E` stored separately from
 immutable `W0`, `all_recurrent_edges` and `motor_afferent_only` masks,
@@ -30,12 +51,9 @@ immutable `W0`, `all_recurrent_edges` and `motor_afferent_only` masks,
 `refresh_effective` as the single writer of the `W0 + P` cache. The actor
 gains `step_with_effective_weights` and `step_with_effective_and_perturbations`
 that share the `W0` arithmetic core, so the no-learning path is bitwise
-unchanged (`P = 0` reproduces `step`). `PlasticSnapshot` (schema 1,
-`deny_unknown_fields`) is validated on restore. This is storage/eligibility
-only: no reward update, reward baseline, runner, gating, or search is wired.
-Full checks: **232 fast Rust tests passed**, three default ignores, two
-compile-fail doc checks, clean fmt/Clippy. Commands, hashes, and claim limits:
-[M3-01 evidence](evidence/m3-01/summary.md).
+unchanged (`P = 0` reproduces `step`). `PlasticSnapshot` validation is now
+schema 2 (M3-02); the M3-01 record describes schema 1 as recorded then.
+Commands, hashes, and claim limits: [M3-01 evidence](evidence/m3-01/summary.md).
 
 M2-01 adds `agent::score::conditional_score`, a pure scalar function with
 explicit receiver leak/noise parameters and old sender activity. It rejects
@@ -126,34 +144,23 @@ is available for a quick audit. Reproduce missing raw runs using the saved
 commands/configs into new directories; preserve historical evidence paths
 and distinguish reruns from the original execution.
 
-## Next task: M3-02
+## Next task: M3-04
 
-**Deliver:** implement exactly-once feedback updates and baseline
-arithmetic. Read old `E`/gates/`P`/baseline, compute `delta = reward -
-baseline_old`, apply the bounded per-edge update and `P` clamp, then update
-the baseline once after `delta`. Fixed mode uses gate 1; the diagnostic
-baseline follows its declared fixed-rollout policy.
+**Deliver:** create the explicitly episodic clean-learning runner. Use two
+unknown cue-action mappings, zero noise, no reversals or blank gap, short
+delay, reset state/traces between diagnostic rollouts, no trace decay, and
+one terminal update. Name this profile `episodic_stationary`, separate from
+continuous `debug_stationary`.
 
-Read spec Sections 7.4–7.5, 9, 10.6, 16/M3, 17.2–17.3, plus the
+Read spec Sections 5, 7.6–7.7, 9–10, 16/M3, 19.2, plus the
 [M3 task queue](../to-do.md#m3---make-an-ungated-local-learner-learn-a-clean-task).
-Inspect `src/agent/plasticity.rs` (M3-01), `src/agent/score.rs`,
-`src/agent/actor.rs`, `src/experiments/finite_rollout.rs`, `src/config.rs`,
-`src/checkpoint.rs`, and the score/finite-rollout tests.
+Inspect `src/agent/plasticity.rs` (`apply_feedback_once`, M3-02),
+`src/experiments/finite_rollout.rs` (fixed-baseline diagnostic precedent),
+`src/config.rs` (reset/trace validation), and the M3-02/M3-03 tests.
 
-- M3-01 owns storage and eligibility; the `P` update path does not exist
-  yet. Add it as a new `PlasticState` method (one writer), not by mutating
-  `W0` or editing the actor transition.
-- Use the already-existing trace: feedback must consume `E` at tick start
-  before the current actor transition (M4-01 enforces the runner order;
-  M3-02 owns the exactly-once update itself). The pre-feedback trace and
-  pre-feedback baseline produce `delta`.
-- `raw`, `limited` (per-edge `max_update` clamp), and actual change after
-  the `plastic_bound` clamp must stay distinguishable and logged where
-  configured. Keep `W0` immutable; `refresh_effective` remains the single
-  cache writer and must be called after any `P` change.
-- Reject duplicate feedback without state change; `eta = 0`, `gate = 0`,
-  and `delta = 0` must give zero task-dependent changes. M3-03 supplies the
-  independent hand-calculated golden fixture; M3-04 the episodic runner.
+- Configuration and logs must visibly identify diagnostic resets. Every
+  rollout respects the terminal-credit contract. Do not present this run as
+  the main continuous result.
 - Checkpoint embedding/replay with nonzero `P`/`E` is M3-10/M4-06. Keep the
   M1 checkpoint schema at 2 until then and reject incompatible state rather
   than defaulting it.
@@ -162,7 +169,7 @@ Inspect `src/agent/plasticity.rs` (M3-01), `src/agent/score.rs`,
 
 M2-GATE passed only the restricted score diagnostics. Acquisition and
 continuous learning remain unverified; M3/M4 need their own measured gates.
-M3-01 verified storage/eligibility only.
+M3-01 through M3-03 verified arithmetic/fixture only.
 
 ## Implementation map
 
@@ -184,7 +191,9 @@ M3-01 verified storage/eligibility only.
 | Score diagnostic package (M2-06) | `scripts/run_score_diagnostics.sh` | Explicit bounded fast/API/Monte Carlo sequence, fresh evidence and failure/reuse/zero-test checks |
 | Recurrent finite-difference diagnostic (M2-05) | `tests/score_recurrent.rs` | Five fast contract/statistics checks plus ignored bounded paired Monte Carlo with immutable evidence export |
 | Finite-rollout diagnostic (M2-04) | `src/experiments/finite_rollout.rs` | `tests/finite_rollout.rs` plus compile-fail docs; fixed parameters/baseline, no decay, terminal-only update and explicit reset |
-| Plastic offsets/eligibility/masks (M3-01) | `src/agent/plasticity.rs` | `tests/plasticity.rs`; `P`/`E` separate from `W0`, both masks, `persistent` vs `no_decay_diagnostic`, single `refresh_effective` writer, versioned `PlasticSnapshot` validation |
+| Plastic offsets/eligibility/masks (M3-01) | `src/agent/plasticity.rs` | `tests/plasticity.rs`; `P`/`E` separate from `W0`, both masks, `persistent` vs `no_decay_diagnostic`, single `refresh_effective` writer, versioned `PlasticSnapshot` validation (now schema 2) |
+| Exactly-once feedback/baseline (M3-02) | `src/agent/plasticity.rs` (`apply_feedback_once`, `FeedbackOutcome`) | `tests/feedback_updates.rs`; old-baseline `delta`, ordered clamps with separated reports, monotonic dedup, zero-change cases, `W0` invariance, snapshot v2 round-trip |
+| Golden update fixture (M3-03) | `tests/golden_updates.rs` (fixture only) | spec 17.3 chain at `1e-12`–`1e-15` plus separate clipped cases; no production change |
 | Effective-weight actor path (M3-01) | `src/agent/actor.rs` (`step_with_effective_weights`, `step_with_effective_and_perturbations`) | `tests/plasticity.rs`; shared `W0` core, `P = 0` bitwise parity, missing/nonfinite rejection, `B`/bias read from inherited parameters |
 | Adaptation at strength 0 (M1-05) | `src/agent/actor.rs` (verified) | `tests/adaptation.rs`; inertness, sign, persistence, config pin |
 | Motor readout (M1-06) | `src/agent/motor.rs` | `tests/motor.rs`; golden filters, new-q commitment, tie-only draws |
@@ -202,8 +211,8 @@ M3-01 verified storage/eligibility only.
 | Topic | Current implementation | Next responsibility |
 | --- | --- | --- |
 | Tick API | `Lifetime::advance` builds a tick and advances the environment before returning. `commit` follows a final response output. `run_actor_ordinary` preserves this loop with the actor advanced every tick. | Preserve complete-tick checkpoint splits, tick-20/delay-3 and final-feedback-transition fixtures. The earlier observe/finish-split note is satisfied by the ordered `apply_feedback`-before-`advance` runner, not a new `Lifetime` API. |
-| Agent feedback | Ordinary runners call `apply_feedback` once before `advance(features)`; B3 dedups without learning; selection reads policy state only. M3-01 eligibility is transition-ordered and currently only reachable from tests; no runner calls it. | M3-02 adds the exactly-once pre-feedback `P` update and baseline; M4-01 fixes the authoritative apply-before-advance runner order. Keep the information boundary for gates (M6). `TickOutput` belongs to the driver/evaluator. |
-| Effective weights | `PlasticState::refresh_effective` is the single `W0 + P` cache writer. `step_with_effective_weights` reads it; no runner uses it yet and no `P` changes outside validated restore. | M3-02 must call `refresh_effective` after each `P` update and read the pre-update cache only where the rule requires it. M3-10/M4-06 embed `PlasticSnapshot` in checkpoint schema and prove split replay with nonzero `P`/`E`. |
+| Agent feedback | Ordinary runners call `apply_feedback` once before `advance(features)`; B3 dedups without learning; selection reads policy state only. M3-01 eligibility is transition-ordered and M3-02 `apply_feedback_once` is unit-level, both currently only reachable from tests; no runner calls them. | M3-04 wires the episodic runner around the M3-02 entry point; M4-01 fixes the authoritative apply-before-advance runner order. Keep the information boundary for gates (M6). `TickOutput` belongs to the driver/evaluator. |
+| Effective weights | `PlasticState::refresh_effective` is the single `W0 + P` cache writer. `step_with_effective_weights` reads it; no runner uses it yet and `P` changes only through `apply_feedback_once` or validated restore. | M3-10/M4-06 embed `PlasticSnapshot` (schema 2) in checkpoint schema and prove split replay with nonzero `P`/`E`/baseline/dedup. |
 | Warmup | Replaces the first quiet interval; zero starts directly at cue presentation. | Preserve the documented M0 convention; use measured ticks for budgets. An additive-warmup change needs an explicit decision and new evidence. |
 | Noise/hazard assignment | Stable membership shuffled at birth; noise rates cycle by cue index. | M5-02 owns factorial counterbalancing; current assignment is not a completed training-distribution implementation. |
 | Event identity | IDs/choice indices restart per lifetime. Ordinary records carry lifetime identity; hidden rows align within contiguous lifetime blocks. | Checkpoint resume preserves exactly-once delivery (pending plus consumed/confirmed ledgers round-trip); M1-10 records the tolerance policy. A bare event ID is not a cross-lifetime join key. |
