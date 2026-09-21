@@ -30,8 +30,17 @@ M3-10 implemented (learned-offset checkpoints: schema-3 replay exact
 through learning events with nonzero P/E, pinned archives — 9 new tests);
 **M3-GATE passed** (fresh release re-runs reproduce the M3-07/M3-08
 verdicts exactly; full battery green — clean episodic acquisition
-proven, continuous acquisition explicitly still open);
-next task M4-01 (authoritative main tick order).**
+proven, continuous acquisition explicitly still open); **M4-01 done**
+(authoritative main tick order: split `observe`/`finish_tick`, six
+drivers migrated, tick-20/delay-3 learning fixture — 4 new tests);
+**M4-02 done** (fully persistent learner: exact decaying traces with no
+resets, live-trace anti-snapshot, baseline event counts — 5 new tests);
+**M4-03 done** (birth-only resets: reset-audited continuous runner,
+P-telescoping tripwire, live warmup, reversals without resets — 6 new
+tests); **M4-04 done** (three continuity conditions with disjoint
+guards, same-seed pairing, `continuous_stationary` executable twin of
+the `debug_stationary` source — 6 new tests); next task M4-05 (timing
+variability and delays).**
 The simulator core exists as
 a library
 (`src/environment/`, `src/agent/` nonplastic dynamics plus `B3`
@@ -393,7 +402,9 @@ Python audit tests, fixture audit OK, clean fmt/Clippy. The gate
 rests on exit conditions (a)–(d) in the [tracker ledger](to-do.md):
 several-seed learning over matched controls, valid score/golden
 tests, interpretable numerics, no lucky trajectory. **M3 COMPLETE —
-M4-01 (authoritative main tick order) is next.** Continuous
+M4-01/M4-02/M4-03/M4-04 done (tick order; persistent traces;
+birth-only audit; labeled conditions + profiles); M4-05 is next.**
+Continuous
 acquisition without within-lifetime resets is explicitly unverified;
 no modulation, evolution, or broader-track claim follows.
 The owner-requested [M3 preflight hardening](docs/evidence/m3-preflight/summary.md)

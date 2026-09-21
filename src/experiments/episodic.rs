@@ -347,13 +347,13 @@ impl EpisodicLearner {
     }
 
     /// One neural transition on ordinary features plus exactly one coupled
-    /// eligibility update (spec 7.3, 9 steps 4/6).
+    /// eligibility update (spec 7.3, 9 steps 4/6/7).
     ///
     /// Saves `r_old`, steps the actor with the current effective weights
-    /// (`W0 + P`), updates the fixed motor filter, health-checks the new
-    /// state, then advances live eligibility from `r_old` and this
-    /// transition's receiver perturbations. Never applies feedback a second
-    /// time. Advances on every phase; never resets state.
+    /// (`W0 + P`), advances live eligibility from `r_old` and this
+    /// transition's receiver perturbations, updates the fixed motor
+    /// filter, then health-checks the new state. Never applies feedback
+    /// a second time. Advances on every phase; never resets state.
     pub fn advance(&mut self, features: &[f64]) -> Result<MotorOutput, EpisodicError> {
         self.advance_inner(features, None)
     }
@@ -402,6 +402,15 @@ impl EpisodicLearner {
         features: &[f64],
         perm: Option<&[usize]>,
     ) -> Result<MotorOutput, EpisodicError> {
+        // Authoritative main tick order (M4-01, spec 9 steps 4/6/7/8 with
+        // fixed gate 1 until M6; no modulator until M6): actor transition
+        // from old state and post-feedback effective weights, then live
+        // eligibility from old presynaptic activity and this transition's
+        // receiver perturbations, then motor filters from new activity.
+        // Eligibility-before-motor matches spec steps 6-before-7; the two
+        // are independent (eligibility reads saved `r_old` + `xi` and
+        // writes `E`; motor reads new `r` and writes `q`), so the order
+        // is documentary, not behavioral. Never applies feedback.
         let want = feature_dim(self.cue_count);
         if features.len() != want {
             return Err(invalid(format!(
@@ -413,6 +422,7 @@ impl EpisodicLearner {
         let r_old = self.state.r().to_vec();
         let effective = self.plastic.effective_weights().to_vec();
         let tick = self.ticks_advanced;
+        // Spec 9 step 4: actor transition on post-feedback weights.
         self.state.step_with_effective_weights(
             &self.actor_cfg,
             &self.inherited,
@@ -420,6 +430,20 @@ impl EpisodicLearner {
             features,
             &mut self.noise_rng,
         )?;
+        // Spec 9 step 6: live eligibility from `r_old` and this
+        // transition's receiver perturbations. Scores created here cannot
+        // explain feedback already consumed this tick (that update read
+        // pre-tick `E` in `apply_feedback` before this call).
+        let xi = self.state.last_perturbations().to_vec();
+        let xi_used: Vec<f64> = match perm {
+            None => xi,
+            Some(p) => p.iter().map(|&j| xi[j]).collect(),
+        };
+        let alpha_h = leak_alpha(self.actor_cfg.tau_h);
+        self.plastic
+            .advance_eligibility(&r_old, &xi_used, alpha_h, self.actor_cfg.noise_sigma)?;
+        // Spec 9 step 7: motor filters from new activity. Step 8 (future
+        // gates) is the fixed gate 1 until M6; step 5 (modulator) absent.
         let out = self.motor.update(
             self.actor_cfg.motor_filter_tau,
             self.state.r(),
@@ -433,14 +457,6 @@ impl EpisodicLearner {
             self.state.r(),
             self.motor.q(),
         )?;
-        let xi = self.state.last_perturbations().to_vec();
-        let xi_used: Vec<f64> = match perm {
-            None => xi,
-            Some(p) => p.iter().map(|&j| xi[j]).collect(),
-        };
-        let alpha_h = leak_alpha(self.actor_cfg.tau_h);
-        self.plastic
-            .advance_eligibility(&r_old, &xi_used, alpha_h, self.actor_cfg.noise_sigma)?;
         self.last_output = out;
         self.ticks_advanced += 1;
         Ok(out)
@@ -884,7 +900,8 @@ pub fn run_episodic_lifetime(
     let mut annotations = Vec::new();
 
     while !lifetime.is_complete() {
-        let out = lifetime.advance()?;
+        // Spec 9 step 1: observable input + due feedback (no clock yet).
+        let out = lifetime.observe()?;
         let rollout_index = (resets.len() - 1) as u64;
         let rollout_start_tick = resets[resets.len() - 1];
         if let Some(feedback) = out.observation.feedback {
@@ -918,8 +935,15 @@ pub fn run_episodic_lifetime(
             });
             annotations.push(annotation);
         }
+        // Spec 9 steps 4/6/7/8 (fixed gate 1; no modulator until M6).
         learner.advance(&out.observation.features)?;
+        // Finish before commit: `finish_tick` moves the final response tick
+        // into the transient Committed phase, so `commit` still observes
+        // `commit_tick = tick - 1` and golden delay accounting is unchanged
+        // (M4-01 equivalence note in docs/decisions.md).
+        lifetime.finish_tick()?;
         if out.commitment_due {
+            // Spec 9 step 9: commit from the new motor output.
             let action = learner.select_action();
             lifetime.commit(action)?;
         }
@@ -1074,7 +1098,8 @@ pub fn run_episodic_no_learning(
     let mut annotations = Vec::new();
 
     while !lifetime.is_complete() {
-        let out = lifetime.advance()?;
+        // Spec 9 step 1: observable input + due feedback (no clock yet).
+        let out = lifetime.observe()?;
         let rollout_index = (resets.len() - 1) as u64;
         let rollout_start_tick = resets[resets.len() - 1];
         if let Some(feedback) = out.observation.feedback {
@@ -1106,6 +1131,11 @@ pub fn run_episodic_no_learning(
             annotations.push(annotation);
         }
         actor.advance(&out.observation.features)?;
+        // Finish before commit: `finish_tick` moves the final response tick
+        // into the transient Committed phase, so `commit` still observes
+        // `commit_tick = tick - 1` and golden delay accounting is unchanged
+        // (M4-01 equivalence note in docs/decisions.md).
+        lifetime.finish_tick()?;
         if out.commitment_due {
             let action = actor.select_action();
             lifetime.commit(action)?;
@@ -1207,7 +1237,8 @@ pub fn run_episodic_shuffled(
     let mut annotations = Vec::new();
 
     while !lifetime.is_complete() {
-        let out = lifetime.advance()?;
+        // Spec 9 step 1: observable input + due feedback (no clock yet).
+        let out = lifetime.observe()?;
         let rollout_index = (resets.len() - 1) as u64;
         let rollout_start_tick = resets[resets.len() - 1];
         if let Some(feedback) = out.observation.feedback {
@@ -1245,8 +1276,15 @@ pub fn run_episodic_shuffled(
             });
             annotations.push(annotation);
         }
+        // Spec 9 steps 4/6/7/8 (fixed gate 1; no modulator until M6).
         learner.advance(&out.observation.features)?;
+        // Finish before commit: `finish_tick` moves the final response tick
+        // into the transient Committed phase, so `commit` still observes
+        // `commit_tick = tick - 1` and golden delay accounting is unchanged
+        // (M4-01 equivalence note in docs/decisions.md).
+        lifetime.finish_tick()?;
         if out.commitment_due {
+            // Spec 9 step 9: commit from the new motor output.
             let action = learner.select_action();
             lifetime.commit(action)?;
         }

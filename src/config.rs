@@ -576,6 +576,143 @@ pub fn validate_episodic_execution(cfg: &Config) -> Result<(), ConfigError> {
     Ok(())
 }
 
+/// Fully persistent continuous execution (M4-03, main condition).
+///
+/// This is the primary no-reset condition, not a diagnostic (M4-04 names
+/// the full condition family). It requires:
+/// - `reset_policy = "birth_only"` (any explicitly diagnostic reset
+///   policy is rejected here);
+/// - a `[learning]` section with `enabled = true` and
+///   `trace_policy = "persistent"` (schema `validate` already rejects a
+///   `birth_only` + diagnostic-trace mismatch);
+/// - an `[actor]` section;
+/// - fixed gates (`[modulator]` absent or `mode = "fixed"`, gates arrive
+///   M6);
+/// - no enabled search.
+///
+/// Task kind, cue counts, timing ranges, and noise/hazard schedules are
+/// deliberately not pinned: M4-05/M5 own the timing/noise task profiles
+/// that run through this same guard. The runner performs no mid-lifetime
+/// resets and audits that fact with a birth-only reset log.
+pub fn validate_continuous_execution(cfg: &Config) -> Result<(), ConfigError> {
+    validate_environment_execution(cfg)?;
+    if cfg.simulation.reset_policy != "birth_only" {
+        return Err(ConfigError::UnsupportedExecution(format!(
+            "continuous execution requires reset_policy 'birth_only'; found '{}'",
+            cfg.simulation.reset_policy
+        )));
+    }
+    let actor = cfg.actor.as_ref().ok_or_else(|| {
+        ConfigError::UnsupportedExecution(
+            "continuous execution requires an [actor] section".to_owned(),
+        )
+    })?;
+    let _ = actor;
+    let learning = cfg.learning.as_ref().ok_or_else(|| {
+        ConfigError::UnsupportedExecution(
+            "continuous execution requires a [learning] section with enabled = true".to_owned(),
+        )
+    })?;
+    if !learning.enabled {
+        return Err(ConfigError::UnsupportedExecution(
+            "continuous execution requires learning.enabled = true".to_owned(),
+        ));
+    }
+    if learning.trace_policy != "persistent" {
+        return Err(ConfigError::UnsupportedExecution(format!(
+            "continuous execution requires trace_policy 'persistent'; found '{}'",
+            learning.trace_policy
+        )));
+    }
+    if let Some(modulator) = &cfg.modulator
+        && modulator.mode != "fixed"
+    {
+        return Err(ConfigError::UnsupportedExecution(format!(
+            "continuous execution supports only modulator mode 'fixed'; found '{}' (gates arrive in M6)",
+            modulator.mode
+        )));
+    }
+    if let Some(evolution) = &cfg.evolution
+        && evolution.enabled
+    {
+        return Err(ConfigError::UnsupportedExecution(
+            "continuous execution requires evolution.enabled = false (search arrives in M7)"
+                .to_owned(),
+        ));
+    }
+    Ok(())
+}
+
+/// Event-reset diagnostic execution (M4-04, spec 7.7): persistent
+/// activity with traces cleared after each delivered outcome.
+///
+/// This is an explicitly named interference diagnostic, not the main
+/// continuous condition. It requires:
+/// - `reset_policy = "event_reset_diagnostic"` with
+///   `learning.trace_policy = "persistent"` (decaying traces that are
+///   then cleared per outcome — distinct from both the no-decay
+///   episodic summation and the never-reset continuous rule);
+/// - an `[actor]` section plus `[learning]` with `enabled = true`;
+/// - fixed gates (`[modulator]` absent or `mode = "fixed"`, gates arrive
+///   M6);
+/// - no enabled search.
+///
+/// The runner clears only `E` after each non-final feedback tick and
+/// logs the reset ticks; membranes, adaptation, motor filters, offsets,
+/// baseline, dedup, and RNG positions persist. Like the continuous
+/// guard, task kind and timing/noise schedules are not pinned here.
+/// Each of the three continuity runners rejects the other two
+/// conditions' reset policies, so a diagnostic run cannot masquerade as
+/// the main model and a trace-clearing run cannot pass as persistent.
+pub fn validate_event_reset_execution(cfg: &Config) -> Result<(), ConfigError> {
+    validate_environment_execution(cfg)?;
+    if cfg.simulation.reset_policy != "event_reset_diagnostic" {
+        return Err(ConfigError::UnsupportedExecution(format!(
+            "event-reset execution requires reset_policy 'event_reset_diagnostic'; found '{}'",
+            cfg.simulation.reset_policy
+        )));
+    }
+    let actor = cfg.actor.as_ref().ok_or_else(|| {
+        ConfigError::UnsupportedExecution(
+            "event-reset execution requires an [actor] section".to_owned(),
+        )
+    })?;
+    let _ = actor;
+    let learning = cfg.learning.as_ref().ok_or_else(|| {
+        ConfigError::UnsupportedExecution(
+            "event-reset execution requires a [learning] section with enabled = true".to_owned(),
+        )
+    })?;
+    if !learning.enabled {
+        return Err(ConfigError::UnsupportedExecution(
+            "event-reset execution requires learning.enabled = true".to_owned(),
+        ));
+    }
+    if learning.trace_policy != "persistent" {
+        return Err(ConfigError::UnsupportedExecution(format!(
+            "event-reset execution requires trace_policy 'persistent'; found '{}'",
+            learning.trace_policy
+        )));
+    }
+    if let Some(modulator) = &cfg.modulator
+        && modulator.mode != "fixed"
+    {
+        return Err(ConfigError::UnsupportedExecution(format!(
+            "event-reset execution supports only modulator mode 'fixed'; found '{}' (gates arrive in M6)",
+            modulator.mode
+        )));
+    }
+    if let Some(evolution) = &cfg.evolution
+        && evolution.enabled
+    {
+        return Err(ConfigError::UnsupportedExecution(
+            "event-reset execution requires evolution.enabled = false (search arrives in M7)"
+                .to_owned(),
+        ));
+    }
+    Ok(())
+}
+
 fn validate_environment(env: &Environment) -> Result<(), ConfigError> {
     if !SUPPORTED_ENVIRONMENT_KINDS.contains(&env.kind.as_str()) {
         return Err(ConfigError::UnknownEnvironmentKind {

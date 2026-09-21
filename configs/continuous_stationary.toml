@@ -1,17 +1,27 @@
-# `debug_stationary` source profile (spec 19.2, M4-04)
+# `continuous_stationary` primary profile (M4-04)
 #
-# Reference source for the continuous clean-task configuration:
-# `stationary_clean`, 2 cues, zero noise/hazard, `birth_only` resets,
-# decaying persistent traces, fixed gate 1, full-recurrent plastic mask.
-# Values are frozen as the reference; `configs/continuous_stationary.toml`
-# is the executable primary-profile twin (identical sections, own
-# `profile_name`), run through the library continuous runner
-# (`src/experiments/continuous.rs`). Both files validate; neither runs
+# Fully persistent main continuous condition: clean stationary
+# associations (`stationary_clean`, 2 cues, zero noise, zero hazard),
+# `birth_only` resets (no mid-lifetime state/trace resets of any kind),
+# decaying persistent traces, fixed gate 1, full-recurrent plastic
+# mask at the M3-07 winner hyperparameters.
+#
+# Derived from the `debug_stationary` source profile: identical
+# environment, actor, learning, modulator, evolution, logging, and seed
+# sections. The two files differ only in `profile_name` (and this
+# header). `debug_stationary` remains the spec-19.2 reference source;
+# this file is the executable primary-profile twin, run through the
+# library continuous runner (`src/experiments/continuous.rs`), not
 # through `simulate --baseline` (baseline/B3 guards reject neural
-# sections — use `env_smoke.toml` / `actor_no_learning.toml` there).
+# sections).
+#
+# Resolved configs and runner summaries carry `profile_name`,
+# `reset_policy` (`birth_only`), `trace_policy` (`persistent`), and
+# mode `continuous_persistent`, so a primary run cannot be mistaken
+# for either diagnostic condition.
 
 schema_version = 1
-profile_name = "debug_stationary"
+profile_name = "continuous_stationary"
 
 [simulation]
 dt = 1.0

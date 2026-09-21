@@ -264,7 +264,8 @@ pub fn run_episodic_permuted_lifetime(
     let mut annotations: Vec<HiddenAnnotation> = Vec::new();
 
     while !lifetime.is_complete() {
-        let out = lifetime.advance()?;
+        // Spec 9 step 1: observable input + due feedback (no clock yet).
+        let out = lifetime.observe()?;
         let rollout_index = (resets.len() - 1) as u64;
         let rollout_start_tick = resets[resets.len() - 1];
         if let Some(feedback) = out.observation.feedback {
@@ -298,6 +299,11 @@ pub fn run_episodic_permuted_lifetime(
             annotations.push(annotation);
         }
         learner.advance_with_receiver_permutation(&out.observation.features, perm)?;
+        // Finish before commit: `finish_tick` moves the final response tick
+        // into the transient Committed phase, so `commit` still observes
+        // `commit_tick = tick - 1` and golden delay accounting is unchanged
+        // (M4-01 equivalence note in docs/decisions.md).
+        lifetime.finish_tick()?;
         if out.commitment_due {
             let action = learner.select_action();
             lifetime.commit(action)?;

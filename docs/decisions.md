@@ -1067,3 +1067,95 @@ make code or a result look successful.**
   within-lifetime resets — that is M4's explicitly open gate, and no
   M3 artifact substitutes for it. Claim track stays `family_only`;
   B3 is still not B7. Next: M4-01 (authoritative main tick order).
+
+## 2026-09-21 UTC — M4-01 authoritative main tick order (spec 9, 17.2)
+
+- **Split the tick, kept the state machine.** `Lifetime::advance()` is now
+  `observe()` (build tick + attach due feedback, no clock advance, no RNG
+  draws) followed by public `finish_tick()` (phase machine + clock).
+  Delivery bookkeeping lives in `observe`; all six production drivers
+  (ordinary B0/B1/B3, oracle, B4/B3/shuffled episodic, permuted
+  reduction) run observe → apply → agent-step → finish → commit with
+  spec-9 step comments. `advance()` remains as the fused primitive for
+  environment-only tests, pinned identical by a parity test.
+- **Finish-before-commit equivalence (not a scientific deviation).**
+  The `Committed` transient phase, `commit_tick = tick - 1`, and
+  `Delay{delay - 1}` scheduling are preserved, so commit runs after
+  finish rather than in the spec-9.3 pseudocode position. Observable
+  behavior is identical: same features/feedback per tick, same
+  commit/due ticks, same next-tick latch, and RNG streams are separate
+  per-stream ChaCha instances so agent/env draw interleaving cannot
+  couple schedules. The learning-sensitive causality (pre-tick
+  `E`/gate/baseline in, post-feedback scores excluded) is what the
+  tick-20/delay-3 fixture pins, and it holds exactly.
+- **Eligibility before motor is documentary.** `advance_inner` now runs
+  the trace update (step 6) before the motor filter (step 7) per spec
+  order; the two touch disjoint state (`r_old`/`xi`/`E` vs new
+  `r`/`q`), so values are unchanged. Gate stays fixed 1; no modulator
+  until M6; exactly one `P` writer (`apply_feedback_once`) kept.
+- **What M4-01 does not claim.** Traces are still
+  `no_decay_diagnostic`, resets still episodic-diagnostic, no
+  continuous profile exists. Those are M4-02/M4-03/M4-04. Verification:
+  [M4-01 evidence](evidence/m4-01/summary.md).
+
+## 2026-09-21 UTC — M4-02 persistent eligibility and running baseline (spec 7.3-7.5, 7.7-7.8)
+
+- **New type, not a relaxed guard.** The persistent learner is a
+  separate `experiments::continuous::ContinuousLearner`, not an
+  `EpisodicLearner` with the `persistent` guard lifted: the episodic
+  type stays the explicitly resetting diagnostic, and M4-04 condition
+  names will rest on distinct types plus drivers/configs rather than
+  one struct with two behaviors. It shares no code with the episodic
+  path beyond the common `PlasticState`/`ActorState`/`MotorState` APIs,
+  so M3-verified behavior is untouched.
+- **No reset methods exist.** Birth construction is the only reset by
+  construction; reset instrumentation/auditing is M4-03's job on top
+  of this type. No runner, profiles, checkpoints, or gates yet
+  (M4-03 through M4-06).
+- **Anti-snapshot pin.** The tick-20/delay-3 persistent fixture proves
+  the feedback update uses live `E` (decayed commit-time trace plus
+  delay scores) and differs from both a frozen commit-time `E` and a
+  decay-without-scores counterfactual — excluding the spec-7.8
+  `commit_snapshot_credit` alternative by construction, not by label.
+  Baseline closed form (0.509804 over [1,0,1]) pins once-per-feedback
+  counting. Verification: [M4-02 evidence](evidence/m4-02/summary.md).
+
+## 2026-09-21 UTC — M4-03 birth-only resets and warmup (spec 9-10)
+
+- **Runner with an audited empty reset log.** `run_continuous_lifetime`
+  contains no reset call; its `resets == [0]` audit plus the telescoping
+  `P`-sum tripwire (final `P` equals summed per-choice actuals at
+  1e-12) would fail on any mid-lifetime reset. Reset reasons need no
+  enum yet because no reset path exists; M4-04 adds conditions without
+  adding silent resets.
+- **Guard pins the condition, not the task.** `birth_only` +
+  `persistent` + enabled learning + fixed gates + no search; kind,
+  cues, timing, and noise/hazard stay open so M4-05/M5 profiles run
+  through the same guard. Inheritance/RNG tuples are shared with the
+  episodic family for by-construction pairing.
+- **Warmup is ordinary ticks.** Leading quiet ticks accrue live
+  eligibility (nonzero entering the first cue); no post-warmup
+  boundary hook exists. No library log-rotation path exists either
+  (`run.rs` writes per-lifetime files) — documented, not tested.
+  Verification: [M4-03 evidence](evidence/m4-03/summary.md).
+
+## 2026-09-21 UTC — M4-04 continuity conditions and profiles (spec 16/M4, 7.7)
+
+- **Same type, different drivers — distinction by label and audit.**
+  `ContinuousLearner` gained one `E`-only reset method for the
+  event-reset diagnostic; the fully persistent runner never calls it
+  (M4-03 audit still proves `resets == [0]` per primary run). This
+  supersedes the M4-02/03 "no reset methods" phrasing: the guarantee
+  was always per-run (driver + audit), and the two runners plus
+  `mode`/`reset_policy` labels plus divergent trajectories now carry
+  it. Same pattern as M3-05 conditions sharing one learner type.
+- **Guards are pairwise disjoint by test.** Each continuity runner
+  rejects the other two reset policies, so the verify clause holds
+  literally: a `persistent`-labeled trace-clearing config cannot enter
+  the continuous runner, and a `birth_only` config cannot enter the
+  event-reset runner.
+- **Profiles: source plus executable twin.** `debug_stationary` stays
+  the frozen spec-19.2 reference (values untouched); the new
+  `continuous_stationary` is section-identical except `profile_name`
+  and is the executable primary profile. Timing variability stays out
+  (M4-05). Verification: [M4-04 evidence](evidence/m4-04/summary.md).

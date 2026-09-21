@@ -758,6 +758,32 @@ impl PlasticState {
         Ok(())
     }
 
+    /// Clear eligibility traces after a delivered outcome for the
+    /// explicitly named `event_reset_diagnostic` condition (M4-04, spec
+    /// 7.7): set `E = 0`, preserving `P`, the running baseline,
+    /// exactly-once bookkeeping, and the effective cache (unchanged
+    /// because `P` is unchanged, so no refresh is needed). Only the
+    /// `persistent` policy may use this entry point: the fully
+    /// persistent runner never calls it (its M4-03 audit proves
+    /// `resets == [0]`), and a call under any other policy is an
+    /// explicit error. The event-reset runner calls this once per
+    /// non-final feedback tick and logs the reset tick; actor
+    /// membranes, adaptation, and motor filters persist untouched.
+    pub fn reset_traces_event_diagnostic(&mut self) -> Result<(), PlasticityError> {
+        if !matches!(self.trace_policy, TracePolicy::Persistent { .. }) {
+            return Err(PlasticityError::InvalidParams(format!(
+                "reset_traces_event_diagnostic requires trace_policy 'persistent'; found '{}'",
+                self.trace_policy.name()
+            )));
+        }
+        for row in &mut self.e {
+            for cell in row.iter_mut() {
+                *cell = 0.0;
+            }
+        }
+        Ok(())
+    }
+
     /// Versioned snapshot for checkpoint embedding (M3-10/M4-06). The
     /// effective cache is not stored: restore recomputes it through the
     /// single refresh location from the supplied `w0`. The running baseline

@@ -9,6 +9,12 @@
 //! (single-motor sign/order checks, receiver-permutation sensitivity).
 
 pub mod baseline;
+/// Fully persistent plastic learner plus its reset-audited lifetime runner
+/// for the main continuous condition (M4-02/M4-03; spec 7.3-7.5, 7.7-7.8,
+/// 9-10): fixed-gate updates on decaying traces that are never reset at
+/// choice/feedback boundaries. Profiles and checkpoints arrive in M4-04
+/// through M4-06.
+pub mod continuous;
 /// Explicitly episodic clean-learning diagnostic (M3-04); not continuous.
 pub mod episodic;
 /// Restricted fixed-weight score diagnostic; never a continuous agent mode.

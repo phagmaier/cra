@@ -287,8 +287,10 @@ fn run_ordinary_inner(
     let mut choices = Vec::new();
     let mut annotations = Vec::new();
     while !lifetime.is_complete() {
-        let out = lifetime.advance()?;
+        // Spec 9 step 1: observable input + due feedback (no clock yet).
+        let out = lifetime.observe()?;
         if let Some(feedback) = out.observation.feedback {
+            // Spec 9 step 2: consume with pre-tick state, exactly once.
             policy.apply_feedback(feedback)?;
             lifetime.note_feedback_consumed(feedback.event_id)?;
             let annotation = out.annotation.clone().ok_or_else(|| {
@@ -301,8 +303,15 @@ fn run_ordinary_inner(
             )?);
             annotations.push(annotation);
         }
+        // Spec 9 steps 4/6/7/8 (fixed gate 1; no modulator until M6).
         policy.advance(&out.observation.features)?;
+        // Finish before commit: `finish_tick` moves the final response tick
+        // into the transient Committed phase, so `commit` still observes
+        // `commit_tick = tick - 1` and golden delay accounting is unchanged
+        // (M4-01 equivalence note in docs/decisions.md).
+        lifetime.finish_tick()?;
         if out.commitment_due {
+            // Spec 9 step 9: commit from the new motor output.
             let action = policy.select_action();
             lifetime.commit(action)?;
         }
@@ -332,7 +341,8 @@ pub fn run_oracle(
     let mut choices = Vec::new();
     let mut annotations = Vec::new();
     while !lifetime.is_complete() {
-        let out = lifetime.advance()?;
+        // Spec 9 step 1: observable input + due feedback (no clock yet).
+        let out = lifetime.observe()?;
         if let Some(feedback) = out.observation.feedback {
             let annotation = out.annotation.clone().ok_or_else(|| {
                 SimError::InconsistentCounts("feedback without annotation".to_owned())
@@ -347,7 +357,13 @@ pub fn run_oracle(
         if out.cue.is_some() {
             cycle_cue = out.cue;
         }
+        // Finish before commit: `finish_tick` moves the final response tick
+        // into the transient Committed phase, so `commit` still observes
+        // `commit_tick = tick - 1` and golden delay accounting is unchanged
+        // (M4-01 equivalence note in docs/decisions.md).
+        lifetime.finish_tick()?;
         if out.commitment_due {
+            // Spec 9 step 9: privileged commit from hidden truth.
             let cue = cycle_cue.ok_or_else(|| {
                 SimError::InconsistentCounts("commitment without a presented cue".to_owned())
             })?;

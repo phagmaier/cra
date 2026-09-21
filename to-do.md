@@ -30,19 +30,23 @@ and [continuation guide](docs/handoff.md).
 
 | Field | Current value |
 | --- | --- |
-| Current milestone | M3 complete (M3-GATE passed 2026-09-21 UTC); M4 next |
+| Current milestone | M4 in progress (M3-GATE passed 2026-09-21 UTC; M4-01/M4-02/M4-03/M4-04 verified 2026-09-21 UTC) |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M3-GATE — clean episodic learner exit |
+| Last verified task | M4-04 — three continuity conditions and profiles |
 | Claimed task | None |
-| Next eligible task | M4-01 |
+| Next eligible task | M4-05 |
 | Current blocker | None |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | 2026-09-21 UTC M3-GATE; ledger below (re-runs reproduce M3-07/M3-08 archives) |
+| Last evidence record | 2026-09-21 UTC M4-04; ledger below (three conditions + profiles, 310 Rust/17 Python pass) |
 
 ### Session ownership and handoffs
 
 | Owner/session | Task IDs | Files or interfaces owned | Status / handoff |
 | --- | --- | --- | --- |
+| omp 2026-09-21 M4-01 | M4-01 | src/environment/mod.rs, src/experiments/{baseline,episodic,reduction}.rs, tests/main_tick_order.rs, docs/evidence/m4-01/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; split tick + 6 migrated drivers + 4 order tests pass, oracle/B3 smokes audited; next M4-02 |
+| omp 2026-09-21 M4-02 | M4-02 | src/experiments/{continuous,mod}.rs, tests/persistent_traces.rs, docs/evidence/m4-02/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; persistent learner + 5 fixtures pass, full battery green; next M4-03 |
+| omp 2026-09-21 M4-03 | M4-03 | src/experiments/continuous.rs, src/config.rs, tests/continuous_runner.rs, docs/evidence/m4-03/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; reset-audited runner + 6 tripwire tests pass, full battery green; next M4-04 |
+| omp 2026-09-21 M4-04 | M4-04 | src/experiments/continuous.rs, src/config.rs, src/agent/plasticity.rs, tests/continuity_conditions.rs, configs/{continuous_stationary.toml,debug_stationary.toml}, README.md, docs/{decisions,handoff}.md, docs/evidence/m4-04/, to-do.md | Done; event-reset condition + profiles + 6 distinction tests pass, full battery green; next M4-05 |
 | opencode 2026-09-21 M3-09 | M3-09 | src/experiments/reduction.rs, src/experiments/episodic.rs, src/experiments/mod.rs, tests/m3_reduction.rs, docs/evidence/m3-09/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; 5 isolation tests pass, path validated (not needed for rescue); next M3-10 |
 | opencode 2026-09-21 M3-GATE | M3-GATE | to-do.md, README.md, docs/{decisions,handoff}.md (evidence/record only; no behavior change) | Done; fresh re-runs reproduce archives, full battery green; M3 complete, next M4-01 |
 | opencode 2026-09-21 M3-10 | M3-10 | src/checkpoint.rs, src/experiments/episodic.rs, tests/episodic_checkpoint.rs, docs/evidence/m3-10/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; schema-3 replay exact through learning, archives pinned, 289 Rust/17 Python pass; next M3-GATE |
@@ -362,21 +366,24 @@ Demonstrate learning from delayed terminal rewards in a deliberately episodic di
 
 Show that the ungated learner still acquires associations with persistent neural state and eligibility.
 
-- [ ] **M4-01 - Implement the authoritative main tick order**
+- [x] **M4-01 - Implement the authoritative main tick order**
   - Deliver: Apply any feedback using pre-tick E/gates/baseline before advancing the actor. Then advance actor, optional modulator, eligibility, motor filter, and future gates; commit from new motor output and finish the tick. Until M6, the gate is fixed at 1.
   - Verify: An event-order fixture proves current feedback-evoked activity cannot contribute to the same outcome's update. The tick-20/delay-3 case uses traces through tick 22 at tick 23 start. There is exactly one feedback application path.
+  - Evidence: `docs/evidence/m4-01/summary.md` (2026-09-21 UTC). `Lifetime::observe()` + public `finish_tick()` split (`advance()` kept as the exact fused primitive, parity-pinned); all six production drivers run observe → apply → agent-step → finish → commit with spec-9 step comments (finish precedes commit so `Committed`/`commit_tick = tick - 1`/golden delays are unchanged); `advance_inner` runs eligibility before motor on disjoint state; fixed gate 1, no modulator, single `P` writer kept. 4 new tests in `tests/main_tick_order.rs` (tick-20/delay-3 update equals `eta*delta*E_old` per edge at 1e-15 with ordered clamps plus one baseline update, post-feedback `E` extension with changed update L1, no-apply path on outcome-shaped input, re-observe errors, fused/split parity). 293 fast Rust tests pass (289 + 4), 6 pre-existing ignores, 2 compile-fail doc checks, 17 Python audit tests, clean fmt/Clippy; release oracle + B3 smokes audited clean. Order only — persistence/resets/profiles remain M4-02/M4-03/M4-04.
 
-- [ ] **M4-02 - Enable persistent eligibility and the running baseline**
+- [x] **M4-02 - Enable persistent eligibility and the running baseline**
   - Deliver: Implement E <- exp(-1/tau_e)*E + score every tick, including quiet/delay/feedback transitions, without feedback resets or an extra (1-lambda) factor. Use baseline 0.5 at birth and beta_R per outcome.
   - Verify: Trace recurrences and baseline event counts pass deterministic fixtures. Scores after commitment remain in the live trace as specified; do not silently replace it with a commitment snapshot.
-
-- [ ] **M4-03 - Enforce birth-only resets and warmup semantics**
+  - Evidence: `docs/evidence/m4-02/summary.md` (2026-09-21 UTC). New `experiments::continuous::ContinuousLearner` (separate type, not a relaxed episodic guard; fixed gate 1; no reset methods — birth-only by construction; agent-only inputs; `persistent` required). 5 new tests in `tests/persistent_traces.rs`: closed-form recurrence at 1e-12 with (1-lambda) sensitivity guard, lambda^3 pure decay, construction guards plus birth/effective parity plus exact second-tick score wiring, baseline closed form 0.509804 over [1,0,1] with advance/duplicate invariance, and the tick-20/delay-3 live-trace fixture (update equals `eta*delta*E_live`; frozen commit-time and decay-only counterfactuals both differ; ordered clamps; one baseline update). 298 fast Rust tests pass (293 + 5), 6 pre-existing ignores, 2 compile-fail doc checks, 17 Python audit tests, clean fmt/Clippy. Learner only — no runner, profiles, resets instrumentation, or checkpoints (M4-03 through M4-06).
+- [x] **M4-03 - Enforce birth-only resets and warmup semantics**
   - Deliver: Instrument reset reasons and allow the primary condition to reset only at independent lifetime birth. Preserve h/a/q/P/E and, once implemented, z/gates across all phase boundaries. Run the optional warmup with live traces.
   - Verify: Tests detect any reset at cue changes, rewards, hidden reversals, log rotation, or post-warmup. Birth clears acquired state and bookkeeping exactly. Finishing a lifetime includes the final feedback transition.
+  - Evidence: `docs/evidence/m4-03/summary.md` (2026-09-21 UTC). `validate_continuous_execution` (`birth_only` + `persistent` + enabled learning + fixed gates + no search; task/timing/noise left open for M4-05/M5) and `run_continuous_lifetime` (split order, no reset call, `resets == [0]` audit, per-choice update reports, shared init/RNG tuples with the episodic family). 6 new tests in `tests/continuous_runner.rs`: guard rejections, 8-outcome `resets == [0]` with final-P telescoping to summed actuals at 1e-12 plus nonzero cross-choice E, 24-outcome volatile run with observed hidden reversals and no resets, warmup with live traces and no post-warmup reset, birth determinism plus independent lifetime streams, finish-on-tick-after-final-feedback arithmetic. 304 fast Rust tests pass (298 + 6), 6 pre-existing ignores, 2 compile-fail doc checks, 17 Python audit tests, clean fmt/Clippy. Primary condition only — profiles (M4-04), timing (M4-05), checkpoints (M4-06) remain.
 
-- [ ] **M4-04 - Create three explicitly distinguished continuity profiles**
+- [x] **M4-04 - Create three explicitly distinguished continuity profiles**
   - Deliver: Keep the episodic diagnostic, persistent activity with event_reset_diagnostic traces, and fully persistent activity/traces as separately named conditions. Create continuous_stationary and the source debug_stationary profile without overloading reset flags.
   - Verify: Resolved configs and logs identify each policy. Validation rejects a run labeled persistent that clears traces. No comparison mistakes diagnostic resets for an equivalent implementation of the main model.
+  - Evidence: `docs/evidence/m4-04/summary.md` (2026-09-21 UTC). `PlasticState::reset_traces_event_diagnostic` (E-only, persistent-only) + `validate_event_reset_execution` + `run_event_reset_lifetime` (same loop/inheritance/streams/arithmetic as main, per-outcome E-clear logged in `resets`, `EVENT_RESET_MODE`); `ContinuousSummary.mode` on both runners; pairwise-disjoint guards (each accepts one config, rejects the other two); `configs/continuous_stationary.toml` (new executable twin, section-identical to `debug_stationary` except name; source header refreshed, values untouched). 6 new tests in `tests/continuity_conditions.rs`: guard matrix, persistent-labeled trace-clearing rejected from continuous entry points, same-seed pairing (shared w0/init/schedule, divergent P/E, reset ticks == feedback+1), three-way policy labels, E-only unit proof, checked-in profiles validate + execute. 310 fast Rust tests pass (304 + 6), 6 pre-existing ignores, 2 compile-fail doc checks, 17 Python audit tests, clean fmt/Clippy, both profiles `validate-config` OK. Conditions + profiles only — timing (M4-05), checkpoints (M4-06), acquisition (M4-07) remain.
 
 - [ ] **M4-05 - Introduce variable timing and delayed outcomes gradually**
   - Deliver: Keep stationary clean mappings while increasing timing variability and reward delay through declared development profiles. Preserve the single-pending-choice rule and identical exogenous schedules for paired comparisons.
@@ -3454,6 +3461,40 @@ verdict (passes 2/3) exactly; full battery green (289 fast Rust, 2
 compile-fail docs, 17 Python, fixture audit OK, clean fmt/Clippy).
 Exit conditions (a)-(d) verified in the ledger entry. M3 COMPLETE.
 Next: M4-01 (authoritative main tick order).
+M4-01 verified 2026-09-21 UTC: split tick API with all six drivers
+migrated and the tick-20/delay-3 learning-sensitive fixture passing
+(tick-23 update uses `E` through tick 22, fixed gate 1, old baseline;
+feedback-evoked scores excluded; exactly-once delivery through the
+single `P` writer; fused/split parity). Full battery green (293 fast
+Rust incl. 4 new, 6 pre-existing ignores, 2 compile-fail docs, 17
+Python, oracle/B3 release smokes audited, clean fmt/Clippy). Order
+only; no persistence, continuity, or gate claim. M4-02 is next.
+M4-02 verified 2026-09-21 UTC: separate persistent `ContinuousLearner`
+(fixed gate 1, no reset methods) with fixtures pinning exact decaying
+recurrence (no unit factor), live-trace post-commitment scores against
+frozen/decay-only counterfactuals, and once-per-feedback baseline
+counting (closed form 0.509804). Full battery green (298 fast Rust
+incl. 5 new, 6 pre-existing ignores, 2 compile-fail docs, 17 Python,
+clean fmt/Clippy). Learner only; no runner, profiles, or checkpoints.
+M4-03 is next.
+M4-03 verified 2026-09-21 UTC: reset-audited continuous runner
+(`resets == [0]`, final-P telescoping, nonzero cross-choice E, live
+warmup, reversals without resets, birth determinism/independence,
+finish-after-final-feedback) with the `birth_only` + `persistent`
+execution guard. Full battery green (304 fast Rust incl. 6 new, 6
+pre-existing ignores, 2 compile-fail docs, 17 Python, clean
+fmt/Clippy). Primary condition only; no profiles or performance
+claim. M4-04 is next.
+M4-04 verified 2026-09-21 UTC: three continuity conditions with
+pairwise-disjoint guards and mode-labeled summaries (episodic /
+continuous_persistent / event_reset_diagnostic), same-seed pairing
+with divergent P/E, persistent-labeled trace-clearing rejected from
+continuous entry points, plus the `continuous_stationary` executable
+twin of the `debug_stationary` source (both validate). Full battery
+green (310 fast Rust incl. 6 new, 6 pre-existing ignores, 2
+compile-fail docs, 17 Python, clean fmt/Clippy). Conditions +
+profiles only; no timing, checkpoints, or performance claim. M4-05 is
+next.
 M1 findings, corrections and claim limits: `docs/m1-review.md`.
 M0 historical evidence remains in `docs/m0-review.md`.
 Scientific decisions remain in the append-only `docs/decisions.md`.

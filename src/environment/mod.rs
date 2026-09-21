@@ -6,18 +6,30 @@
 //! [`observation`] carries agent-visible data, [`hidden_state`] carries
 //! evaluator-only truth, and the two serialize to separate streams.
 //!
-//! Tick driver (M0; the agent-interleaved split of spec 9.3 arrives with the
-//! neural loop in M1):
+//! Tick driver (M0; the agent-interleaved split of spec 9.3 arrives in M4):
 //!
 //! ```text
 //! loop {
-//!     let tick = lifetime.advance()?;      // one tick, feedback attached
-//!     if tick.commitment_due {
-//!         lifetime.commit(action)?;        // final response tick only
+//!     let tick = lifetime.observe()?;       // one tick, feedback attached
+//!     if let Some(feedback) = tick.observation.feedback {
+//!         agent.apply_feedback_once(feedback)?; // pre-tick E/gates/baseline
 //!     }
+//!     agent.advance_neural_tick(&tick.observation.features)?; // steps 4-8
+//!     if tick.commitment_due {
+//!         lifetime.commit(action)?;         // final response tick only
+//!     }
+//!     lifetime.finish_tick()?;              // advance the environment clock
 //!     if lifetime.is_complete() { break; }
 //! }
 //! ```
+//!
+//! [`Lifetime::advance`] fuses `observe` + `finish_tick` for
+//! environment-only tests; learning drivers must use the split so the
+//! agent transition runs between observation and clock advance (M4-01,
+//! spec 9). Both orders are behaviorally identical (separate RNG
+//! streams; `commit_tick = tick - 1` compensates the post-finish
+//! commit), and the fused/split parity is pinned by
+//! `tests/main_tick_order.rs`.
 //!
 //! RNG ownership: the lifetime draws only from `cue_membership` (hidden role
 //! shuffle), `mapping_init` (birth mappings), `mapping_change` (hazard flips),
@@ -258,10 +270,19 @@ impl Lifetime {
 
     // -- tick driver --------------------------------------------------------
 
-    /// Deliver one tick: build the observation (attaching any due feedback
-    /// exactly once), then advance the phase machine. Commitment, when due,
-    /// is made via [`commit`](Self::commit) before the next `advance`.
-    pub fn advance(&mut self) -> Result<TickOutput, SimError> {
+    /// Observe one tick without advancing the environment clock (M4-01,
+    /// spec 9 steps 1-2/9-10 split).
+    ///
+    /// Builds the observation for the current tick, attaching any due
+    /// feedback exactly once (delivery bookkeeping — `pending` taken,
+    /// `outcomes` incremented, event id pushed to `consumed` — happens
+    /// here, not in [`finish_tick`](Self::finish_tick)). Draws no
+    /// simulation randomness. The driver must call `finish_tick` once per
+    /// observed tick after the agent transition and any commitment; at a
+    /// feedback tick a second `observe` without an intervening finish
+    /// errors (`pending` is already taken) instead of double-delivering.
+    /// Non-feedback ticks are pure reads and may be re-observed.
+    pub fn observe(&mut self) -> Result<TickOutput, SimError> {
         match &self.phase {
             PhaseState::Done => {
                 return Err(SimError::LifetimeComplete {
@@ -335,21 +356,39 @@ impl Lifetime {
             features[k + 4 + usize::from(action)] = 1.0;
         }
         debug_assert!(features.iter().all(|v| v.is_finite()));
-        let observation = Observation::new(features, feedback);
-        let output = TickOutput {
+        Ok(TickOutput {
             tick,
             phase: self.phase.snapshot(),
             cue,
             go,
             commitment_due,
-            observation,
+            observation: Observation::new(features, feedback),
             annotation,
-        };
+        })
+    }
+
+    /// Deliver one tick: build the observation (attaching any due feedback
+    /// exactly once), then advance the phase machine. Commitment, when due,
+    /// is made via [`commit`](Self::commit) before the next `advance`.
+    ///
+    /// Fused convenience for environment-only drivers and contract tests:
+    /// exactly `observe` followed by `finish_tick` (pinned by
+    /// `tests/main_tick_order.rs`). Learning drivers must use the split
+    /// so feedback application and the neural transition run between
+    /// observation and clock advance (spec 9).
+    pub fn advance(&mut self) -> Result<TickOutput, SimError> {
+        let output = self.observe()?;
         self.finish_tick()?;
         Ok(output)
     }
 
-    fn finish_tick(&mut self) -> Result<(), SimError> {
+    /// Advance the environment clock after the agent transition and any
+    /// commitment for the observed tick (M4-01, spec 9 step 10). Pairs
+    /// one-to-one with [`observe`](Self::observe): exactly one finish per
+    /// observed tick. Must run before [`commit`](Self::commit) on a
+    /// commitment tick (the `Committed` phase exists only between finish
+    /// and commit), so `commit_tick = tick - 1` still holds.
+    pub fn finish_tick(&mut self) -> Result<(), SimError> {
         let next = match self.phase.clone() {
             PhaseState::Quiet { remaining } => {
                 if remaining > 1 {

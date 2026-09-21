@@ -19,9 +19,58 @@ for newer work before claiming.
 ## Current position and evidence
 
 **M0-GATE, M1-GATE, M2-GATE passed (re-verified where noted). M3-01
-through M3-GATE verified 2026-09-21 UTC — M3 COMPLETE. Next task: M4-01.**
+through M3-GATE verified 2026-09-21 UTC — M3 COMPLETE. M4-01 through
+M4-04 verified 2026-09-21 UTC. Next task: M4-05.**
 There is no outstanding milestone blocker. The claim track remains `family_only`.
 No reserved final-test outcomes have been inspected.
+
+M4-04 names the three continuity conditions with pairwise-disjoint
+guards (`episodic_diagnostic` / `birth_only`+never-reset /
+`event_reset_diagnostic`+per-outcome-`E`-clear), mode-labeled
+summaries, same-seed pairing with divergent trajectories, and the
+`continuous_stationary` executable twin of the `debug_stationary`
+source (section-identical except `profile_name`). Full checks: **310
+fast Rust tests passed** (6 new), six pre-existing ignores, two
+compile-fail doc checks, 17 Python audit tests, clean fmt/Clippy,
+both profiles `validate-config` OK. [M4-04 evidence](evidence/m4-04/summary.md).
+Timing variability is M4-05; checkpoints M4-06.
+
+M4-03 adds the reset-audited continuous runner
+(`run_continuous_lifetime`, `validate_continuous_execution`):
+`resets == [0]` over full lifetimes, final `P` telescoping to summed
+actuals, nonzero cross-choice `E`, live warmup traces, reversals
+without resets, finish on the tick after the final outcome. Full
+checks: **304 fast Rust tests passed** (6 new), six pre-existing
+ignores, two compile-fail doc checks, 17 Python audit tests, clean
+fmt/Clippy. [M4-03 evidence](evidence/m4-03/summary.md). Conditions
+are M4-04 (done); timing variability is M4-05; checkpoints M4-06.
+
+M4-02 adds the fully persistent learner
+(`experiments::continuous::ContinuousLearner`, fixed gate 1, no reset
+methods — birth is the only reset by construction) with fixtures
+pinning exact `E <- lambda_e * E + S` recurrence (no unit factor),
+live-trace post-commitment scores against frozen/decay-only
+counterfactuals, and once-per-feedback baseline counting (closed form
+0.509804). Full checks: **298 fast Rust tests passed** (5 new), six
+pre-existing ignores, two compile-fail doc checks, 17 Python audit
+tests, clean fmt/Clippy. [M4-02 evidence](evidence/m4-02/summary.md).
+No runner, profiles, or checkpoints yet — those are M4-03 through
+M4-06.
+
+M4-01 splits the tick into `Lifetime::observe()` + `finish_tick()`
+(`advance()` kept as the fused primitive, parity-pinned) and migrates
+all six production drivers to observe → apply → agent-step → finish →
+commit with spec-9 step comments; `advance_inner` runs eligibility
+before motor (disjoint state, documentary). The tick-20/delay-3
+learning fixture proves the tick-23 update uses `E` through tick 22
+with fixed gate 1 and the old baseline, feedback-evoked scores
+excluded, exactly-once delivery through the single `P` writer. Finish
+precedes commit so `Committed`/`commit_tick = tick - 1`/golden delays
+are unchanged (equivalence in [decisions](decisions.md)). Full checks:
+**293 fast Rust tests passed** (4 new), six pre-existing ignores, two
+compile-fail doc checks, 17 Python audit tests, clean fmt/Clippy, plus
+release oracle/B3 smokes audited. [M4-01 evidence](evidence/m4-01/summary.md).
+Persistent traces are M4-02 (separate `experiments::continuous` type, no resets); reset auditing is M4-03, continuity profiles M4-04.
 
 M3-07 executes the frozen grid in release and passes: 216/216 lifetimes,
 winner grid index 11 (eta 0.001, input 0.2, gain 0.8, sigma 0.05) with
@@ -199,23 +248,22 @@ is available for a quick audit. Reproduce missing raw runs using the saved
 commands/configs into new directories; preserve historical evidence paths
 and distinguish reruns from the original execution.
 
-## Next task: M4-01
+## Next task: M4-05
 
-**Deliver:** the authoritative main tick order (spec Section 9): apply
-any due feedback using pre-tick `E`/gates/baseline before advancing
-the actor; then advance actor, optional modulator, eligibility, motor
-filter, and future gates; commit from the new motor output and finish
-the tick. Until M6, the gate is fixed at 1.
+**Deliver:** variable timing and delayed outcomes, gradually (spec
+5.7): keep stationary clean mappings while increasing timing
+variability and reward delay through declared development profiles.
+Preserve the single-pending-choice rule and identical exogenous
+schedules for paired comparisons.
 
-Read spec Sections 5, 8, 9, 10, 17 plus the
+Read spec Section 5 plus the
 [M4 task queue](../to-do.md#m4---remove-artificial-trial-resets)
-before touching the runner. Section 9 owns scientific tick ordering;
-the current `Lifetime::advance` + episodic apply-before-advance
-dispatch is explicitly not the literal finish-last API (see carry-
-forward constraints below). M4-01 owns the observe/apply/advance/
-commit/log/finish split and the exact learning-sensitive tick-20/
-delay-3 fixture. There is exactly one feedback-application path —
-keep it that way.
+before touching timing. M4-04 is done: three labeled conditions with
+disjoint guards and two validated profiles exist, so M4-05 adds
+timing/delay development profiles (with table-tested endpoints) plus
+delay-sensitivity records with tau_e, trace magnitudes, and update
+norms — without changing tick semantics, trace arithmetic, reset
+behavior, or condition labels.
 
 - The M3 family (full-recurrent episodic learner at grid-index-11
   hyperparameters) is the starting point; M4 removes its diagnostic
@@ -305,6 +353,10 @@ episodic learner at grid index 11.
 | Exactly-once feedback/baseline (M3-02) | `src/agent/plasticity.rs` (`apply_feedback_once`, `FeedbackUpdateParams`, `FeedbackOutcome`) | `tests/feedback_updates.rs`; old-baseline `delta`, ordered clamps with separated reports, monotonic dedup, zero-change cases, `W0` invariance, named update parameters |
 | Golden update fixture (M3-03) | `tests/golden_updates.rs` (fixture only) | spec 17.3 chain at `1e-12`–`1e-15` plus separate clipped cases; no production change |
 | Episodic diagnostic runner (M3-04) | `src/experiments/episodic.rs`, `configs/episodic_stationary.toml` | `tests/episodic_runner.rs`; agent-only fixed-gate learner, `no_decay_diagnostic` traces, one terminal update per one-choice rollout, logged resets, guard separation, ordering/RNG regression |
+| Persistent learner (M4-02) | `src/experiments/continuous.rs` | `tests/persistent_traces.rs`; agent-only fixed-gate learner, `persistent` traces, primary runner never resets (M4-03 audit), construction guards, closed-form recurrence, live-trace anti-snapshot, baseline event counts |
+| Continuous runner (M4-03) | `src/experiments/continuous.rs` (`run_continuous_lifetime`), `src/config.rs` (`validate_continuous_execution`) | `tests/continuous_runner.rs`; birth-only reset audit, P-telescoping tripwire, cross-choice E, live warmup, reversals without resets, guard rejections, finish-after-final-feedback |
+| Event-reset diagnostic (M4-04) | `src/experiments/continuous.rs` (`run_event_reset_lifetime`, `EVENT_RESET_MODE`), `src/config.rs` (`validate_event_reset_execution`), `src/agent/plasticity.rs` (`reset_traces_event_diagnostic`) | `tests/continuity_conditions.rs`; pairwise-disjoint guards, same-seed pairing with divergent P/E, per-outcome reset audit, E-only clear unit proof |
+| Continuity profiles (M4-04) | `configs/continuous_stationary.toml` (new executable twin), `configs/debug_stationary.toml` (source, header only) | `tests/continuity_conditions.rs`; section-identical except name, both validate, library execution at small override |
 | Matched controls (M3-05) | `src/experiments/episodic.rs` (`run_episodic_no_learning`, `run_episodic_shuffled`, `run_episodic_conditions`), `src/agent/no_learning.rs` (diagnostic reset) | `tests/episodic_controls.rs`; shared W0/schedule/resets, first-action parity, P-movement plus behavior, re-derived shuffle protocol, observed/applied separation |
 | Development grid (M3-06) | `manifests/m3_development_grid.json`, `src/experiments/grid.rs` | `tests/development_grid.rs`; frozen axes/seeds/windows/criterion/budget, validation-only instantiation of all 24 points, derived tick estimate, invalid-mutation rejection |
 | Acquisition sweep (M3-07) | `src/experiments/sweep.rs`, `tests/m3_acquisition.rs` | fast analysis on real summaries plus ignored release sweep; windows/margins/health/judging/selection, 216/216 integrity, archived records plus verdict |
@@ -327,8 +379,8 @@ episodic learner at grid index 11.
 
 | Topic | Current implementation | Next responsibility |
 | --- | --- | --- |
-| Tick API | `Lifetime::advance` builds a tick and advances the environment before returning. The ordinary and episodic runners dispatch feedback before the agent transition, but this is not the literal Section 9 finish-last API. | Preserve complete-tick checkpoint splits and current causal behavior. M4-01 owns the observe/apply/advance/commit/log/finish split and exact learning-sensitive tick-20/delay-3 fixture. |
-| Agent feedback | Ordinary runners call `apply_feedback` once before `advance(features)`; B3 dedups without learning; selection reads policy state only. The M3-04 episodic runner wires `apply_feedback_once` (fixed gate 1) around the same ordering with one coupled eligibility update per transition and logged resets. | M4-01 fixes the authoritative apply-before-advance runner order for the continuous condition. Keep the information boundary for gates (M6). `TickOutput` belongs to the driver/evaluator. |
+| Tick API | M4-01: `Lifetime::observe()` builds a tick without clock advance; public `finish_tick()` advances it; `advance()` is exactly observe+finish (parity-pinned in `tests/main_tick_order.rs`). All six production drivers run observe → apply → agent-step → finish → commit; finish precedes commit so `Committed`/`commit_tick = tick - 1`/golden delays are unchanged. | Preserve complete-tick checkpoint splits and this causal order. M4-04 profiles conditions on top without changing tick semantics. |
+| Agent feedback | All runners call `apply_feedback` once per delivered event before `advance(features)`; B3 dedups without learning; selection reads policy state only. `PlasticState::apply_feedback_once` is the single `P`/baseline/dedup writer (fixed gate 1; `advance_inner` runs eligibility before motor on disjoint state). M4-02 adds the persistent `experiments::continuous` learner (no resets) alongside the episodic diagnostic. | Keep the information boundary for gates (M6). `TickOutput` belongs to the driver/evaluator. |
 | Effective weights | `PlasticState::refresh_effective` is the single `W0 + P` cache writer. `step_with_effective_weights` reads it; the episodic runner is its first production caller and `P` changes only through `apply_feedback_once` or validated restore. | M3-10/M4-06 embed `PlasticSnapshot` (schema 3) in checkpoint schema and prove split replay with nonzero `P`/`E`/baseline/dedup/bound. |
 | Warmup | Replaces the first quiet interval; zero starts directly at cue presentation. `episodic_stationary` uses warmup 0. | Preserve the documented M0 convention; use measured ticks for budgets. An additive-warmup change needs an explicit decision and new evidence. |
 | Noise/hazard assignment | Stable membership is shuffled from dedicated `cue_membership`; noise rates cycle by cue index. | M5-02 owns factorial counterbalancing; current assignment is not a completed training-distribution implementation. |
