@@ -1,0 +1,102 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.37s
+     Running tests/finite_rollout.rs (target/debug/deps/finite_rollout-f8aaf6db2d4a07d1)
+
+running 8 tests
+{
+  "mode": "fixed_weight_no_decay_rollout",
+  "steps": 3,
+  "baseline": 0.25,
+  "reward": 1.0,
+  "score_sums": [
+    [
+      0.0,
+      0.4000000000000001
+    ],
+    [
+      0.4000000000000001,
+      0.0
+    ]
+  ],
+  "reward_weighted_scores": [
+    [
+      0.0,
+      0.30000000000000004
+    ],
+    [
+      0.30000000000000004,
+      0.0
+    ]
+  ],
+  "terminal_weights": [
+    [
+      0.0,
+      3.0000000000000004
+    ],
+    [
+      3.0000000000000004,
+      0.0
+    ]
+  ]
+}
+test initial_state_is_independent_of_weights_and_finite_membranes_are_not_clipped ... ok
+test accumulation_and_terminal_overflow_are_explicit_failures ... ok
+test no_update_and_zero_delta_modes_leave_weights_unchanged ... ok
+test invalid_configuration_and_inputs_are_explicit_errors ... ok
+test lifecycle_rejects_online_updates_extra_ticks_and_duplicate_finish ... ok
+test nonfinite_transitions_and_scores_cannot_be_finalized_or_retried ... ok
+test stochastic_rollout_matches_frozen_actor_and_draw_schedule ... ok
+test golden_sum_has_no_decay_and_only_one_terminal_update ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/score.rs (target/debug/deps/score-e9db2c30f0e26418)
+
+running 8 tests
+test incoming_edges_share_receiver_noise_and_parameters ... ok
+test nonfinite_inputs_and_invalid_leaks_are_rejected ... ok
+test positive_sigma_is_not_floored_and_overflow_is_explicit ... ok
+test spec_golden_score_has_one_leak_factor_and_actual_sigma ... ok
+test invalid_noise_is_rejected_even_for_zero_numerator ... ok
+test score_uses_actor_leak_without_an_extra_factor ... ok
+test zero_activity_or_perturbation_yields_zero_score ... ok
+test saturated_activity_has_no_tanh_derivative ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/score_learning_direction.rs (target/debug/deps/score_learning_direction-42c37c48b25a723e)
+
+running 4 tests
+test one_neuron_learning_direction ... ignored, bounded million-sample M2-03 diagnostic; invoke explicitly per README
+test analytical_value_matches_specification ... ok
+test forced_samples_cover_both_rewards_and_opposite_target ... ok
+test moments_match_hand_calculated_sample_variance_and_standard_error ... ok
+
+test result: ok. 3 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/score_log_probability.rs (target/debug/deps/score_log_probability-2a3d3496c6822fd1)
+
+running 3 tests
+test moving_sample_with_perturbed_mean_is_not_the_conditional_derivative ... ok
+test log_probability_matches_known_gaussian_values ... ok
+tau_h=0.5 sigma=0.05: 48 comparisons, max_abs_error=5.143718340150e-9
+tau_h=0.5 sigma=0.4: 48 comparisons, max_abs_error=1.063786614353e-9
+tau_h=5 sigma=0.05: 48 comparisons, max_abs_error=3.790982994190e-8
+tau_h=5 sigma=0.4: 48 comparisons, max_abs_error=4.692469524059e-9
+tau_h=100 sigma=0.05: 48 comparisons, max_abs_error=1.734158852629e-8
+tau_h=100 sigma=0.4: 48 comparisons, max_abs_error=2.375865382903e-9
+test fixed_sample_log_probability_derivatives_match_scores ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/score_recurrent.rs (target/debug/deps/score_recurrent-3035b847b9785bcc)
+
+running 6 tests
+test two_neuron_recurrent_finite_difference ... ignored, bounded two-million-trajectory M2-05 diagnostic; invoke explicitly per README
+test broad_intervals_and_precise_disagreement_cannot_pass ... ok
+test paired_uncertainty_uses_sample_differences ... ok
+test failed_paired_sample_is_reported_without_counting_it_as_complete ... ok
+test forced_trajectory_preserves_weights_and_exposes_recurrent_effect ... ok
+test paired_sampler_resets_and_replays_exactly ... ok
+
+test result: ok. 5 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

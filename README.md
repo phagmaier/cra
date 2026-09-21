@@ -7,8 +7,8 @@ feedback?
 
 Status: **M0 complete and re-verified; M1 complete and re-verified (continuous
 nonplastic actor demo, bitwise replay on linux/x86_64 — explicitly not
-learning); M2-01–M2-05 score diagnostics and recurrent check complete;
-next task M2-06.** The simulator core exists as a library
+learning); M2-GATE passed (restricted score diagnostics);
+next task M3-01.** The simulator core exists as a library
 (`src/environment/`, `src/agent/` nonplastic dynamics plus `B3`
 harness, `src/checkpoint.rs`, `src/logging/`) with deterministic
 fixtures, randomized checks, baseline/actor runners, replay proofs, and
@@ -25,7 +25,7 @@ records checkpoint/diagnostic fixes and fresh measured evidence.
 
 Start with [AGENTS.md](AGENTS.md), the [current tracker](to-do.md), and
 the [agent continuation guide](docs/handoff.md). The guide maps existing
-code/tests to M2-06 and records the integration limits to preserve.
+code/tests to M3-01 and records the integration limits to preserve.
 
 | Document | Responsibility |
 | --- | --- |
@@ -131,8 +131,32 @@ immutable JSON output; existing files are rejected. Five new fast checks
 pass. Full M2-05 verification: **212 fast Rust tests passed**, three default
 ignores (M2-03, M2-05, weight-printing probe), two compile-fail doc checks,
 clean fmt/Clippy. M2-05's ignored diagnostic was separately executed; M2-03
-was not rerun this session. M2-06 is next and M2-GATE remains open. These
-checks are not evidence of online learning or convergence.
+was not rerun in that M2-05 session. These checks are not evidence of online
+learning or convergence.
+
+M2-06 packages every required score check into one explicit bounded run:
+
+```bash
+bash scripts/run_score_diagnostics.sh runs/m2-diagnostics-fresh
+```
+
+Choose a **new directory** whose parent exists. The script requires Bash and
+standard Linux utilities (`sha256sum` included), uses the pinned Rust tools,
+and saves commands, exit codes, logs, source hashes, deterministic fixtures,
+plans and result JSON. It refuses an existing directory, stops on failure,
+and writes `PASSED` only after the required tests and exports succeed. Do not
+reuse failed/interrupted output. Individual commands above remain available;
+ordinary `cargo test` keeps Monte Carlo ignored.
+
+The finite budget is one million one-neuron samples plus two million
+six-tick recurrent trajectory groups (85 million total Monte Carlo neural
+transitions), using the original development seeds and tolerances. The
+[complete M2 verification](docs/evidence/m2-06/summary.md) freshly passed
+27 fast diagnostic tests, two compile-fail API checks and both Monte Carlo
+tests; sampled results exactly reproduce the original evidence. Full suite:
+212 passed, three default ignores, clean fmt/Clippy. **M2-GATE passed;
+M3-01 is next.** These fixed-weight diagnostic results do not prove
+unbiasedness or convergence of the main online learner.
 
 To save the bounded observability tests' measured diagnostics, choose a fresh
 output directory (existing evidence files are never overwritten):

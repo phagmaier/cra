@@ -1,8 +1,9 @@
 # Agent continuation guide
 
-Updated 2026-09-21 UTC after M2-05. Session base HEAD is
-`1e6fbf2` (`M2-04`), clean at entry. M2-05 changes are uncommitted.
-Check the tracker and Git state for newer work before claiming a task.
+Updated 2026-09-21 UTC after M2-06 and M2-GATE. Session began at
+`1e6fbf2` with M2-05 staged; that prior work was committed as `28bcdd5`
+during this session. Fresh M2-06 diagnostics record `28bcdd5` plus uncommitted
+packaging/docs. Check Git and the tracker for newer work before claiming.
 
 ## Start here
 
@@ -18,9 +19,9 @@ Check the tracker and Git state for newer work before claiming a task.
 
 ## Current position and evidence
 
-**M0-GATE passed and was re-verified. M1-GATE passed. M2-01–M2-05 complete.
-Next task: M2-06.**
-There is no outstanding M1 blocker. The claim track remains `family_only`.
+**M0-GATE passed and was re-verified. M1-GATE and M2-GATE passed.
+Next task: M3-01.**
+There is no outstanding milestone blocker. The claim track remains `family_only`.
 No reserved final-test outcomes have been inspected.
 
 M2-01 adds `agent::score::conditional_score`, a pure scalar function with
@@ -29,7 +30,7 @@ invalid inputs and nonfinite results; callers own edge selection and indexing.
 M2-01 recorded eight score tests and **193 Rust tests passed overall**, one
 existing ignored weight-printing probe, clean fmt/Clippy. No actor transition,
 RNG, config, checkpoint or event schema changed. Python and CLI smoke runs
-were not repeated for this isolated arithmetic addition. M2-GATE is open.
+were not repeated for that isolated arithmetic addition. M2-GATE was then open.
 
 M2-02 adds `tests/score_log_probability.rs`: 288 fixed-observation derivative
 comparisons against the production actor's conditional mean, Gaussian-density
@@ -70,6 +71,16 @@ default ignores, two compile-fail docs, clean fmt/Clippy. M2-03's slow test
 was not rerun. [M2-05 evidence](evidence/m2-05/summary.md) records the fixed
 plan, immutable result, source hashes and exact checks. Production unchanged.
 
+M2-06 adds `scripts/run_score_diagnostics.sh`: one explicit bounded command
+with fresh output, exact commands/status/logs/source hashes and JSON exports.
+M2-GATE passed after fresh 27 fast diagnostic tests, 2 compile-fail API tests,
+and both million/two-million-sample Monte Carlo checks. Results exactly
+match their original samples/settings/seeds. Full suite: **212 passed, 3
+default ignores**, clean fmt/Clippy; both Monte Carlo ignores explicitly
+passed, existing printing probe unrun. Four wrapper controls verify failure,
+reuse and zero-test rejection plus usage. [Gate evidence](evidence/m2-06/summary.md)
+records all checks, artifacts and claim limits. No production behavior changed.
+
 M1 implements a continuous nonplastic actor and exits as a verified dynamics
 foundation, explicitly not learning. The [M1 corrective review](m1-review.md)
 fixed checkpoint seed/config/state validation, concurrent checkpoint writes,
@@ -102,36 +113,38 @@ is available for a quick audit. Reproduce missing raw runs using the saved
 commands/configs into new directories; preserve historical evidence paths
 and distinguish reruns from the original execution.
 
-## Next task: M2-06
+## Next task: M3-01
 
-**Deliver:** package the score tests as bounded reproducible diagnostics.
-Keep deterministic checks fast and Monte Carlo explicit, preserve their
-configuration/expectations/seeds/results, and verify all required diagnostics
-have actually run before considering M2-GATE.
+**Deliver:** store plastic offsets P and eligibility E separately from
+immutable W0. Support motor-afferent-only and all-existing-recurrent-edge
+plastic masks, with explicit no-decay diagnostic accumulation and persistent
+exponential decay as distinct policies. Missing/nonplastic edges must remain
+zero; refresh effective weights in one tested location. New resumable state
+requires checkpoint serialization and compatibility validation.
 
-Read spec Sections 7.1–7.2, 7.6, 9, 17.4–17.6 and the
-[M2 task queue](../to-do.md#m2---verify-the-stochastic-score-independently).
-Inspect the score tests, `src/experiments/finite_rollout.rs`, README commands,
-and evidence bundles M2-01 through M2-05. M2-03 and M2-05 currently have
-separate test-local Welford statistics and immutable JSON exporters; they
-may be consolidated if packaging benefits, preserving numerical behavior.
+Read spec Sections 1–10, revisiting 5/7/8/9/10 and 17.2–17.5, plus the
+[M3 task queue](../to-do.md#m3---make-an-ungated-local-learner-learn-a-clean-task).
+Inspect `src/agent/{score,actor,weights,no_learning}.rs`,
+`src/experiments/finite_rollout.rs`, `src/checkpoint.rs`, `src/config.rs`,
+and the checkpoint/finite-rollout/score tests. Check the existing learning
+configuration fields before adding another representation.
 
-- Both Monte Carlo checks have recorded first-run passes. M2-03 was last
-  executed in its own session; M2-05 was executed this session. Distinguish
-  historical evidence from any new checks, and retain all old artifacts.
-- Fresh result exports must use new paths. Diagnostic seeds are development
-  only; no retry-until-pass, hidden reset, or tolerance changes after results.
-- The finite-rollout harness uses zero state, fixed parameters/baseline,
-  exact score sums, and explicit resets between independent rollouts.
-  No main eligibility decay or online plasticity is enabled.
-- M2-05 uses actual Gaussian draws replayed at different weight settings;
-  states evolve separately, unlike M2-02's fixed-observation density test.
-  Its uncertainty is computed from paired sample differences, with an
-  additional absolute precision limit; failed samples fail the diagnostic.
+- M2 supplies verified score arithmetic and an isolated no-decay harness,
+  not production lifetime plasticity. Keep its frozen-weight diagnostics
+  intact while adding M3 state; do not repurpose its resets as birth-only.
+- Eligibility advances from old sender activity and this transition's
+  receiver perturbation. Feedback must consume the preexisting trace before
+  the actor transition; M3-02 owns exactly-once reward updates/baselines.
+- The current actor reads inherited W0. Introduce effective weights without
+  mutating W0 or accidentally learning biases/input/modulator weights.
+- M1 checkpoint schema is 2; all new state and derived continuation caches
+  need explicit validation/versioning. Preserve B3/replay behavior and reject
+  incompatible or missing state rather than silently defaulting.
+- Main `simulate` guards still reject enabled learning. Do not enable a
+  nominal learner before the ordered implementation and empirical tasks.
 
-M2 validates score arithmetic under restricted diagnostics only — it
-says nothing about continual-learning performance. M2-GATE remains open;
-do not start M3 until the gate is verified and recorded.
+M2-GATE passed only the restricted score diagnostics. Acquisition and
+continuous learning remain unverified; M3/M4 need their own measured gates.
 
 ## Implementation map
 
@@ -150,6 +163,7 @@ do not start M3 until the gate is verified and recorded.
 | Conditional score (M2-01) | `src/agent/score.rs` | `tests/score.rs`; receiver indexing, golden arithmetic, saturation, zero activity, invalid inputs and overflow |
 | Conditional derivative diagnostic (M2-02) | `tests/score_log_probability.rs` | Saved-sample finite differences across edges/leaks/noise scales; moving-sample negative control |
 | One-neuron direction diagnostic (M2-03) | `tests/score_learning_direction.rs` | Fast statistics/forced-sample fixtures plus ignored bounded Monte Carlo with immutable evidence export |
+| Score diagnostic package (M2-06) | `scripts/run_score_diagnostics.sh` | Explicit bounded fast/API/Monte Carlo sequence, fresh evidence and failure/reuse/zero-test checks |
 | Recurrent finite-difference diagnostic (M2-05) | `tests/score_recurrent.rs` | Five fast contract/statistics checks plus ignored bounded paired Monte Carlo with immutable evidence export |
 | Finite-rollout diagnostic (M2-04) | `src/experiments/finite_rollout.rs` | `tests/finite_rollout.rs` plus compile-fail docs; fixed parameters/baseline, no decay, terminal-only update and explicit reset |
 | Adaptation at strength 0 (M1-05) | `src/agent/actor.rs` (verified) | `tests/adaptation.rs`; inertness, sign, persistence, config pin |

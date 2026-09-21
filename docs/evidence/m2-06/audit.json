@@ -1,0 +1,88 @@
+{
+  "task_ids": [
+    "M2-06",
+    "M2-GATE"
+  ],
+  "passed": true,
+  "base_revision_at_session_start": "1e6fbf2",
+  "revision_at_execution": "28bcdd57ccf78c7e8294f7bf0ec4cb4f978fe40b",
+  "reproduced_originals": [
+    {
+      "new": "docs/evidence/m2-06/suite/direction.json",
+      "original": "docs/evidence/m2-03/result.json",
+      "identical_fields": [
+        "configuration",
+        "seed",
+        "positive",
+        "opposite",
+        "sign_reversal",
+        "resource_counts"
+      ]
+    },
+    {
+      "new": "docs/evidence/m2-06/suite/recurrent.json",
+      "original": "docs/evidence/m2-05/result.json",
+      "identical_fields": [
+        "configuration",
+        "seed",
+        "score",
+        "base_reward",
+        "comparisons",
+        "resource_counts",
+        "failures"
+      ]
+    }
+  ],
+  "source_hashes_match": true,
+  "checks": {
+    "fast": {
+      "passed": 27,
+      "failed": 0,
+      "ignored": 2
+    },
+    "api": {
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0
+    },
+    "full_suite": {
+      "passed": 212,
+      "failed": 0,
+      "ignored": 3
+    }
+  },
+  "rollout_golden_exact_match": true,
+  "artifact_sha256": {
+    "plan.md": "eb2a6e5d3e76fc618fdf83dcfe975ae54192e6dc5fd5e43cf14f15827c74ca2d",
+    "quality-1.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "quality-2.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "quality-3.log": "ee1d3fffa2022e962e63e0dbe4d35c9c198450a20c29fc09030f635dbb38bfcd",
+    "quality-4.log": "9a6818e249282d680b7ea38ceac4dbeaec63c276e277e29cbd5aac2acc4ddd5d",
+    "quality.json": "9364f87e00c4f2fe3088c960ae0c42274fe662ecc04a03bd575e722848caf792",
+    "suite/PASSED": "0bd11b05a90a7805506e5d557e9ea23fcf4ddcf099d4c5193ba08fa2dbba24ed",
+    "suite/api.log": "6ffb690b09547917f062c53b812e82ff890f1f611b5d9df576f0871f3e6d1e59",
+    "suite/cargo.txt": "fb3f25aefd6d5441842d285f5a9b125b3f0f0b0bf2013d9a32677f9e99c6c854",
+    "suite/checks.tsv": "0e464ca06a686e94427176c33e441428a3c5a3fa88c2ded2a4ca2a6a146204fc",
+    "suite/commands.txt": "c0abc9f747a2324e37ba85c7c08d917bd2c0231821454df656805203317640a2",
+    "suite/derivative-fixture.rs": "8942909a214b916a4f4400dfb9d1812559c3515e3836f8c80bc6652ec908619a",
+    "suite/direction-plan.md": "f19c966162405c9c8a7968d8355f583f9e42ba0ef3d048e3ec84480b75685bfd",
+    "suite/direction.json": "f57120b047009a116186d1f3cda40fa247b1918fa4f4f2a11cb123c0bb759e2f",
+    "suite/direction.log": "00160faf4c33856fea6242586bc227dae7c21497a874615aa7c3d5650c9d384b",
+    "suite/exit_code": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "suite/fast.log": "f5987e30515ed1140c7e75089b8c2b05c4b6a76afd2d7be924a732a54e333a0e",
+    "suite/finished-utc.txt": "e478a2a2385fe2a3ed550b0f5e51331bf2a3f4cdb435a729770510836a5ec088",
+    "suite/git-status.txt": "cb2bf350bede928d54a9b54193ee3e4776e917cfe7d8e7ad9dc997493c88819c",
+    "suite/platform.txt": "33e2c65df51238f84183210ab059a41f76c7ad610b00dd6de76924a3aebb1b97",
+    "suite/recurrent-plan.md": "e675b0cc568c241366cd8486b23bdbd7770bbfe4589a1dab9f9b59d704a268f2",
+    "suite/recurrent.json": "316ec83bc1f5ced96b11322ff6f9a744d59aedcb1cfd76d27b9c95d14c30f31a",
+    "suite/recurrent.log": "bf6501fc42884c6feaecc70e51d5241e849c45e36acff6cdfab92a57fd866ad3",
+    "suite/revision.txt": "a9e2ecaf5e6e0883674589174538f5b3fdf2c3de542e89b752c6e158ae1100b7",
+    "suite/rollout-golden.json": "c7bece70df8431769f800c3bd07c6e9a74ceaa4e56ad9e42605fa36d81b29d19",
+    "suite/rustc.txt": "785f1364c0d5bf077f7bfb885fd4bde99899dfd80ce0fb6226a4527d9b27724c",
+    "suite/score-fixture.rs": "aa75c7c7ebfa42175e156852395b30cc5551bceb162f6bd83fd1b80eff040162",
+    "suite/source-check.log": "1be7fd5c03c46479c799611c2dcbe17f98116e6b6122c86d68ac3d72d78e0686",
+    "suite/source.sha256": "6b5b533e3b5e27f44d65b9a3fd833a47881dcaff01044661f371ec73045a2f0e",
+    "suite/started-utc.txt": "6057749a3b279b6c5da5865673c59b69caf322559b8e3679c90754f2ac304d32",
+    "wrapper-checks.json": "92ccf2a8fed0c820b3447a55975b41fd37e3eb435b2b608abe5cb627f34a5fab"
+  }
+}

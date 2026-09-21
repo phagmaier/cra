@@ -1,0 +1,4 @@
+env CRA_M2_ROLLOUT_EVIDENCE=/home/phagmaier/Code/cra/docs/evidence/m2-06/suite/rollout-golden.json cargo test --locked --test score --test score_log_probability --test score_learning_direction --test finite_rollout --test score_recurrent -- --nocapture 
+cargo test --locked --doc 
+env CRA_M2_DIRECTION_EVIDENCE=/home/phagmaier/Code/cra/docs/evidence/m2-06/suite/direction.json cargo test --release --locked --test score_learning_direction one_neuron_learning_direction -- --ignored --exact --nocapture 
+env CRA_M2_RECURRENT_EVIDENCE=/home/phagmaier/Code/cra/docs/evidence/m2-06/suite/recurrent.json cargo test --release --locked --test score_recurrent two_neuron_recurrent_finite_difference -- --ignored --exact --nocapture 

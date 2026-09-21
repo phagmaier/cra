@@ -162,3 +162,28 @@ interrupted runs — missing data is not a zero score.
 - Restricted numerical validation only; no online-learning, convergence,
   or lifetime-gradient claim. No production/spec change or final-test data.
   M2-05 complete; M2-06 next; M2-GATE remains open.
+
+
+## 2026-09-21 UTC — M2-06 packaging and M2 gate verification
+
+- Package command: `bash scripts/run_score_diagnostics.sh docs/evidence/m2-06/suite`.
+  Session began at `1e6fbf2` with prior M2-05 staged; it was committed as
+  `28bcdd5` before package execution. New packaging/docs uncommitted.
+  [Plan](evidence/m2-06/plan.md) preserves original seeds, sample counts,
+  acceptance criteria and numerical code; previous evidence unchanged.
+- Fresh 27 fast diagnostic tests, two compile-fail API tests and both bounded
+  Monte Carlo checks pass. Direction mean 0.1387168060 (analytic 0.1388622065,
+  SE 0.0001064493); recurrent score 0.4180254284 (SE 0.0006915851), all three
+  finite-difference comparisons pass agreement and precision criteria.
+  All sampled statistics exactly reproduce original JSON; these are same-seed
+  replay checks, not independent replications. Zero simulation failures.
+- Full Rust suite: 212 passed, three default ignores; both Monte Carlo tests
+  passed explicitly, weight-printing probe unrun. Formatting/Clippy clean.
+  Four wrapper controls pass, including intentional fake-command failures;
+  package stops on error and refuses reused/incomplete output.
+- [Evidence](evidence/m2-06/summary.md) includes commands/logs/status, source
+  and artifact hashes, complete JSON, deterministic fixture source and plans.
+  Combined Monte Carlo budget: 85 million transitions / 25 million normal
+  draws, serial; development root1/outer203 or 205/lifetime0/actor_noise.
+- M2-06 and M2-GATE complete; next M3-01. No production/spec changes,
+  final-test inspection, acquisition or online-unbiasedness/convergence claim.

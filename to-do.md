@@ -30,19 +30,20 @@ and [continuation guide](docs/handoff.md).
 
 | Field | Current value |
 | --- | --- |
-| Current milestone | M2 open; M1-GATE passed 2026-09-21 UTC |
+| Current milestone | M3 ready; M2-GATE passed 2026-09-21 UTC |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M2-05 — short two-neuron recurrent finite-difference check |
+| Last verified task | M2-GATE — complete score diagnostic package verified |
 | Claimed task | None |
-| Next eligible task | M2-06 |
+| Next eligible task | M3-01 |
 | Current blocker | None |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | 2026-09-21 UTC M2-05; completion ledger below and docs/evidence/m2-05/summary.md |
+| Last evidence record | 2026-09-21 UTC M2-06/M2-GATE; docs/evidence/m2-06/summary.md and ledger below |
 
 ### Session ownership and handoffs
 
 | Owner/session | Task IDs | Files or interfaces owned | Status / handoff |
 | --- | --- | --- | --- |
+| Codex 2026-09-21 M2-06 | M2-06, M2-GATE | scripts/run_score_diagnostics.sh, docs/evidence/m2-06/, README.md, docs/{experiments,handoff}.md, docs/evidence/README.md, to-do.md | Done; all diagnostics freshly passed; M2-GATE verified, next M3-01 |
 | Codex 2026-09-21 M2-05 | M2-05 | tests/score_recurrent.rs, docs/evidence/m2-05/, README.md, docs/{experiments,handoff}.md, to-do.md | Done; three Monte Carlo comparisons and full checks pass; next M2-06 |
 | Codex 2026-09-21 M2-04 | M2-04 | src/experiments/{mod,finite_rollout}.rs, tests/finite_rollout.rs, README.md, docs/{decisions,handoff}.md, docs/evidence/m2-04/, to-do.md | Done; 8 integration and 2 compile-fail checks pass; next M2-05 |
 | Codex 2026-09-21 M2-03 | M2-03 | tests/score_learning_direction.rs, docs/evidence/m2-03/, docs/experiments.md, README.md, docs/handoff.md, to-do.md | Done; million-sample diagnostic and full fast checks pass; next M2-04 |
@@ -264,11 +265,11 @@ Validate the conditional Gaussian score and restricted finite-rollout interpreta
   - Deliver: Implement the Section 17.6 short-horizon test over several weight perturbation magnitudes. Compare sampled expected-reward finite differences with terminal reward times accumulated score and quantify uncertainty.
   - Verify: Weights stay fixed within each rollout; initial state and baseline obey the diagnostic assumptions. Use adequate samples or report unresolved uncertainty rather than accepting a wide interval as strong evidence.
 
-- [ ] **M2-06 - Package score tests as bounded reproducible diagnostics**
+- [x] **M2-06 - Package score tests as bounded reproducible diagnostics**
   - Deliver: Keep deterministic derivative tests in the fast suite and expensive Monte Carlo checks in explicit bounded commands. Save their configuration, analytic expectations, seeds, samples, and results.
   - Verify: All required diagnostic checks actually run before the milestone gate. Documentation states that these tests do not prove unbiasedness or convergence of the main online learner.
 
-- [ ] **M2-GATE - Verify and record milestone exit**
+- [x] **M2-GATE - Verify and record milestone exit**
   - Deterministic derivative tests pass and Monte Carlo estimates agree with the specified analytical/recurrent checks within prespecified uncertainty tolerances. Save runnable diagnostic commands and evidence. Do not substitute a plotted reward curve for score validation.
   - Evidence: add a ledger entry with the executed commands, results, configuration/seed identifiers, and saved artifact paths. Update the current status before beginning the next milestone.
 
@@ -2596,18 +2597,73 @@ Tracker boxes updated: M2-05 checked. No scientific-contract deviation.
 Next eligible task: M2-06.
 ```
 
+```text
+Date / agent or session: 2026-09-21 UTC / Codex M2-06
+Task IDs: M2-06, M2-GATE
+Spec sections: 7.1-7.2, 7.6, 16/M2, 17.4-17.6
+Change and affected files: scripts/run_score_diagnostics.sh; README,
+  handoff, experiments, evidence index, tracker; docs/evidence/m2-06/.
+  Wrapper packages existing Rust tests; no numerical/production/dependency,
+  RNG policy, schema or spec changes. Prior artifacts preserved.
+Code revision / dirty-tree state: session start 1e6fbf2 with M2-05 staged;
+  prior work committed during session as 28bcdd5. All package stages record
+  28bcdd57ccf78c7e8294f7bf0ec4cb4f978fe40b plus dirty M2-06 work.
+Commands actually executed:
+  bash -n scripts/run_score_diagnostics.sh (pass)
+  Python stdlib wrapper controls (four pass: usage, fake-Cargo failure
+    propagation, directory reuse without mutation, zero-test rejection)
+  bash scripts/run_score_diagnostics.sh docs/evidence/m2-06/suite
+    fast: cargo test --locked --test score --test score_log_probability
+      --test score_learning_direction --test finite_rollout
+      --test score_recurrent -- --nocapture (27 pass, 2 MC ignores)
+    api: cargo test --locked --doc (2 compile-fail checks pass)
+    direction: cargo test --release --locked --test score_learning_direction
+      one_neuron_learning_direction -- --ignored --exact --nocapture
+      (1 pass; 1,000,000 samples, 0.08s)
+    recurrent: cargo test --release --locked --test score_recurrent
+      two_neuron_recurrent_finite_difference -- --ignored --exact --nocapture
+      (1 pass; 2,000,000 trajectory groups, 14.69s)
+    Output env variables route exports to fresh suite/*.json; exact expanded
+    commands and exit codes are in suite/commands.txt and checks.tsv.
+  cargo fmt --all -- --check (clean)
+  cargo clippy --all-targets --locked -- -D warnings (clean)
+  cargo test --all-targets --locked (212 passed, 0 failed, 3 ignores)
+  Python stdlib source/hash/result audit (original numeric/seed/config/count
+    parity, golden parity, actual test totals all verified; audit.json)
+Outcome: Every M2 prerequisite actually rerun and passed. Direction mean
+  .1387168060, analytical .1388622065, SE .0001064493; recurrent score
+  .4180254284, SE .0006915851; three finite differences .41825625/.4204/
+  .41765 pass original uncertainty/precision bounds. 288 conditional-density
+  comparisons pass. Exact same-seed reproduction, not independent evidence.
+Checks not run / failures / blockers: No real diagnostic failures/blockers.
+  Fake failures intentional wrapper controls. Existing ignored weight-print
+  probe unrun; both ignored MC diagnostics explicitly pass. Unrelated Python
+  log-analysis and CLI simulator smoke not rerun for orchestration-only work.
+Configuration and suite hashes: original M2-03/05 plans and fixtures copied
+  into suite; no tolerances/seeds changed. Development/root1/outer203 or 205/
+  lifetime0/actor_noise. Combined MC 85,000,000 transitions and 25,000,000
+  independent normal draws, one worker. Source/artifact hashes in suite/
+  source.sha256, per-diagnostic JSON and audit.json.
+Artifact paths: docs/evidence/m2-06/{plan,summary}.md, suite/, quality.json
+  with quality-{1,2,3,4}.log, wrapper-checks.json and audit.json.
+Interpretation and claim limits: conditional score and restricted fixed-weight
+  rollout validated. No unbiasedness/convergence guarantee for online
+  decaying/clipped/gated learning, no acquisition claim or M3 implementation.
+Tracker boxes updated: M2-06 and M2-GATE checked after fresh verification.
+Next eligible task: M3-01.
+```
+
 ## Blockers and decision register - keep current
 
 No blockers. M1-GATE re-verified after the 2026-09-21 UTC owner-requested
 corrective review: 185 Rust passes (1 ignored probe), 15 Python passes,
 clean fmt/Clippy, eleven corrected audited runs and two original comparisons.
-M2-01–M2-05 verified: score/derivative tests, one-neuron direction diagnostic,
-finite-rollout harness and recurrent Monte Carlo check pass. Fresh M2-05
-checks: 212 fast Rust passes, two compile-fail doc tests, three default
-ignores (M2-05 explicitly passed this session; M2-03 passed in its recorded
-prior run; existing probe unrun), clean fmt/Clippy. Two million recurrent
-samples pass all three predeclared agreement/precision comparisons.
-Next: M2-06; M2-GATE remains open.
+M2-GATE passed after M2-06 package execution: 27 fast score diagnostics,
+two compile-fail docs and both explicit Monte Carlo diagnostics pass with
+original seeds/tolerances. Full 212-test suite and fmt/Clippy pass. Three
+default ignores: both Monte Carlo checks passed separately this session;
+existing weight-printing probe unrun. No acquisition evidence yet.
+Next: M3-01; M3 implementation has not started.
 M1 findings, corrections and claim limits: `docs/m1-review.md`.
 M0 historical evidence remains in `docs/m0-review.md`.
 Scientific decisions remain in the append-only `docs/decisions.md`.

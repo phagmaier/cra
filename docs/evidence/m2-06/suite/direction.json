@@ -1,0 +1,70 @@
+{
+  "claim_limit": "One-transition direction diagnostic only; no online learning or convergence claim.",
+  "configuration": {
+    "alpha": 0.2,
+    "baseline": 0.5,
+    "input": 0.7,
+    "mu": 0.041999999999999996,
+    "numerical_tolerance": 1e-12,
+    "online_updates": 0,
+    "opposite_reward": "1 - positive_reward",
+    "paired_targets": true,
+    "positive_reward": "h > 0",
+    "samples": 1000000,
+    "se_multiplier": 5.0,
+    "sigma": 0.4,
+    "weight": 0.3
+  },
+  "opposite": {
+    "absolute_error": 0.0001454004586771418,
+    "analytical": -0.1388622064964956,
+    "count": 1000000,
+    "mean": -0.13871680603781847,
+    "passed": true,
+    "sample_variance": 0.011331446383261943,
+    "standard_error": 0.00010644926671077609,
+    "tolerance": 0.0005322463345538805
+  },
+  "opposite_reward_count": 458110,
+  "passed": true,
+  "positive": {
+    "absolute_error": 0.0001454004586771418,
+    "analytical": 0.1388622064964956,
+    "count": 1000000,
+    "mean": 0.13871680603781847,
+    "passed": true,
+    "sample_variance": 0.011331446383261943,
+    "standard_error": 0.00010644926671077609,
+    "tolerance": 0.0005322463345538805
+  },
+  "positive_reward_count": 541890,
+  "provenance": {
+    "arch": "x86_64",
+    "cargo": "cargo 1.98.0 (797e8a9bc 2026-08-05)",
+    "dirty": true,
+    "git_status": "M to-do.md\n?? docs/evidence/m2-06/\n?? scripts/",
+    "os": "linux",
+    "revision": "28bcdd57ccf78c7e8294f7bf0ec4cb4f978fe40b",
+    "rustc": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+    "source_sha256": {
+      "Cargo.lock": "6b394c6e527bfdeb15c117a9b0eafa8875b8725a26ea07f7a5902e9a2a1822b6",
+      "src/agent/score.rs": "b5d9f0fcf4d6d6f089bf2c17f3814c039f3e61b67557dbd1a7806f2754c3100f",
+      "src/agent/weights.rs": "8631afe6d32ecc690309c3126126bfc5a69ae0d212c3b91db24938213d14372f",
+      "src/rng.rs": "5ac42296c88511055828c19926761a045aeb4abb2fbbac6d50ccbcbd6c0a79f0",
+      "tests/score_learning_direction.rs": "147cf69d5b7311db0ef11eec1f0edf6b77e670e7a24e477eb3bf630f76cbd6d8"
+    }
+  },
+  "resource_counts": {
+    "normal_draws": 1000000,
+    "transitions": 1000000,
+    "workers": 1
+  },
+  "rng": "ChaCha8Rng / existing Box-Muller NormalStream; spare retained across independent samples; versions in Cargo.lock",
+  "schema_version": 1,
+  "seed": {
+    "canonical": "cra-v1|root=1|ns=development|outer=203|lifetime=0|stream=actor_noise",
+    "derived_hex": "c87805f1eab0e224fd2eb0c80fd64a260e352bfc9aa10ee431a1a7222e4c9423"
+  },
+  "sign_reversal": true,
+  "task": "M2-03"
+}

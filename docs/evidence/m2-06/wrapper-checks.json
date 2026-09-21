@@ -1,0 +1,34 @@
+[
+  {
+    "check": "usage",
+    "expected_exit": 2,
+    "actual_exit": 2,
+    "stdout": "",
+    "stderr": "Usage: bash scripts/run_score_diagnostics.sh NEW_OUTPUT_DIRECTORY\n",
+    "passed": true
+  },
+  {
+    "check": "failed_command",
+    "expected_exit": 23,
+    "actual_exit": 23,
+    "stdout": "Running fast\n",
+    "stderr": "",
+    "passed": true
+  },
+  {
+    "check": "existing_directory",
+    "expected_exit": 1,
+    "actual_exit": 1,
+    "stdout": "",
+    "stderr": "mkdir: cannot create directory \u2018failure\u2019: File exists\n",
+    "passed": true
+  },
+  {
+    "check": "zero_tests_is_not_success",
+    "expected_exit": 1,
+    "actual_exit": 1,
+    "stdout": "Running fast\nRunning api\nRunning direction\nRunning recurrent\n",
+    "stderr": "Required test missing: one_neuron_learning_direction\n",
+    "passed": true
+  }
+]

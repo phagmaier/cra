@@ -58,3 +58,22 @@ are committed; full raw outputs are ignored under `runs/m1-review/` and
 `runs/m1-review-original/`. The two TOMLs define the noisy logging parity
 check, not a search or final-test experiment. See [the review](../m1-review.md)
 for findings and scientific claim limits.
+
+
+## M2 score diagnostics
+
+The [M2-06 bundle](m2-06/summary.md) records the completed M2 gate. Run the
+[README package command](../../README.md#verification) into a fresh directory
+for all deterministic checks and both explicitly bounded Monte Carlo runs.
+The package records actual test execution and rejects failed or incomplete
+output; merely having a directory or a zero-test Cargo success is insufficient.
+
+[Original direction evidence](m2-03/summary.md),
+[finite-rollout evidence](m2-04/summary.md), and
+[original recurrent evidence](m2-05/summary.md) remain unchanged. M2-06
+replays their pinned fixtures/seeds and saves fresh matching results, not
+new independent samples. Source hashes identify the execution snapshot;
+the complete sampled configuration and uncertainty live in each result JSON.
+The conditional-density fixture and its analytical expressions are preserved
+as source with the measured deterministic output. No unbiasedness or
+convergence claim follows for the main online learner.

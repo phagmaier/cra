@@ -1,0 +1,49 @@
+[
+  {
+    "command": [
+      "bash",
+      "-n",
+      "scripts/run_score_diagnostics.sh"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.0015453660016646609,
+    "output": "docs/evidence/m2-06/quality-1.log"
+  },
+  {
+    "command": [
+      "cargo",
+      "fmt",
+      "--all",
+      "--",
+      "--check"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.2054481970044435,
+    "output": "docs/evidence/m2-06/quality-2.log"
+  },
+  {
+    "command": [
+      "cargo",
+      "clippy",
+      "--all-targets",
+      "--locked",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.12748040600126842,
+    "output": "docs/evidence/m2-06/quality-3.log"
+  },
+  {
+    "command": [
+      "cargo",
+      "test",
+      "--all-targets",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 1.8822193369996967,
+    "output": "docs/evidence/m2-06/quality-4.log"
+  }
+]
