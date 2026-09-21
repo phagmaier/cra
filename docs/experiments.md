@@ -187,3 +187,30 @@ interrupted runs — missing data is not a zero score.
   draws, serial; development root1/outer203 or 205/lifetime0/actor_noise.
 - M2-06 and M2-GATE complete; next M3-01. No production/spec changes,
   final-test inspection, acquisition or online-unbiasedness/convergence claim.
+
+## 2026-09-21 UTC — M4-05 timing and delay sensitivity
+
+- Question: how do the actual live eligibility and bounded update scales change
+  as clean stationary timing moves from delay 1 to variable delay 1..4 and
+  then 8..24, across `tau_e` 16/32/64? This is descriptive sensitivity, not
+  an acquisition or hyperparameter-selection experiment.
+- Predeclared plan: `manifests/m4_timing_sensitivity.json`; development root 1,
+  outers 1–3, lifetime 0, 256 outcomes per point, 3 timing profiles x 3
+  `tau_e` values x 3 outers = 27 lifetimes / 6,912 outcomes, maximum 270,180
+  ticks. No monotonic performance criterion.
+- Result: 27/27 complete, 220,005 measured ticks, finite state, no bound
+  occupancy, and identical within-profile exogenous schedules across paired
+  `tau_e` values. Mean pre-feedback E L1 over outers increased from
+  196.8/194.7/175.3 at `tau_e=16` to 381.3/371.7/384.4 at `tau_e=64` for
+  stages 0/1/2; mean actual-update L1 increased from
+  0.0296/0.0322/0.0442 to 0.0622/0.0617/0.0795. Mean clipping remained below
+  0.0091 for every aggregate.
+- Longer traces were not behaviorally monotonic: on the longest-delay stage,
+  mean reward over outers was 0.4779/0.1810/0.1914 for `tau_e` 16/32/64.
+  These short runs include the already documented action-locked family cases
+  and do not replace M4-07's acquisition/control comparison.
+- Evidence: [summary](evidence/m4-05/summary.md), per-point
+  `evidence/m4-05/diagnostic/records.jsonl`, and run metadata
+  `evidence/m4-05/diagnostic/result.json`. Full checks: 314 Rust pass, 7
+  ignored; 17 Python pass; fixture audit, fmt, Clippy, and both new profile
+  validations pass. No validation/final-test seeds inspected. Next: M4-06.

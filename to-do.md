@@ -30,14 +30,14 @@ and [continuation guide](docs/handoff.md).
 
 | Field | Current value |
 | --- | --- |
-| Current milestone | M4 in progress (M3-GATE passed 2026-09-21 UTC; M4-01/M4-02/M4-03/M4-04 verified 2026-09-21 UTC) |
+| Current milestone | M4 in progress (M3-GATE passed; M4-01 through M4-05 verified 2026-09-21 UTC) |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M4-04 — three continuity conditions and profiles |
+| Last verified task | M4-05 — gradual timing/delay profiles and measured sensitivity |
 | Claimed task | None |
-| Next eligible task | M4-05 |
+| Next eligible task | M4-06 |
 | Current blocker | None |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | 2026-09-21 UTC M4-04; ledger below (three conditions + profiles, 310 Rust/17 Python pass) |
+| Last evidence record | 2026-09-21 UTC M4-05; ledger below (27/27 timing sensitivity lifetimes, 314 Rust/17 Python pass) |
 
 ### Session ownership and handoffs
 
@@ -47,6 +47,7 @@ and [continuation guide](docs/handoff.md).
 | omp 2026-09-21 M4-02 | M4-02 | src/experiments/{continuous,mod}.rs, tests/persistent_traces.rs, docs/evidence/m4-02/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; persistent learner + 5 fixtures pass, full battery green; next M4-03 |
 | omp 2026-09-21 M4-03 | M4-03 | src/experiments/continuous.rs, src/config.rs, tests/continuous_runner.rs, docs/evidence/m4-03/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; reset-audited runner + 6 tripwire tests pass, full battery green; next M4-04 |
 | omp 2026-09-21 M4-04 | M4-04 | src/experiments/continuous.rs, src/config.rs, src/agent/plasticity.rs, tests/continuity_conditions.rs, configs/{continuous_stationary.toml,debug_stationary.toml}, README.md, docs/{decisions,handoff}.md, docs/evidence/m4-04/, to-do.md | Done; event-reset condition + profiles + 6 distinction tests pass, full battery green; next M4-05 |
+| omp 2026-09-21 M4-05 | M4-05 | src/experiments/continuous.rs, tests/m4_timing.rs, configs/continuous_{variable_short,variable_delayed}.toml, manifests/m4_timing_sensitivity.json, README.md, manifests/README.md, docs/{decisions,experiments,handoff}.md, docs/evidence/m4-05/, to-do.md | Done; 3 timing stages + endpoint/pairing/trace-scale checks, 27/27 sensitivity lifetimes saved, full battery green; next M4-06 |
 | opencode 2026-09-21 M3-09 | M3-09 | src/experiments/reduction.rs, src/experiments/episodic.rs, src/experiments/mod.rs, tests/m3_reduction.rs, docs/evidence/m3-09/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; 5 isolation tests pass, path validated (not needed for rescue); next M3-10 |
 | opencode 2026-09-21 M3-GATE | M3-GATE | to-do.md, README.md, docs/{decisions,handoff}.md (evidence/record only; no behavior change) | Done; fresh re-runs reproduce archives, full battery green; M3 complete, next M4-01 |
 | opencode 2026-09-21 M3-10 | M3-10 | src/checkpoint.rs, src/experiments/episodic.rs, tests/episodic_checkpoint.rs, docs/evidence/m3-10/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; schema-3 replay exact through learning, archives pinned, 289 Rust/17 Python pass; next M3-GATE |
@@ -385,9 +386,10 @@ Show that the ungated learner still acquires associations with persistent neural
   - Verify: Resolved configs and logs identify each policy. Validation rejects a run labeled persistent that clears traces. No comparison mistakes diagnostic resets for an equivalent implementation of the main model.
   - Evidence: `docs/evidence/m4-04/summary.md` (2026-09-21 UTC). `PlasticState::reset_traces_event_diagnostic` (E-only, persistent-only) + `validate_event_reset_execution` + `run_event_reset_lifetime` (same loop/inheritance/streams/arithmetic as main, per-outcome E-clear logged in `resets`, `EVENT_RESET_MODE`); `ContinuousSummary.mode` on both runners; pairwise-disjoint guards (each accepts one config, rejects the other two); `configs/continuous_stationary.toml` (new executable twin, section-identical to `debug_stationary` except name; source header refreshed, values untouched). 6 new tests in `tests/continuity_conditions.rs`: guard matrix, persistent-labeled trace-clearing rejected from continuous entry points, same-seed pairing (shared w0/init/schedule, divergent P/E, reset ticks == feedback+1), three-way policy labels, E-only unit proof, checked-in profiles validate + execute. 310 fast Rust tests pass (304 + 6), 6 pre-existing ignores, 2 compile-fail doc checks, 17 Python audit tests, clean fmt/Clippy, both profiles `validate-config` OK. Conditions + profiles only — timing (M4-05), checkpoints (M4-06), acquisition (M4-07) remain.
 
-- [ ] **M4-05 - Introduce variable timing and delayed outcomes gradually**
+- [x] **M4-05 - Introduce variable timing and delayed outcomes gradually**
   - Deliver: Keep stationary clean mappings while increasing timing variability and reward delay through declared development profiles. Preserve the single-pending-choice rule and identical exogenous schedules for paired comparisons.
   - Verify: Table tests cover timing endpoints. Measured delay sensitivity is saved together with tau_e, actual trace magnitudes, and update norms; longer traces are not assumed to be strictly better.
+  - Evidence: `docs/evidence/m4-05/summary.md` (2026-09-21 UTC). Three timing-only clean profiles (fixed short; variable quiet/gap/delay 1..4; spec-5.7 quiet 8..16/gap 0..8/delay 8..24), frozen 27-lifetime development plan, and `ContinuousChoice.eligibility_l1_before_update`. Four default tests pin normalized non-timing equality, exact low/high cycle endpoints, within-profile `tau_e` 16/32/64 schedule/W0 pairing, and `raw_L1 = eta*|delta|*E_L1`. Explicit release diagnostic: 27/27 lifetimes, 6,912 outcomes, 220,005 ticks; per-point trace/raw/limited/actual norms, clipping, bounds, and reward saved. Longer traces increased scale/clipping but reward was nonmonotonic; no selection/acquisition claim. Full battery: 314 Rust pass (7 ignored), 17 Python pass, fixture audit and both profile validations OK, clean fmt/Clippy.
 
 - [ ] **M4-06 - Extend checkpoints and replay to continuous learning**
   - Deliver: Checkpoint during nonzero traces/offsets, just before feedback, and after feedback. Include baseline, consumed-event identity, latches, and any derived caches needed for exact continuation.
@@ -3380,6 +3382,60 @@ Tracker boxes updated: M3-GATE checked after verification.
   M3 COMPLETE. Next eligible task: M4-01.
 ```
 
+```text
+Date / agent or session: 2026-09-21 / omp (M4-05)
+Task IDs: M4-05
+Base revision / worktree: 1e0db3; M4-05 implementation and evidence dirty
+  during execution as recorded in diagnostic/result.json.
+Change and affected files: configs/continuous_variable_short.toml and
+  continuous_variable_delayed.toml (timing-only stages); manifest
+  m4_timing_sensitivity.json (pre-results development plan);
+  src/experiments/continuous.rs (`ContinuousChoice` records live
+  pre-feedback E L1); tests/m4_timing.rs (4 default contract tests + one
+  ignored bounded exporter); docs/evidence/m4-05/ (summary + immutable
+  per-point records/result); README/manifests guide/decisions/experiments/
+  handoff/tracker updated.
+Commands actually run:
+  cargo test --locked --test m4_timing
+  cargo run --release --locked -- validate-config \
+    configs/continuous_variable_short.toml
+  cargo run --release --locked -- validate-config \
+    configs/continuous_variable_delayed.toml
+  CRA_M4_TIMING_DIR=docs/evidence/m4-05/diagnostic \
+    cargo test --release --locked --test m4_timing \
+    m4_timing_sensitivity_diagnostic -- --ignored --exact --nocapture
+  cargo fmt --all -- --check
+  cargo clippy --all-targets --locked -- -D warnings
+  cargo test --all-targets --locked
+  python3 analysis/test_validate_logs.py
+  python3 analysis/validate_logs.py analysis/fixtures/valid
+Result: focused default 4 pass / 1 ignored; explicit bounded diagnostic
+  1 pass. Full Rust suite 314 pass, 0 fail, 7 ignored (six pre-existing +
+  M4-05 exporter); compile-fail docs included. 17 Python tests pass;
+  fixture audit OK; fmt/Clippy clean; both new release profile validations
+  OK. Rust-analyzer was configured but exited during initialization, so
+  exported-symbol callsites were checked by repository search instead.
+Empirical evidence: development root 1, namespace development, outers 1-3,
+  lifetime 0; 3 profiles x tau_e {16,32,64} x 3 outers x 256 outcomes =
+  27/27 complete lifetimes, 6,912 outcomes, 220,005 measured ticks under
+  the 270,180 cap. Every within-profile exogenous schedule paired exactly.
+  Mean pre-feedback E L1 and actual-update L1 increased with tau_e in this
+  sample; clipping stayed <=0.0091 in every outer-mean aggregate and bound
+  occupancy was zero. Longest-delay mean reward was 0.4779/0.1810/0.1914
+  for tau_e 16/32/64: explicitly nonmonotonic, no winner selected.
+Artifacts: docs/evidence/m4-05/summary.md;
+  diagnostic/result.json SHA-256
+  81525ac12e85a8ebe54b33aa0d089d96cf856f4c9f7e8e312acb46f37a1d5deb;
+  diagnostic/records.jsonl
+  ec1c7757017943017e6e17ab6fc8856551ed7d1231ac64d33c8d91a0b54bde6e;
+  manifest 9457611e2ab8cdcd2521a06037f6d8ef065634d69e2b551b25bc21ff2cab0479.
+Interpretation and claim limits: timing profiles, endpoint semantics,
+  schedule pairing, and descriptive trace/update sensitivity only. No
+  tau_e selection, continuous acquisition, checkpoint, modulation,
+  evolution, validation/final-test inspection, or broader-track claim.
+Tracker boxes updated: M4-05 checked after verification. Next M4-06.
+```
+
 ## Blockers and decision register - keep current
 
 No blockers. M1-GATE re-verified after the 2026-09-21 UTC owner-requested
@@ -3493,8 +3549,16 @@ continuous entry points, plus the `continuous_stationary` executable
 twin of the `debug_stationary` source (both validate). Full battery
 green (310 fast Rust incl. 6 new, 6 pre-existing ignores, 2
 compile-fail docs, 17 Python, clean fmt/Clippy). Conditions +
-profiles only; no timing, checkpoints, or performance claim. M4-05 is
-next.
+profiles only; timing was then completed by M4-05. Checkpoints and
+performance acquisition remained open.
+M4-05 verified 2026-09-21 UTC: three timing-only clean stationary stages
+(fixed short, moderate variable delay 1..4, spec-5.7 variable delay 8..24)
+with exact endpoint and same-seed schedule-pairing tests. The predeclared
+27-lifetime `tau_e` sensitivity run completed 6,912 outcomes / 220,005
+ticks and saved actual pre-feedback trace plus update norms; longer traces
+raised scale/clipping but reward was nonmonotonic, so no winner/acquisition
+claim. Full battery green (314 Rust, 7 ignores, 17 Python, fixture audit,
+both profile validations, clean fmt/Clippy). M4-06 is next.
 M1 findings, corrections and claim limits: `docs/m1-review.md`.
 M0 historical evidence remains in `docs/m0-review.md`.
 Scientific decisions remain in the append-only `docs/decisions.md`.

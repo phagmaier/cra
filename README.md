@@ -39,8 +39,11 @@ resets, live-trace anti-snapshot, baseline event counts — 5 new tests);
 P-telescoping tripwire, live warmup, reversals without resets — 6 new
 tests); **M4-04 done** (three continuity conditions with disjoint
 guards, same-seed pairing, `continuous_stationary` executable twin of
-the `debug_stationary` source — 6 new tests); next task M4-05 (timing
-variability and delays).**
+the `debug_stationary` source — 6 new tests); **M4-05 done** (three
+gradual clean timing stages, exact endpoint/pairing checks, and a saved
+27-lifetime `tau_e`/trace/update sensitivity record — 4 new default
+tests plus one explicit bounded diagnostic); next task M4-06
+(continuous-learning checkpoints).**
 The simulator core exists as
 a library
 (`src/environment/`, `src/agent/` nonplastic dynamics plus `B3`
@@ -402,10 +405,15 @@ Python audit tests, fixture audit OK, clean fmt/Clippy. The gate
 rests on exit conditions (a)–(d) in the [tracker ledger](to-do.md):
 several-seed learning over matched controls, valid score/golden
 tests, interpretable numerics, no lucky trajectory. **M3 COMPLETE —
-M4-01/M4-02/M4-03/M4-04 done (tick order; persistent traces;
-birth-only audit; labeled conditions + profiles); M4-05 is next.**
-Continuous
-acquisition without within-lifetime resets is explicitly unverified;
+M4-01 through M4-05 done.** M4-05 adds
+[`continuous_variable_short`](configs/continuous_variable_short.toml) and
+[`continuous_variable_delayed`](configs/continuous_variable_delayed.toml),
+table-pins all timing endpoints, and saves paired development measurements for
+`tau_e` 16/32/64. The 27-lifetime diagnostic completed 6,912 outcomes and
+220,005 ticks; longer traces increased measured trace/update scale and
+clipping but did not monotonically improve reward. See the
+[M4-05 evidence](docs/evidence/m4-05/summary.md). **M4-06 is next.**
+Continuous acquisition without within-lifetime resets remains unverified;
 no modulation, evolution, or broader-track claim follows.
 The owner-requested [M3 preflight hardening](docs/evidence/m3-preflight/summary.md)
 separates hidden cue-role RNG from actor initialization, replaces positional
@@ -418,6 +426,15 @@ M3-03 golden values are unchanged. Mixed stable/volatile cue-role assignment
 has an explicitly recorded deterministic stream migration; no acquisition
 result exists yet.
 
+To rerun the bounded M4-05 timing sensitivity diagnostic, choose a fresh
+output path:
+
+```bash
+CRA_M4_TIMING_DIR=/tmp/cra-m4-timing-fresh \
+  cargo test --release --locked --test m4_timing \
+  m4_timing_sensitivity_diagnostic -- --ignored --exact --nocapture
+```
+
 To save the bounded observability tests' measured diagnostics, choose a fresh
 output directory (existing evidence files are never overwritten):
 
@@ -425,12 +442,14 @@ output directory (existing evidence files are never overwritten):
 CRA_M1_EVIDENCE_DIR=runs/m1-observability-fresh cargo test --locked --test observability
 ```
 
-## Implemented commands (M0/M1)
+## Implemented commands
 
 ```bash
 cargo run --release --locked -- validate-config configs/env_smoke.toml
 cargo run --release --locked -- validate-config configs/debug_stationary.toml
 cargo run --release --locked -- validate-config configs/actor_no_learning.toml
+cargo run --release --locked -- validate-config configs/continuous_variable_short.toml
+cargo run --release --locked -- validate-config configs/continuous_variable_delayed.toml
 cargo run --release --locked -- simulate --config configs/env_smoke.toml --baseline random --lifetimes 2 --seed 1 --outer-seed 1
 cargo run --release --locked -- simulate --config configs/env_smoke.toml --baseline oracle --lifetimes 2 --seed 1 --outer-seed 1
 cargo run --release --locked -- simulate --config configs/actor_no_learning.toml --baseline actor --lifetimes 2 --seed 1
@@ -538,15 +557,19 @@ traces), `checkpoint.rs` (M1-09 versioned lifetime files, config hash,
 checksum, atomic writes), `experiments/baseline.rs` (B0/B1/B3/O1 harness),
 `experiments/finite_rollout.rs` (M2-04 fixed-weight, no-decay diagnostic),
 `experiments/episodic.rs` (M3-04 fixed-gate episodic diagnostic runner with
-logged rollout resets),
+logged rollout resets), `experiments/continuous.rs` (M4 persistent learner,
+continuity runners, and pre-feedback trace measurements),
 `logging/` (event records + validation), `run.rs` (provenance + simulation
 runner), and thin `main.rs`.
 `configs/` holds `env_smoke.toml` (M0 smoke), `debug_stationary.toml`
-(spec 19.2 reference + seeds), `episodic_stationary.toml` (M3-04 diagnostic:
-clean task with `episodic_diagnostic` resets and `no_decay_diagnostic`
-traces — library-only, rejected by `simulate`), and `actor_no_learning.toml` (M1 B3 demo:
-env-smoke timing plus the debug actor section, no
-learning/modulator/evolution). `manifests/` reserves disjoint seed ranges
-per namespace. `analysis/` holds the stdlib-only log audit plus fixtures.
+(spec 19.2 reference + seeds), `continuous_stationary.toml` plus
+`continuous_variable_short.toml` / `continuous_variable_delayed.toml`
+(M4 clean continuous timing curriculum), `episodic_stationary.toml`
+(M3 diagnostic: `episodic_diagnostic` resets and `no_decay_diagnostic`
+traces — library-only, rejected by `simulate`), and
+`actor_no_learning.toml` (M1 B3 demo: env-smoke timing plus the debug actor
+section, no learning/modulator/evolution). `manifests/` reserves disjoint seed
+ranges and stores declared development suites. `analysis/` holds the
+stdlib-only log audit plus fixtures.
 `docs/decisions.md` records scientific ambiguities/deviations;
 `docs/experiments.md` is the append-only experiment log.

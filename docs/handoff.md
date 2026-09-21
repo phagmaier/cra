@@ -1,8 +1,8 @@
 # Agent continuation guide
 
-Updated 2026-09-21 UTC after M3-GATE (M3 complete) at base `0672538`.
-The worktree was clean at session start; check Git and the tracker
-for newer work before claiming.
+Updated 2026-09-21 UTC after M4-05 at base `1e0db3`.
+The session started clean; M4-05 evidence records the deliberately dirty
+implementation worktree. Check Git and the tracker for newer work before claiming.
 
 ## Start here
 
@@ -20,9 +20,24 @@ for newer work before claiming.
 
 **M0-GATE, M1-GATE, M2-GATE passed (re-verified where noted). M3-01
 through M3-GATE verified 2026-09-21 UTC — M3 COMPLETE. M4-01 through
-M4-04 verified 2026-09-21 UTC. Next task: M4-05.**
+M4-05 verified 2026-09-21 UTC. Next task: M4-06.**
 There is no outstanding milestone blocker. The claim track remains `family_only`.
 No reserved final-test outcomes have been inspected.
+
+M4-05 declares three clean stationary timing stages: fixed short
+`continuous_stationary`, moderate `continuous_variable_short`, and
+spec-5.7 `continuous_variable_delayed` (quiet 8..16, gap 0..8, delay
+8..24). Four default tests table-pin both endpoints, prove non-timing
+config equality and within-profile schedule pairing across `tau_e`
+16/32/64, and pin the new live pre-feedback E-L1 measurement to the raw
+fixed-gate update. The explicit 27-lifetime diagnostic completed 6,912
+outcomes / 220,005 ticks and saved per-point trace/update/clipping/bound
+records; longer traces increased scale/clipping but did not monotonically
+improve reward. Full checks: **314 Rust tests passed**, seven ignores
+(six prior + this bounded diagnostic), 17 Python tests, fixture audit,
+clean fmt/Clippy, and both new profiles validate.
+[M4-05 evidence](evidence/m4-05/summary.md). Checkpoints are M4-06;
+continuous acquisition remains M4-07.
 
 M4-04 names the three continuity conditions with pairwise-disjoint
 guards (`episodic_diagnostic` / `birth_only`+never-reset /
@@ -33,7 +48,6 @@ source (section-identical except `profile_name`). Full checks: **310
 fast Rust tests passed** (6 new), six pre-existing ignores, two
 compile-fail doc checks, 17 Python audit tests, clean fmt/Clippy,
 both profiles `validate-config` OK. [M4-04 evidence](evidence/m4-04/summary.md).
-Timing variability is M4-05; checkpoints M4-06.
 
 M4-03 adds the reset-audited continuous runner
 (`run_continuous_lifetime`, `validate_continuous_execution`):
@@ -42,8 +56,8 @@ actuals, nonzero cross-choice `E`, live warmup traces, reversals
 without resets, finish on the tick after the final outcome. Full
 checks: **304 fast Rust tests passed** (6 new), six pre-existing
 ignores, two compile-fail doc checks, 17 Python audit tests, clean
-fmt/Clippy. [M4-03 evidence](evidence/m4-03/summary.md). Conditions
-are M4-04 (done); timing variability is M4-05; checkpoints M4-06.
+fmt/Clippy. [M4-03 evidence](evidence/m4-03/summary.md). Conditions,
+timing profiles, and sensitivity records are now M4-04/M4-05; checkpoints are M4-06.
 
 M4-02 adds the fully persistent learner
 (`experiments::continuous::ContinuousLearner`, fixed gate 1, no reset
@@ -54,8 +68,8 @@ counterfactuals, and once-per-feedback baseline counting (closed form
 0.509804). Full checks: **298 fast Rust tests passed** (5 new), six
 pre-existing ignores, two compile-fail doc checks, 17 Python audit
 tests, clean fmt/Clippy. [M4-02 evidence](evidence/m4-02/summary.md).
-No runner, profiles, or checkpoints yet — those are M4-03 through
-M4-06.
+The runner, profiles, and timing work arrived in M4-03 through M4-05;
+continuous checkpoints remain M4-06.
 
 M4-01 splits the tick into `Lifetime::observe()` + `finish_tick()`
 (`advance()` kept as the fused primitive, parity-pinned) and migrates
@@ -248,28 +262,34 @@ is available for a quick audit. Reproduce missing raw runs using the saved
 commands/configs into new directories; preserve historical evidence paths
 and distinguish reruns from the original execution.
 
-## Next task: M4-05
+## Next task: M4-06
 
-**Deliver:** variable timing and delayed outcomes, gradually (spec
-5.7): keep stationary clean mappings while increasing timing
-variability and reward delay through declared development profiles.
-Preserve the single-pending-choice rule and identical exogenous
-schedules for paired comparisons.
+**Deliver:** exact pause/resume for the fully persistent learner during
+nonzero traces and offsets, including just-before-feedback and
+post-feedback boundaries. Carry baseline, consumed-event identity,
+previous-action latch, pending reward/environment phase, all live neural
+and motor state, RNG positions, inherited parameters, and the effective
+weight cache's validated derivation.
 
-Read spec Section 5 plus the
-[M4 task queue](../to-do.md#m4---remove-artificial-trial-resets)
-before touching timing. M4-04 is done: three labeled conditions with
-disjoint guards and two validated profiles exist, so M4-05 adds
-timing/delay development profiles (with table-tested endpoints) plus
-delay-sensitivity records with tau_e, trace magnitudes, and update
-norms — without changing tick semantics, trace arithmetic, reset
-behavior, or condition labels.
+Read spec Section 10.7, the
+[M4 task queue](../to-do.md#m4---remove-artificial-trial-resets), and the
+existing episodic checkpoint implementation/tests before changing schemas.
+Use `src/checkpoint.rs`, `src/experiments/continuous.rs`, and
+`tests/episodic_checkpoint.rs` as the established envelope/replay patterns;
+add continuous-specific coverage rather than weakening the schema-2 M1 or
+schema-3 episodic compatibility checks.
 
-- The M3 family (full-recurrent episodic learner at grid-index-11
-  hyperparameters) is the starting point; M4 removes its diagnostic
-  resets (`episodic_diagnostic` → `birth_only`,
-  `no_decay_diagnostic` → `persistent`) step by step with the three
-  continuity conditions kept honestly distinct (M4-04).
+Verification must split an ordinary continuous lifetime with nonzero `P/E`
+at three meaningful states: during ongoing activity, immediately before a
+due feedback is observed, and after feedback has applied. Resumed and
+uninterrupted trajectories must be bit-identical on the reference platform.
+Duplicate delivery must not update twice; missing/new fields and mismatched
+resolved configuration must reject rather than reset. Preserve M4-01 tick
+ordering and M4-05 timing profiles; checkpointing must draw no randomness.
+
+M4-05 is descriptive timing sensitivity only. It selected no `tau_e` and
+does not prove continuous acquisition. M4-07 remains responsible for the
+declared several-seed continuity/control comparison.
 
 M3-GATE passed 2026-09-21 UTC on executed evidence, not stored
 claims: fresh release re-runs reproduce the archived M3-07 verdict
@@ -357,6 +377,7 @@ episodic learner at grid index 11.
 | Continuous runner (M4-03) | `src/experiments/continuous.rs` (`run_continuous_lifetime`), `src/config.rs` (`validate_continuous_execution`) | `tests/continuous_runner.rs`; birth-only reset audit, P-telescoping tripwire, cross-choice E, live warmup, reversals without resets, guard rejections, finish-after-final-feedback |
 | Event-reset diagnostic (M4-04) | `src/experiments/continuous.rs` (`run_event_reset_lifetime`, `EVENT_RESET_MODE`), `src/config.rs` (`validate_event_reset_execution`), `src/agent/plasticity.rs` (`reset_traces_event_diagnostic`) | `tests/continuity_conditions.rs`; pairwise-disjoint guards, same-seed pairing with divergent P/E, per-outcome reset audit, E-only clear unit proof |
 | Continuity profiles (M4-04) | `configs/continuous_stationary.toml` (new executable twin), `configs/debug_stationary.toml` (source, header only) | `tests/continuity_conditions.rs`; section-identical except name, both validate, library execution at small override |
+| Timing/delay curriculum (M4-05) | `configs/continuous_{stationary,variable_short,variable_delayed}.toml`, `manifests/m4_timing_sensitivity.json`, `ContinuousChoice::eligibility_l1_before_update` | `tests/m4_timing.rs`; exact low/high endpoints, non-timing equality, same-seed exogenous pairing across `tau_e`, raw-update scale identity, explicit 27-lifetime evidence export |
 | Matched controls (M3-05) | `src/experiments/episodic.rs` (`run_episodic_no_learning`, `run_episodic_shuffled`, `run_episodic_conditions`), `src/agent/no_learning.rs` (diagnostic reset) | `tests/episodic_controls.rs`; shared W0/schedule/resets, first-action parity, P-movement plus behavior, re-derived shuffle protocol, observed/applied separation |
 | Development grid (M3-06) | `manifests/m3_development_grid.json`, `src/experiments/grid.rs` | `tests/development_grid.rs`; frozen axes/seeds/windows/criterion/budget, validation-only instantiation of all 24 points, derived tick estimate, invalid-mutation rejection |
 | Acquisition sweep (M3-07) | `src/experiments/sweep.rs`, `tests/m3_acquisition.rs` | fast analysis on real summaries plus ignored release sweep; windows/margins/health/judging/selection, 216/216 integrity, archived records plus verdict |
@@ -386,9 +407,9 @@ episodic learner at grid index 11.
 | Noise/hazard assignment | Stable membership is shuffled from dedicated `cue_membership`; noise rates cycle by cue index. | M5-02 owns factorial counterbalancing; current assignment is not a completed training-distribution implementation. |
 | Agent construction boundary | Existing B3 construction still receives broad config/master seed coordinates, although it uses only actor-safe values. The M3-04 learner uses agent-only inputs (`Actor`/`Learning`, inherited params, cue count, dedicated RNGs). | Keep the narrow episodic constructor; do not regress it to broad-config construction in M3-05 controls. |
 | Event identity | IDs/choice indices restart per lifetime. Ordinary records carry lifetime identity; hidden rows align within contiguous lifetime blocks. Episodic rollouts reuse the same per-lifetime IDs with an added `rollout_index` (one choice per rollout). | Checkpoint resume preserves exactly-once delivery (pending plus consumed/confirmed ledgers round-trip); M1-10 records the tolerance policy. A bare event ID is not a cross-lifetime join key. |
-| Logging | `event_log=false` omits event streams; audit coverage then stops at provenance/completion. Actor/health reads draw nothing (M1-07/M1-08 logging invariance). Episodic summaries carry mode/policies/resets plus consumed raw/limited/actual reports. | Extend Rust validation, Python audit, fixtures, and versioning together when adding quantities (health and checkpoint schemas are 2; ordinary events remain 1). |
+| Logging | `event_log=false` omits event streams; audit coverage then stops at provenance/completion. Actor/health reads draw nothing (M1-07/M1-08 logging invariance). Episodic summaries carry mode/policies/resets plus consumed raw/limited/actual reports; continuous choices additionally expose evaluator-side pre-feedback E L1 for M4-05 sensitivity records. | Extend Rust validation, Python audit, fixtures, and versioning together when adding persisted quantities (ordinary M1 checkpoint schema 2, episodic learning schema 3, health schema 2; ordinary events remain schema 1). |
 | Execution guards | M0 still rejects neural/search sections for baselines; M1-07 adds `validate_actor_no_learning_execution` (actor required, learning disabled/absent, modulator absent/fixed, evolution disabled/absent). M3-04 adds `validate_episodic_execution` (clean task, `episodic_diagnostic` + `no_decay_diagnostic`, enabled learning, fixed gates). | Enable remaining plasticity controls (M3-05), gates (M6), and search (M7) with their implementations/tests; never bypass guards to make a future config appear runnable. |
-| Performance | Tick observations allocate; run logs are buffered. Simulation is serial. | Measure before scaling. M1 preallocates actor buffers; broader profiling/budget work remains in its queued milestones. |
+| Performance | Tick observations allocate; run logs are buffered. Simulation is serial. M4-05's bounded 27-lifetime timing diagnostic measured 220,005 ticks in 0.61 s reported release test time. | Benchmark the actual larger M4-07 comparison before scaling; keep budgets finite and development-only. |
 
 The [decision log](decisions.md) preserves the rationale and superseding
 corrections. The latest M0 review supersedes bootstrap statements that
@@ -397,12 +418,12 @@ missing manifest is sufficient to claim a run directory.
 
 ## Seeds and artifact discipline
 
-The JSON files in `manifests/` reserve namespace/range policy; they are not
-executable suite definitions, consumed-seed ledgers, or inputs enforced by
-the M0 CLI. Namespace validation and SHA-256 derivation provide stream
-separation. Use the declared development namespace for M1 diagnostics and
-record exact root/outer/lifetime coordinates. See the
-[manifest guide](../manifests/README.md) before adding a suite.
+The JSON files in `manifests/` reserve namespace/range policy; declared suite
+files additionally freeze their own development coordinates and budgets.
+Namespace validation and SHA-256 derivation provide stream separation.
+M4-05's `m4_timing_sensitivity.json` used development root 1, outers 1–3,
+lifetime 0 only. See the [manifest guide](../manifests/README.md) before
+adding or revising a suite; any post-result plan change starts a new revision.
 
 Keep `spec.md`, archived review evidence, and original raw runs unchanged.
 The spec's initial checklists and proposed commands remain design text;

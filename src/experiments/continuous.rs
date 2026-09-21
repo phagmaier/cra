@@ -15,11 +15,13 @@
 //! policy, driven tick-by-tick through the M4-01 split order
 //! (observe → apply → advance → finish → commit) by
 //! [`run_continuous_lifetime`], which performs no mid-lifetime resets
-//! and audits that fact with a birth-only reset log. There are
-//! deliberately no reset methods: lifetime state persists across all
-//! phase boundaries, and birth construction is the only reset. Honestly
-//! named continuity conditions and profiles belong to M4-04; gate heads
-//! belong to M6; checkpoints belong to M4-06.
+//! and audits that fact with a birth-only reset log. The separate
+//! [`run_event_reset_lifetime`] diagnostic explicitly clears only `E`
+//! through a named method and records every clear; the main runner never
+//! calls it. Continuity profiles arrived in M4-04. M4-05 records the live
+//! pre-feedback trace magnitude in each choice summary for declared
+//! timing/`tau_e` sensitivity measurements. Gate heads belong to M6;
+//! continuous checkpoints belong to M4-06.
 //!
 //! Information boundary: the learner sees only `Observation.features`
 //! and observed `Feedback.reward` plus its own state. Agent-construction
@@ -424,6 +426,9 @@ pub struct ContinuousChoice {
     pub noise_bit: bool,
     pub commit_tick: u64,
     pub feedback_tick: u64,
+    /// L1 magnitude of the live eligibility matrix read at feedback,
+    /// before applying this choice's update or advancing the feedback tick.
+    pub eligibility_l1_before_update: f64,
     pub update: FeedbackOutcome,
 }
 
@@ -532,6 +537,13 @@ pub fn run_continuous_lifetime(
         // Spec 9 step 1: observable input + due feedback (no clock yet).
         let out = lifetime.observe()?;
         if let Some(feedback) = out.observation.feedback {
+            let eligibility_l1_before_update = learner
+                .plastic()
+                .e()
+                .iter()
+                .flatten()
+                .map(|v| v.abs())
+                .sum();
             // Spec 9 step 2: live pre-tick E, fixed gate 1, old baseline.
             let update = learner.apply_feedback(feedback)?;
             lifetime.note_feedback_consumed(feedback.event_id)?;
@@ -555,6 +567,7 @@ pub fn run_continuous_lifetime(
                 noise_bit: annotation.noise_bit,
                 commit_tick: annotation.commit_tick,
                 feedback_tick: annotation.outcome_tick,
+                eligibility_l1_before_update,
                 update,
             });
             annotations.push(annotation);
@@ -687,6 +700,13 @@ pub fn run_event_reset_lifetime(
         // Spec 9 step 1: observable input + due feedback (no clock yet).
         let out = lifetime.observe()?;
         if let Some(feedback) = out.observation.feedback {
+            let eligibility_l1_before_update = learner
+                .plastic()
+                .e()
+                .iter()
+                .flatten()
+                .map(|v| v.abs())
+                .sum();
             // Spec 9 step 2: live pre-tick E, fixed gate 1, old baseline.
             let update = learner.apply_feedback(feedback)?;
             lifetime.note_feedback_consumed(feedback.event_id)?;
@@ -710,6 +730,7 @@ pub fn run_event_reset_lifetime(
                 noise_bit: annotation.noise_bit,
                 commit_tick: annotation.commit_tick,
                 feedback_tick: annotation.outcome_tick,
+                eligibility_l1_before_update,
                 update,
             });
             annotations.push(annotation);

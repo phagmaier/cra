@@ -1159,3 +1159,27 @@ make code or a result look successful.**
   `continuous_stationary` is section-identical except `profile_name`
   and is the executable primary profile. Timing variability stays out
   (M4-05). Verification: [M4-04 evidence](evidence/m4-04/summary.md).
+
+## 2026-09-21 UTC — M4-05 gradual timing and delay sensitivity (spec 5.7, 7.8–7.9)
+
+- **Three explicit stages, timing only.** `continuous_stationary` remains the
+  fixed short-delay stage; `continuous_variable_short` adds moderate
+  quiet/gap/delay variability; `continuous_variable_delayed` reaches the
+  spec-5.7 main timing endpoints. After normalizing `profile_name` and the five
+  timing fields, the configs are equal. All keep clean stationary mappings,
+  one pending choice, birth-only resets, persistent traces, and fixed gates.
+- **Pairing is by environment streams, not equal actions.** Within each
+  profile/outer, `tau_e` 16/32/64 use identical root/namespace/outer/lifetime
+  tuples. Tests require identical cue/noise/commit/feedback schedules and
+  inherited `W0`; actions may diverge as learning diverges.
+- **Measure the live trace directly.** `ContinuousChoice` now carries
+  `eligibility_l1_before_update`, sampled immediately before the feedback
+  update. Its fixed-gate raw-update relation is independently pinned, avoiding
+  reconstruction from `delta` when the teaching signal could be zero.
+- **No monotonic trace-timescale criterion.** The predeclared 27-lifetime
+  development diagnostic records trace and update norms, clipping, bounds, and
+  reward for `tau_e` 16/32/64 but selects no winner. Longer traces increased
+  measured trace/update scale and clipping in this sample; longest-delay mean
+  reward was not monotonic. M4-07, not this sensitivity record, owns
+  acquisition claims. Verification:
+  [M4-05 evidence](evidence/m4-05/summary.md).

@@ -20,6 +20,13 @@ declared before results. It is loaded and validated by
 executed no earlier than M3-07. Changing it after seeing outcomes starts a
 new declared revision.
 
+`m4_timing_sensitivity.json` is the pre-results M4-05 timing/delay
+diagnostic: three clean stationary timing stages, `tau_e` 16/32/64,
+development outers 1–3, a 27-lifetime finite budget, measured trace/update
+quantities, and an explicit no-monotonic-performance-criterion rule. It is
+loaded and executed by `tests/m4_timing.rs`; changing it after the recorded
+result starts a new declared revision.
+
 Separation is derived from the full tuple
 `(root_seed, namespace, outer_seed, lifetime_index, stream_name)` in
 [`src/rng.rs`](../src/rng.rs). Distinct namespace strings separate streams

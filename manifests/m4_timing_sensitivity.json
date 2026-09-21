@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "task": "M4-05",
+  "purpose": "Predeclared bounded development diagnostic for timing and reward-delay sensitivity. It records observed trace and update magnitudes without assuming that a longer eligibility timescale is better and without defining an acquisition pass criterion.",
+  "namespace": "development",
+  "root_seed": 1,
+  "outer_seeds": [1, 2, 3],
+  "lifetime_indices": [0],
+  "outcomes_per_lifetime": 256,
+  "tau_e_values": [16.0, 32.0, 64.0],
+  "profiles": [
+    {
+      "stage": 0,
+      "path": "configs/continuous_stationary.toml",
+      "profile_name": "continuous_stationary",
+      "quiet_ticks": [4, 4],
+      "cue_ticks": 8,
+      "memory_gap_ticks": [0, 0],
+      "response_ticks": 4,
+      "reward_delay_ticks": [1, 1],
+      "max_ticks_per_lifetime": 4380
+    },
+    {
+      "stage": 1,
+      "path": "configs/continuous_variable_short.toml",
+      "profile_name": "continuous_variable_short",
+      "quiet_ticks": [4, 8],
+      "cue_ticks": 8,
+      "memory_gap_ticks": [0, 4],
+      "response_ticks": 4,
+      "reward_delay_ticks": [1, 4],
+      "max_ticks_per_lifetime": 7192
+    },
+    {
+      "stage": 2,
+      "path": "configs/continuous_variable_delayed.toml",
+      "profile_name": "continuous_variable_delayed",
+      "quiet_ticks": [8, 16],
+      "cue_ticks": 16,
+      "memory_gap_ticks": [0, 8],
+      "response_ticks": 8,
+      "reward_delay_ticks": [8, 24],
+      "max_ticks_per_lifetime": 18448
+    }
+  ],
+  "measures": [
+    "pre_feedback_eligibility_l1",
+    "raw_update_l1",
+    "limited_update_l1",
+    "actual_update_l1",
+    "clipped_update_fraction",
+    "final_p_l1",
+    "final_e_l1",
+    "mean_reward",
+    "latent_accuracy",
+    "ticks"
+  ],
+  "pairing": "Within each profile and outer seed, tau_e conditions share root/namespace/outer/lifetime coordinates and therefore the exogenous cue, mapping, timing, and reward-noise streams. Actions may diverge; schedules must remain identical.",
+  "interpretation": "Descriptive sensitivity only. No monotonic ordering across tau_e is required or implied; tau_e changes useful retention and unrelated accumulated score variance together.",
+  "budget": {
+    "profiles": 3,
+    "tau_e_values": 3,
+    "outer_seeds": 3,
+    "total_lifetimes": 27,
+    "total_outcomes": 6912,
+    "maximum_total_ticks": 270180
+  }
+}

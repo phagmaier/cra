@@ -1,0 +1,22 @@
+{
+  "interpretation": "descriptive sensitivity only; no monotonic tau_e ordering was asserted",
+  "measured_budget": {
+    "lifetimes": 27,
+    "maximum_declared_ticks": 270180,
+    "outcomes": 6912,
+    "ticks": 220005
+  },
+  "plan": "manifests/m4_timing_sensitivity.json",
+  "plan_sha256": "9457611e2ab8cdcd2521a06037f6d8ef065634d69e2b551b25bc21ff2cab0479",
+  "provenance": {
+    "arch": "x86_64",
+    "dirty": true,
+    "os": "linux",
+    "profile": "release",
+    "revision": "1e0db3d8cb3f5dd478cc5d559bd5bc51f084e11f"
+  },
+  "records": "records.jsonl",
+  "schedule_pairing": "passed for every profile/outer across all tau_e values",
+  "schema_version": 1,
+  "task": "M4-05"
+}
