@@ -1,8 +1,8 @@
 # Agent continuation guide
 
-Updated 2026-09-21 UTC after the M0 review, from code revision `8216c14`
-(`M0 refined`). This is a working handoff. Check the tracker and Git state
-for newer work before claiming a task.
+Updated 2026-09-21 UTC after M1-01, from code revision `7132433`
+(`docs updated`) with M1-01 changes uncommitted. This is a working handoff.
+Check the tracker and Git state for newer work before claiming a task.
 
 ## Start here
 
@@ -18,9 +18,15 @@ for newer work before claiming a task.
 
 ## Current position and evidence
 
-**M0-GATE passed and was re-verified. Next implementation task: M1-01.**
-There is no outstanding M0 blocker. The claim track remains `family_only`.
+**M0-GATE passed and was re-verified. M1-01 verified. Next task: M1-02.**
+There is no outstanding M1-01 blocker. The claim track remains `family_only`.
 No reserved final-test outcomes have been inspected.
+
+M1-01 added `src/agent/topology.rs` (directed Bernoulli mask on the `init`
+stream, fixed last-index motor pools, receiver-grouped edge order, cycle +
+per-pool reachability checks with rejection logging) with 13 integration
+tests in `tests/topology.rs` plus 2 unit tests. Full suite is 88 Rust tests
+passing with clean fmt/clippy; see the M1-01 tracker ledger entry.
 
 The [M0 review](m0-review.md) records 73 Rust tests and 14 Python tests
 passing, clean fmt/clippy, four original runs audited, and seven fresh
@@ -35,34 +41,31 @@ is available for a quick audit. Reproduce missing raw runs using the saved
 commands/configs into new directories; preserve historical evidence paths
 and distinguish reruns from the original execution.
 
-## Next task: M1-01
+## Next task: M1-02
 
-**Deliver:** inherited directed topology, fixed disjoint motor assignments,
-stable edge ordering, and structural acceptance/rejection evidence.
+**Deliver:** inherited weights and neuron parameters — `W0` row scaling by
+in-degree, input projection `B`, zero actor biases, and the starting
+constants from spec Sections 6 and 10. Keep `W0` separate from future
+plastic offsets.
 
-Read spec Sections 3.2, 6.5, 10.1, and 18.3–18.5 alongside the
+Read spec Sections 6.3 and 10.2 alongside the
 [M1 task queue](../to-do.md#m1---build-a-continuous-actor-with-no-learning).
-Inspect `src/config.rs`, `src/rng.rs`, and `tests/seed_streams.rs` first.
-The spec's `src/agent/` layout is a target; that module does not exist yet.
-Create only the pieces needed for the claimed task.
+Inspect `src/agent/topology.rs` (mask/edge order/motor assignment) and
+`src/rng.rs` first. Weights also derive from the `init` stream; specify the
+draw order after the mask draws (mask first, then `W0` on existing edges,
+then `B`) before adding samples, so mask pairing across gate conditions is
+preserved.
 
-- Sample the configured directed Bernoulli mask, with no self-edges in the
-  initial profile. Keep edge orientation `W[receiver, sender]` explicit.
-- Fix the two disjoint motor populations and deterministic edge order.
-- Check cue-to-motor reachability and recurrent cycles. Record rejected
-  structural samples and reasons; never select topology by task reward.
-- Specify the initialization seed identity and draw order before adding
-  samples. Actor inheritance will need pairing across lifetime/gate
-  conditions; do not equate a new lifetime with new inherited topology.
-- If structural details are underspecified (for example, how cue-driven
-  nodes are identified before sensory weights exist), record the choice
-  and consequences in `decisions.md` before dependent implementation.
-- Verify deterministic sampling, absent/self edges, motor assignments,
-  and both acceptable and unacceptable small graph fixtures. Then run
-  the applicable full quality checks and append tracker evidence.
+- Use standard deviation `recurrent_gain / sqrt(in_degree)`, not the
+  variance as a standard deviation. Handle zero-in-degree rows explicitly.
+- Validate motor capacity, disjoint pools, time constants, finiteness, and
+  dimensions; missing edges stay zero.
+- Verify with tight fixtures (row-scale statistics, zero-bias, finiteness)
+  and keep `W0` immutable during a lifetime. Then run the applicable full
+  quality checks and append tracker evidence.
 
-Keep M1-02 weight initialization, M1-03 dynamics, and later learning/search
-work in their task order. Completing M1-01 alone does not pass M1-GATE.
+Keep M1-03 dynamics and later learning/search work in their task order.
+Completing M1-02 alone does not pass M1-GATE.
 
 ## Implementation map
 
@@ -74,6 +77,7 @@ work in their task order. Completing M1-01 alone does not pass M1-GATE.
 | Public inputs versus hidden truth | `src/environment/{observation,hidden_state}.rs` | `tests/leakage.rs`; only ordinary data reaches `Agent` |
 | B0/B1 and isolated O1 runner | `src/experiments/baseline.rs` | `tests/baselines.rs`, `tests/randomized_env.rs` |
 | Run ownership and provenance | `src/run.rs` | atomic allocation unit tests, `tests/event_logging.rs` |
+| Inherited topology (M1-01) | `src/agent/topology.rs` | `tests/topology.rs`; mask/motor/order fixtures, rejection logging |
 | Ordinary/hidden event serialization | `src/logging/events.rs` | `tests/event_logging.rs`, `analysis/test_validate_logs.py` |
 | CLI dispatch | `src/main.rs` | `validate-config` and baseline-only `simulate` |
 

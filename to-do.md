@@ -30,14 +30,14 @@ and [continuation guide](docs/handoff.md).
 
 | Field | Current value |
 | --- | --- |
-| Current milestone | M0-GATE re-verified 2026-09-21 UTC after corrective review; M1 unblocked |
+| Current milestone | M1 open; M1-01 verified 2026-09-21 UTC, M1-GATE still open |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M0-DOCS (documentation); latest simulator verification remains M0-REVIEW |
+| Last verified task | M1-01 (inherited topology); latest simulator verification remains M0-REVIEW for M0 scope |
 | Claimed task | None |
-| Next eligible task | M1-01 |
+| Next eligible task | M1-02 |
 | Current blocker | None |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | 2026-09-21 UTC M0-DOCS ledger entry; M0 simulation evidence in docs/evidence/m0-review/ |
+| Last evidence record | 2026-09-21 UTC M1-01 ledger entry (this file); M0 simulation evidence in docs/evidence/m0-review/ |
 
 ### Session ownership and handoffs
 
@@ -49,6 +49,7 @@ and [continuation guide](docs/handoff.md).
 | agent 2026-09-21 | M0-06–M0-08 | src/environment/*, tests/{environment_contract,leakage}.rs, tests/support/ | Done, verified; handoff to M0-09 |
 | agent 2026-09-21 | M0-09–M0-11 | src/environment/mod.rs (features), src/experiments/*, tests/{environment_contract,event_order,leakage,baselines}.rs | Done, verified; handoff to M0-12 |
 | agent 2026-09-21 | M0-12–M0-GATE | src/logging/*, src/run.rs (runner), src/main.rs (CLI), analysis/*, tests/{randomized_env,event_logging}.rs | Done, verified; M0-GATE passed, handoff to M1-01 |
+| agent 2026-09-21 | M1-01 | src/agent/{mod,topology}.rs, tests/topology.rs, docs/decisions.md | Done, verified; handoff to M1-02 |
 
 Parallel work requires settled interfaces and satisfied dependencies. Do not parallelize successive scientific milestones or let two agents independently redefine feedback ordering, RNG policy, or checkpoint schema. Coordinate changes to this tracker through one integrator.
 
@@ -164,7 +165,7 @@ Prove that observations, hidden mappings, timing, and reward accounting are corr
 
 Establish correct, continuously evolving actor dynamics and replay before introducing plasticity.
 
-- [ ] **M1-01 - Implement inherited topology and structural validation**
+- [x] **M1-01 - Implement inherited topology and structural validation**
   - Deliver: Sample the directed Bernoulli mask, initially with no self-edges; fix a stable edge order and motor assignment. Check cue-driven-to-motor reachability and recurrent cycles. Log rejected structural samples and reasons.
   - Verify: The same initialization reproduces the same mask. Selection is structural, never based on test performance. Missing edges stay absent. Pair masks and actor inheritance across future gate conditions.
 
@@ -1505,6 +1506,61 @@ Interpretation and claim limits: Documentation readiness only; no milestone
   promotion, learning claim, or new performance/throughput evidence.
 Tracker boxes updated: M0-DOCS checked; M0-GATE retained.
 Next eligible task: M1-01; no outstanding blocker.
+```
+
+```text
+Date / agent or session: 2026-09-21 UTC / agent (M1 topology session)
+Task IDs: M1-01
+Spec sections: 3.2 (starting sizes), 4.1 (W[receiver, sender]), 6.5
+  (observability), 10.1 (recurrent mask), 18.4-18.5 (edge order, dense first)
+Change and affected files: src/agent/mod.rs (new, declares topology only);
+  src/agent/topology.rs (new: init-stream Bernoulli sampling, last-index
+  motor pools, receiver-grouped edge order, cycle + per-pool reachability
+  checks, rejection logging, explicit exhaustion); src/lib.rs (register
+  agent module); tests/topology.rs (new, 13 tests); docs/decisions.md
+  (M1-01 conventions entry); README.md (layout line);
+  docs/handoff.md (M1-02 continuation).
+Code revision / dirty-tree state: base 7132433 (docs updated); M1-01 files
+  new or modified and uncommitted at handoff (git status: M
+  docs/decisions.md, src/lib.rs, to-do.md, README.md, docs/handoff.md;
+  ?? src/agent/, tests/topology.rs).
+Commands actually executed:
+  cargo test --locked --test topology (13/13 pass)
+  cargo fmt --all -- --check (clean after one formatting pass)
+  cargo clippy --all-targets --locked -- -D warnings (clean after
+    iterator-form loop fixes in src/agent/topology.rs and
+    tests/topology.rs)
+  cargo test --all-targets --locked (88/88 pass: 21 lib incl. 2 new
+    topology units + 7 baselines + 4 config + 20 contract + 5 logging +
+    3 order + 5 leakage + 5 randomized + 5 seeds + 13 new topology)
+  python3 analysis/test_validate_logs.py (14/14 pass, unchanged layer)
+  cargo run --release --locked -- validate-config
+    configs/debug_stationary.toml (OK) and configs/env_smoke.toml (OK)
+Outcome and checks passed: Same init tuple reproduces mask/edges/pools;
+  outer 1 vs 2 masks differ; motor pools fixed/disjoint on last indices
+  (16/2 -> [12,13]/[14,15]; 60/4 -> [52-55]/[56-59]); missing edges absent
+  with counts agreeing; diagonal absent when self_edges=false (incl. p=1
+  boundary) and enforced in topology_from_mask; hand-built good graph
+  accepted and each bad graph yields its exact reason subset; p=0 exhausts
+  with a 3-attempt fully logged error; non-init streams and max_attempts=0
+  rejected; debug_stationary actor section samples and validates end to end.
+Checks not run / failures / blockers: No failures. M0 smoke simulate not
+  rerun (no runner change; validate-config confirms no config regression).
+  Full Monte Carlo suites remain in their queued milestones.
+Configuration and suite hashes: configs/debug_stationary.toml actor
+  section (N=16, m=2, p=0.25, self_edges=false); seed tuple (root 1,
+  development, outer 1, lifetime 0, stream init) for determinism/pairing
+  fixtures; no suites consumed.
+Seed namespace / outer seeds / lifetime count: development only; outer
+  1/2/3/5/7/9 fixtures at lifetime_index 0; no lifetimes simulated.
+Artifact paths and checksums where relevant: src/agent/topology.rs,
+  src/agent/mod.rs, tests/topology.rs (committed with this entry; no
+  run directories produced).
+Interpretation and claim limits: Structural sampling only. No weights,
+  dynamics, plasticity, or learning claim; M1-GATE remains open until
+  M1-02 through M1-12 verify.
+Tracker boxes updated: M1-01 checked.
+Next eligible task: M1-02.
 ```
 
 ## Blockers and decision register - keep current

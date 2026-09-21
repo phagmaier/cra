@@ -138,8 +138,10 @@ pipeline in M8. Do not treat their absence as a failure of M0.
 `spec.md`, `to-do.md`, `AGENTS.md` at root. `src/` holds `config.rs`
 (versioned TOML schema), `rng.rs` (seed derivation), `environment/`
 (observation boundary, hidden state, scheduling, features, rewards),
-`experiments/baseline.rs` (B0/B1/O1 harness), `logging/` (event records +
-validation), `run.rs` (provenance + simulation runner), and thin `main.rs`.
+`agent/topology.rs` (M1-01 inherited mask, fixed motor pools, stable edge
+order, structural validation), `experiments/baseline.rs` (B0/B1/O1 harness),
+`logging/` (event records + validation), `run.rs` (provenance + simulation
+runner), and thin `main.rs`.
 `configs/` holds `env_smoke.toml` (M0 smoke) and `debug_stationary.toml`
 (spec 19.2 reference + seeds). `manifests/` reserves disjoint seed ranges
 per namespace. `analysis/` holds the stdlib-only log audit plus fixtures.

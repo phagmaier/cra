@@ -248,3 +248,56 @@ make code or a result look successful.**
 - **Validation:** documentation changes receive link/anchor checks, structured
   file parsing, and assertions that source/config edits are comment-only.
   Previously recorded simulator tests remain prior evidence, not new runs.
+
+## 2026-09-21 UTC — M1-01 inherited topology conventions (spec 3.2, 6.5, 10.1, 18.4–18.5)
+
+- **Scope:** structural sampling only (mask, motor assignment, edge order,
+  acceptance checks). No weights (`W0`/`B`), dynamics, plasticity, or search.
+  Affected spec sections: 3.2 (sizes), 6.5 (observability), 10.1 (mask),
+  18.4–18.5 (ordering, dense-first).
+- **Motor assignment (spec 6.4 underspecifies indices).** Fixed disjoint
+  pools on the last `2 * motor_neurons_per_action` actor indices:
+  `M0 = [N-2m, N-m)`, `M1 = [N-m, N)`; non-motor are `[0, N-2m)`.
+  Alternative (first indices as motor) rejected only to keep non-motor
+  `[0, ...)` contiguous for the reachability proxy below. Consequence: motor
+  identity is an engineering convention recorded here; M1-06 commitment and
+  M7 pairing tests must use this assignment, and any change needs new
+  evidence.
+- **Draw order and self-edges (spec 10.1).** Receiver-major, sender-inner
+  (`j = 0..N-1`, `i = 0..N-1`), one Bernoulli(`edge_probability`) draw per
+  directed pair. When `self_edges = false` (both shipped profiles),
+  diagonal pairs consume no RNG. Alternative (draw-then-zero the diagonal)
+  rejected: it couples the mask to discarded draws. Orientation stays
+  `W[receiver, sender]` (rows receive, columns send) per spec 4.1.
+- **Initialization seed identity (spec 10.1, 20.5).** Inherited sampling
+  uses stream `init` only; the outer-seed-level convention is
+  `(root_seed, namespace, outer_seed, lifetime_index = 0, stream = "init")`.
+  All lifetimes under one outer seed therefore share the mask, while
+  independent outer seeds vary it. Gate mode is not an input to sampling,
+  so fixed/global/targeted conditions pair by construction (spec 10.1,
+  12.7). The implementation rejects non-`init` streams to keep agent
+  (`actor_noise`, `tie_break`) and environment streams unperturbed.
+  Consequence: a new lifetime is never a new inherited topology; evolution
+  (M7) reuses this identity per genome/outer seed.
+- **Cue-driven proxy before sensory weights exist (spec 6.5 vs 10.2).**
+  `B` (M1-02) is planned dense over all actor neurons, so every non-motor
+  neuron is potentially cue-driven. Acceptance requires (a) at least one
+  directed path from the non-motor set to each motor pool separately, and
+  (b) at least one directed recurrent cycle (length >= 2 while self-edges
+  are disabled; length 1 counts only when `self_edges = true`). Requiring
+  each pool (not just any motor) keeps both actions structurally drivable;
+  requiring only existence (not every non-motor reaches motor) avoids
+  rejecting most random reservoirs at the debug (`N = 16`, `p = 0.25`) and
+  main (`N = 60`, `p = 0.15`) densities. Degenerate `N = 2m` (no
+  non-motor) treats all neurons as sources so each pool is trivially
+  reachable; only the cycle check then discriminates. Alternative
+  (all-non-motor-must-reach-motor) rejected as over-strict for a sanity
+  check. Consequence: if `B` later becomes sparse, this proxy must be
+  refined to actual `B`-supported neurons with new tests.
+- **Rejection logging, never performance selection (spec 10.1).** Sampling
+  retries sequentially on one `init` RNG (each attempt consumes its draws
+  in the fixed order above) up to an explicit `max_attempts`, recording
+  per-attempt edge counts and reasons (`no_cycle`, `m0_unreachable`,
+  `m1_unreachable`). The sampler takes no reward, hidden state, or fitness
+  input, so topology cannot be selected by task performance. Exhaustion is
+  an explicit error carrying the full attempt log, not a silent fallback.
