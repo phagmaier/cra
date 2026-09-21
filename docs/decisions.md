@@ -375,3 +375,43 @@ make code or a result look successful.**
   (with `r = tanh(h)`) serves exact fixtures now and checkpoint restore
   in M1-09; both validate shapes and finiteness instead of trusting
   callers.
+
+## 2026-09-21 UTC — M1-04 perturbation schedule conventions (spec 6.1, 6.3, 18.4, 20.5)
+
+- **Scope:** verification of the generator and draw schedule, not a new
+  sampler. `NormalStream` (M1-02) and both step entry points (M1-03) are
+  reused unchanged except that the fixture path now also records its
+  injected vector. Affected spec sections: 6.1/6.3 (noise), 18.4 (draw
+  every tick regardless of gates), 20.5 (RNG state).
+- **One draw per neuron per tick, unconditional (spec 18.4).** `step`
+  draws exactly `N` normals from the dedicated `actor_noise` stream on
+  every call; the count and order never depend on input values, membrane
+  saturation, logging reads, or future gate settings. The runner (M1-07)
+  will call `step` on every tick including quiet periods, so the schedule
+  holds across phases by construction — the transition takes no phase
+  input at all. Consequence: changing a gate must not shift the noise
+  stream; the M6-05 modulation-only isolation test re-proves this with
+  paired schedules once gates exist.
+- **Fresh Box–Muller pairing per tick.** `step` builds one `NormalStream`
+  per call and drops it afterwards, so the spare deviate never crosses a
+  tick boundary. For even `N` the applied vector is a contiguous slice of
+  one reference stream; for odd `N` the unpaired deviate is discarded and
+  the next tick re-pairs deterministically. Either way the schedule is a
+  pure function of `(seed, tick, N)`. Alternative (a persistent stream
+  cached in `ActorState`) rejected: it would entangle the RNG borrow with
+  state lifetime for no schedule benefit.
+- **Observation draws nothing.** Getters (`h`, `a`, `r`,
+  `last_perturbations`) borrow state immutably; the applied perturbation
+  vector is observable for diagnostics and the M2 eligibility trace
+  without perturbing the stream.
+- **Resume state for M1-09 checkpoints (spec 10.7, 20.5).** Because pairing
+  is per-tick-local, exact continuation needs only two pieces at a tick
+  boundary: the 32-byte `init`-derived `actor_noise` seed bytes and the
+  `ChaCha8Rng` word position (`get_word_pos`/`set_word_pos`, verified to
+  round-trip on the pinned `rand_chacha 0.9.0`; a restored stream
+  reproduces the next tick's perturbations exactly). No spare deviate
+  crosses ticks, so none is stored. Alternative (re-seed plus skip-N
+  redraws) rejected as needlessly linear; the word position seeks in O(1).
+  Consequence: the M1-09 schema must carry seed bytes plus word position
+  for the noise stream, and any change of normal implementation re-opens
+  this entry.

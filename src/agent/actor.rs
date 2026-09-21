@@ -8,6 +8,14 @@
 //! Motor filters and commitment arrive in M1-06; the perturbation schedule
 //! audit in M1-04; numerical health summaries in M1-08.
 //!
+//! Draw schedule (spec 18.4, verified in M1-04): `step` draws exactly one
+//! perturbation per actor neuron on every call from the dedicated
+//! `actor_noise` stream, unconditionally — input values, saturation, and
+//! (future) gate settings never change the count or order. Pairing is
+//! per-tick-local (one `NormalStream` per call): even neuron counts read a
+//! contiguous slice, odd counts deterministically re-pair each tick.
+//! Observation (`h`, `a`, `r`, `last_perturbations`) draws nothing.
+//!
 //! Transition (spec 6.1), all right-hand sides read old arrays:
 //!
 //! ```text
@@ -136,6 +144,17 @@ impl ActorState {
         &self.r
     }
 
+    /// Perturbations used by the most recent transition, one per neuron.
+    ///
+    /// Both entry points leave the applied vector here: `step` draws it,
+    /// `step_with_perturbations` copies the injected slice. Read-only
+    /// observation never advances simulation randomness. The later
+    /// eligibility trace (M2) reads the receiving neuron's perturbation
+    /// from this buffer.
+    pub fn last_perturbations(&self) -> &[f64] {
+        &self.xi_buf
+    }
+
     /// One transition on ordinary features with caller-supplied
     /// perturbations (deterministic fixture path; the M1-04 schedule audit
     /// uses this entry point).
@@ -155,8 +174,10 @@ impl ActorState {
             a_next,
             r_next,
             drive,
+            xi_buf,
             ..
         } = self;
+        xi_buf.copy_from_slice(xi);
         advance_new(
             actor,
             &params.weights,

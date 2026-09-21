@@ -30,14 +30,14 @@ and [continuation guide](docs/handoff.md).
 
 | Field | Current value |
 | --- | --- |
-| Current milestone | M1 open; M1-03 verified 2026-09-21 UTC, M1-GATE still open |
+| Current milestone | M1 open; M1-05 verified 2026-09-21 UTC, M1-GATE still open |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M1-03 (actor transition); M0 scope verification remains M0-REVIEW |
+| Last verified task | M1-05 (adaptation); M0 scope verification remains M0-REVIEW |
 | Claimed task | None |
-| Next eligible task | M1-04 |
+| Next eligible task | M1-06 |
 | Current blocker | None |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | 2026-09-21 UTC M1-03 ledger entry (this file); M0 simulation evidence in docs/evidence/m0-review/ |
+| Last evidence record | 2026-09-21 UTC M1-05 ledger entry (this file); M0 simulation evidence in docs/evidence/m0-review/ |
 
 ### Session ownership and handoffs
 
@@ -52,6 +52,8 @@ and [continuation guide](docs/handoff.md).
 | agent 2026-09-21 | M1-01 | src/agent/{mod,topology}.rs, tests/topology.rs, docs/decisions.md | Done, verified; handoff to M1-02 |
 | agent 2026-09-21 | M1-02 | src/agent/{mod,topology,weights}.rs, tests/weights.rs, docs/decisions.md | Done, verified; handoff to M1-03 |
 | agent 2026-09-21 | M1-03 | src/agent/{mod,actor}.rs, tests/actor.rs, docs/decisions.md | Done, verified; handoff to M1-04 |
+| agent 2026-09-21 | M1-04 | src/agent/actor.rs, tests/actor_noise.rs, docs/decisions.md | Done, verified; handoff to M1-05 |
+| agent 2026-09-21 | M1-05 | tests/adaptation.rs | Done, verified; handoff to M1-06 |
 
 Parallel work requires settled interfaces and satisfied dependencies. Do not parallelize successive scientific milestones or let two agents independently redefine feedback ordering, RNG policy, or checkpoint schema. Coordinate changes to this tracker through one integrator.
 
@@ -179,11 +181,11 @@ Establish correct, continuously evolving actor dynamics and replay before introd
   - Deliver: Compute alpha with -expm1(-1/tau), read only old h/r/a on right-hand sides, accumulate recurrent and sensory drive, add Gaussian noise after leaky integration, and compute new tanh activity.
   - Verify: One-edge and two-neuron fixtures prove receiver/source orientation and simultaneous updates. Forced perturbations prove the leak factor is not accidentally applied to sigma. No hidden state clipping or inner-loop allocations are introduced.
 
-- [ ] **M1-04 - Verify the perturbation generator and draw schedule**
+- [x] **M1-04 - Verify the perturbation generator and draw schedule**
   - Deliver: Support a deterministic injected-noise fixture path for tests and a pinned stochastic generator for production. Draw one perturbation per actor neuron per tick, including quiet periods.
   - Verify: Seeded sample moments match the specified mean/variance within declared tolerances. Extra logging and unused gate changes do not shift draws. Record distribution implementation and RNG state needed for resume.
 
-- [ ] **M1-05 - Implement adaptation but keep its initial strength zero**
+- [x] **M1-05 - Implement adaptation but keep its initial strength zero**
   - Deliver: Update the signed adaptation average from old activity using its separate time constant. Preserve it across all environmental phase boundaries.
   - Verify: At strength zero adaptation has no influence on actor dynamics. A nonzero-strength unit fixture checks its sign and recurrence, but the initial learner is not simultaneously complicated by enabling this mechanism.
 
@@ -1690,6 +1692,119 @@ Interpretation and claim limits: Transition dynamics only. No motor
   absent. M1-GATE remains open.
 Tracker boxes updated: M1-03 checked.
 Next eligible task: M1-04.
+```
+
+```text
+Date / agent or session: 2026-09-21 UTC / agent (M1 noise-schedule session)
+Task IDs: M1-04
+Spec sections: 6.1/6.3 (perturbations), 18.4 (draw every tick regardless
+  of gates), 20.5 (seed derivation, RNG state for resume)
+Change and affected files: src/agent/actor.rs (fixture path records its
+  vector; new last_perturbations getter; draw-schedule module docs);
+  tests/actor_noise.rs (new, 7 tests); docs/decisions.md (M1-04
+  conventions entry); docs/handoff.md (M1-05 continuation). No sampler or
+  transition math changed.
+Code revision / dirty-tree state: base 5f8b9b8 (M1-03 done); clean at
+  start, M1-04 files modified or new and uncommitted at handoff (M
+  src/agent/actor.rs, to-do.md, docs/decisions.md, docs/handoff.md;
+  ?? tests/actor_noise.rs).
+Commands actually executed:
+  cargo test --locked --test actor_noise (7/7 pass)
+  cargo test --all-targets --locked (116/116 pass, 1 ignored: 25 lib + 0
+    bin + 7 actor + 7 actor_noise + 7 baselines + 4 config + 20 contract
+    + 5 logging + 3 order + 5 leakage + 5 randomized + 5 seeds + 13
+    topology + 10 weights)
+  cargo fmt --all -- --check (clean)
+  cargo clippy --all-targets --locked -- -D warnings (clean)
+  python3 analysis/test_validate_logs.py (14/14 pass, unchanged layer)
+  cargo run --release --locked -- validate-config
+    configs/debug_stationary.toml (OK) and configs/env_smoke.toml (OK)
+  throwaway probe_tmp resume-API check (passed, deleted afterwards)
+Outcome and checks passed: step draws equal the reference stream tick by
+  tick for N = 4 and odd N = 3 (even N additionally matches an independent
+  contiguous derivation); identical schedules under zero/one-hot inputs
+  and saturated state; interleaved reads leave trajectories identical;
+  50k seeded normals give mean/var within ~4.5 SE of (0, 1); 100 steps
+  leave the cue_order stream untouched; word position round-trips the
+  uniform stream and seed-bytes-plus-position reproduces the next tick's
+  perturbations for N = 4 and 3.
+Checks not run / failures / blockers: Two first-draft tests encoded wrong
+  expectations, both corrected in tests with no source change: (a) odd-N
+  ticks re-pair deterministically instead of continuing one stream, which
+  fixed the design as per-tick-local pairing (simpler M1-09 resume: seed
+  bytes plus word position only); (b) a NormalStream temporary cannot hold
+  its spare across statements, replaced by the tick-boundary resume test.
+  Gate-variation schedule proof waits for gates (M6-05); every-phase
+  stepping waits for the runner (M1-07).
+Configuration and suite hashes: Hand N = 4/3 fixtures (zeros, one-hot,
+  saturated states/inputs); actor_noise seeds (root 1, development, outer
+  1/3/5/9, lifetime 0); no suites consumed.
+Seed namespace / outer seeds / lifetime count: development only, fixture
+  seeds as above; no lifetimes simulated.
+Artifact paths and checksums where relevant: tests/actor_noise.rs,
+  src/agent/actor.rs draw-schedule docs (no run directories produced).
+Interpretation and claim limits: Generator and schedule verification
+  only. No dynamics, plasticity, or learning claim. M1-GATE remains open.
+Tracker boxes updated: M1-04 checked.
+Next eligible task: M1-05.
+```
+
+```text
+Date / agent or session: 2026-09-21 UTC / agent (M1 adaptation session)
+Task IDs: M1-05
+Spec sections: 6.1 (actor update with adaptation drive), 6.2 (adaptation
+  interpretation, strength 0 then 0.1 ablation), 6.3 (starting constants)
+Change and affected files: tests/adaptation.rs (new, 5 tests);
+  docs/handoff.md (M1-06 continuation). No source change: the update,
+  drive term, and zero-strength config already verified under M1-02/M1-03.
+Code revision / dirty-tree state: base 5f8b9b8 (M1-03 done) with
+  uncommitted M1-04/M1-05 work pending; M1-05 files new or modified and
+  uncommitted at handoff (M to-do.md, docs/handoff.md;
+  ?? tests/adaptation.rs).
+Commands actually executed:
+  cargo test --locked --test adaptation (5/5 pass)
+  cargo test --all-targets --locked (121/121 pass, 1 ignored: 25 lib + 0
+    bin + 7 actor + 7 actor_noise + 5 adaptation + 7 baselines + 4 config
+    + 20 contract + 5 logging + 3 order + 5 leakage + 5 randomized + 5
+    seeds + 13 topology + 10 weights)
+  cargo fmt --all -- --check (clean)
+  cargo clippy --all-targets --locked -- -D warnings (clean after
+    iterator-form loop and array-literal fixes in tests/adaptation.rs)
+  python3 analysis/test_validate_logs.py (14/14 pass, unchanged layer)
+  cargo run --release --locked -- validate-config
+    configs/debug_stationary.toml (OK) and configs/env_smoke.toml (OK)
+  throwaway ignored probe of the opposition trajectory (passed, deleted
+  afterwards; values below are its recorded output)
+Outcome and checks passed: Strength 0 leaves h bit-identical across
+  different a_old while a still tracks activity (inert yet evolving);
+  one-tick a matches alpha(tau_a)*r_old at 1e-15 and excludes the tau_h
+  swap by half the formulation gap; nonzero-strength unit fixture
+  (tau_a = 2, strength 0.5) shows a > 0 every tick, h below the paired
+  zero-strength control from tick 1, and overshoot below zero by tick 11
+  (ha -0.0067 vs control +0.0907) while the control stays positive;
+  10-tick replay of the a recurrence from recorded r across four cycling
+  input patterns matches exactly (no boundary clearing);
+  debug_stationary.toml holds adaptation_strength 0.0.
+Checks not run / failures / blockers: Three first-draft expectations were
+  wrong, all corrected in tests with no source change: tick-0 opposition
+  is vacuous (a starts 0 for both runs; asserted from tick 1), the tau_h
+  exclusion margin exceeded the small-neuron formulation gap (assert half
+  the gap), and strict a monotonicity is false (a chases falling r and
+  peaks at tick 2; asserted sign, initial build-up, and overshoot
+  instead). The 0.1 ablation from spec 6.2 stays a later decision, not
+  this task. M0 smoke simulate not rerun (no runner change).
+Configuration and suite hashes: Hand N = 2 fixtures (tau_h 5, tau_a
+  100/20/2, strength 0.0/0.5); debug_stationary.toml strength pin; no
+  suites consumed.
+Seed namespace / outer seeds / lifetime count: N/A (deterministic
+  fixtures, no RNG).
+Artifact paths and checksums where relevant: tests/adaptation.rs (no run
+  directories produced).
+Interpretation and claim limits: Adaptation behavior verified; the
+  initial learner stays at strength 0. No dynamics change, no learning
+  claim. M1-GATE remains open.
+Tracker boxes updated: M1-05 checked.
+Next eligible task: M1-06.
 ```
 
 ## Blockers and decision register - keep current

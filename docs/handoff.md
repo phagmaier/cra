@@ -1,8 +1,9 @@
 # Agent continuation guide
 
-Updated 2026-09-21 UTC after M1-03, from code revision `891d99a`
-(`m1-0`) with M1-02/M1-03 changes uncommitted. This is a working handoff.
-Check the tracker and Git state for newer work before claiming a task.
+Updated 2026-09-21 UTC after M1-05, from code revision `5f8b9b8`
+(`M1-03 done`) with M1-04/M1-05 changes uncommitted. This is a working
+handoff. Check the tracker and Git state for newer work before claiming
+a task.
 
 ## Start here
 
@@ -18,16 +19,17 @@ Check the tracker and Git state for newer work before claiming a task.
 
 ## Current position and evidence
 
-**M0-GATE passed and was re-verified. M1-03 verified. Next task: M1-04.**
-There is no outstanding M1-03 blocker. The claim track remains `family_only`.
+**M0-GATE passed and was re-verified. M1-05 verified. Next task: M1-06.**
+There is no outstanding M1-05 blocker. The claim track remains `family_only`.
 No reserved final-test outcomes have been inspected.
 
-M1-03 added `src/agent/actor.rs` (double-buffered `f64` transition:
-`-expm1` leak factors, dense old-state drive, post-integration noise, no
-clipping with explicit nonfinite errors, forced-xi plus stochastic entry
-points sharing one core) with 7 integration tests in `tests/actor.rs` plus
-2 unit tests. Full suite is 109 Rust tests passing with clean fmt/clippy;
-see the M1-03 tracker ledger entry. Topology/weights results unchanged.
+M1-05 verified adaptation with no source change: strength 0 hides `a_old`
+from `h` bit-identically, `a` follows its own `tau_a`, a nonzero-strength
+unit fixture shows the specified opposing sign against a paired control
+(overshooting below zero while the control stays positive), persistence
+replays exactly across input changes, and `debug_stationary.toml` pins
+strength 0. 5 tests in `tests/adaptation.rs`; full suite is 121 Rust tests
+passing with clean fmt/clippy; see the M1-05 tracker ledger entry.
 
 The [M0 review](m0-review.md) records 73 Rust tests and 14 Python tests
 passing, clean fmt/clippy, four original runs audited, and seven fresh
@@ -42,32 +44,33 @@ is available for a quick audit. Reproduce missing raw runs using the saved
 commands/configs into new directories; preserve historical evidence paths
 and distinguish reruns from the original execution.
 
-## Next task: M1-04
+## Next task: M1-06
 
-**Deliver:** the verified perturbation generator and draw schedule — the
-deterministic injected-noise fixture path plus the pinned stochastic
-generator drawing one perturbation per actor neuron per tick, including
-quiet periods.
+**Deliver:** fixed motor pools, filtering, and commitment — average new
+activities within the two fixed disjoint motor populations, the leaky motor
+filter, and the higher-filtered-output choice at commitment with a
+dedicated fair tie RNG.
 
-Read the M1-04 task text alongside spec 6.1/6.3 (noise after leaky
-integration, `sigma = 0.05`) and `src/agent/actor.rs`
-(`step_with_perturbations` vs `step`, preallocated `xi_buf`) plus
-`src/agent/weights.rs` (`NormalStream`) and `src/rng.rs` first. Both entry
-points already exist; this task verifies them, it does not redesign them.
+Read spec Sections 6.3–6.4 alongside the
+[M1 task queue](../to-do.md#m1---build-a-continuous-actor-with-no-learning).
+Inspect `src/agent/topology.rs` (motor pool assignment), `src/agent/actor.rs`
+(`r` activity output), `src/rng.rs` (the `tie_break` stream), and
+`src/environment/observation.rs` (`MotorOutput`) first. Likely home is a
+new `src/agent/motor.rs`; keep it free of plasticity, trained decoders,
+and exploration policies.
 
-- Prove seeded sample moments match mean 0 / variance 1 within declared
-  tolerances (justify the sigmas from the sample counts up front).
-- Prove extra logging and unused gate changes cannot shift draws: the
-  `actor_noise` stream stays independent of environment streams, and one
-  draw per neuron happens on every tick regardless of phase.
-- Record the distribution implementation and the RNG state needed for
-  resume (M1-09 checkpoint work must preserve the perturbation-stream
-  position; coordinate the schema there).
+- Prove the golden filter recurrences exactly (fixed-point arithmetic from
+  hand means, not from the implementation's own alpha helper alone).
+- Prove commitment reads the new `q` values and exact ties use only the
+  tie stream (forced-tie fixture with a seeded `tie_break` RNG).
+- Prove disjointness/capacity against the config validation (pools must
+  match `topology.rs` assignment; no trained decoder, softmax, or
+  epsilon-greedy policy).
 - Verify with the stated checks, then run the applicable full quality
   checks and append tracker evidence.
 
-Keep M1-05 adaptation and later learning/search work in their task order.
-Completing M1-04 alone does not pass M1-GATE.
+Keep M1-07 runner integration and later learning/search work in their task
+order. Completing M1-06 alone does not pass M1-GATE.
 
 ## Implementation map
 
@@ -82,6 +85,8 @@ Completing M1-04 alone does not pass M1-GATE.
 | Inherited topology (M1-01) | `src/agent/topology.rs` | `tests/topology.rs`; mask/motor/order fixtures, rejection logging |
 | Inherited weights (M1-02) | `src/agent/weights.rs` | `tests/weights.rs`; row-scale/B/bias fixtures, golden draw sequence |
 | Actor transition (M1-03) | `src/agent/actor.rs` | `tests/actor.rs`; orientation/simultaneity/leak/no-clip fixtures |
+| Perturbation schedule (M1-04) | `src/agent/actor.rs` + `weights.rs` | `tests/actor_noise.rs`; per-tick draws, moments, resume primitive |
+| Adaptation at strength 0 (M1-05) | `src/agent/actor.rs` (verified) | `tests/adaptation.rs`; inertness, sign, persistence, config pin |
 | Ordinary/hidden event serialization | `src/logging/events.rs` | `tests/event_logging.rs`, `analysis/test_validate_logs.py` |
 | CLI dispatch | `src/main.rs` | `validate-config` and baseline-only `simulate` |
 
