@@ -117,3 +117,24 @@ interrupted runs — missing data is not a zero score.
   an unmodified `git archive 13a4873` in `/tmp/cra-m1-original-13a4873`.
 - Interpretation: M1-GATE re-verified for dynamics/replay only. No final-test
   data, search, M2 score evidence, or M3/M4 learning claim. Next: M2-01.
+
+## 2026-09-21 UTC — M2-03 one-neuron analytical direction diagnostic
+
+- Base `9d31b9d`, with M2-02/M2-03 test and documentation work uncommitted;
+  production code unchanged. [Plan](evidence/m2-03/plan.md) saved before
+  execution: one million samples, development/root 1/outer 203/lifetime 0/
+  actor_noise, existing ChaCha8/Box–Muller stream, alpha 0.2, input 0.7,
+  weight 0.3, sigma 0.4, fixed baseline 0.5, tolerance five SE plus 1e-12.
+- First execution passed: mean 0.13871680603781847 versus analytical
+  0.1388622064964956; SE 0.00010644926671077609. Absolute error
+  0.0001454004586771418 is below tolerance 0.0005322463345538805.
+  Opposite reward uses the same draws and produces the negative mean with
+  identical uncertainty. No reseeding, extra samples or tolerance changes.
+- [Result JSON](evidence/m2-03/result.json) includes parameters, seed/hash,
+  sample counts, variance/SE, outcome counts, pass flags, toolchain/platform
+  and source hashes. [Summary](evidence/m2-03/summary.md) records exact commands.
+  Explicit release diagnostic: 1 pass, reported 0.07s test time. Full fast
+  suite: 199 pass, 2 default ignores; this diagnostic was run separately,
+  the existing weight-printing probe was not. Formatting/Clippy clean.
+- One-transition numerical direction evidence only, not online learning or
+  convergence. M2-GATE open; next M2-04. No final-test inspection or search.

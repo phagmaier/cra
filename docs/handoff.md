@@ -1,7 +1,7 @@
 # Agent continuation guide
 
-Updated 2026-09-21 UTC after M2-01, from clean base
-`0755a4c` (`refined m1`) with M2-01 changes uncommitted. Check the tracker
+Updated 2026-09-21 UTC after M2-03, from base
+`9d31b9d` (`m2-01 done`) with M2-02 and M2-03 changes uncommitted. Check the tracker
 and Git state for newer work before claiming a task.
 
 ## Start here
@@ -18,18 +18,36 @@ and Git state for newer work before claiming a task.
 
 ## Current position and evidence
 
-**M0-GATE passed and was re-verified. M1-GATE passed. M2-01 complete.
-Next task: M2-02.**
+**M0-GATE passed and was re-verified. M1-GATE passed. M2-01–M2-03 complete.
+Next task: M2-04.**
 There is no outstanding M1 blocker. The claim track remains `family_only`.
 No reserved final-test outcomes have been inspected.
 
 M2-01 adds `agent::score::conditional_score`, a pure scalar function with
 explicit receiver leak/noise parameters and old sender activity. It rejects
 invalid inputs and nonfinite results; callers own edge selection and indexing.
-Fresh checks: eight score tests and **193 Rust tests passed overall**, one
+M2-01 recorded eight score tests and **193 Rust tests passed overall**, one
 existing ignored weight-printing probe, clean fmt/Clippy. No actor transition,
 RNG, config, checkpoint or event schema changed. Python and CLI smoke runs
 were not repeated for this isolated arithmetic addition. M2-GATE is open.
+
+M2-02 adds `tests/score_log_probability.rs`: 288 fixed-observation derivative
+comparisons against the production actor's conditional mean, Gaussian-density
+goldens, and an invalid moving-sample negative control. All pass under the
+prespecified tolerance; largest absolute difference is 3.791e-8. M2-02 full
+checks: **196 Rust tests passed**, one existing ignored probe, clean
+fmt/Clippy. No production changes or new simulation runs. Commands, fixture
+settings and source hashes: [M2-02 evidence](evidence/m2-02/summary.md).
+
+M2-03 adds `tests/score_learning_direction.rs`: three fast tests for the
+statistics, analytical expectation and forced samples, plus an explicitly
+invoked million-sample diagnostic. It passed on first execution: positive
+mean 0.1387168, analytical 0.1388622, SE 0.00010645; paired opposite target
+negates the mean. Seed: development/root 1/outer 203/lifetime 0/actor_noise.
+Fresh full checks: **199 fast tests passed**, two default ignores (the
+separately passed diagnostic and existing weight-printing probe), clean
+fmt/Clippy. No production changes. See [M2-03 evidence](evidence/m2-03/summary.md)
+for the predeclared plan, command and immutable machine-readable result.
 
 M1 implements a continuous nonplastic actor and exits as a verified dynamics
 foundation, explicitly not learning. The [M1 corrective review](m1-review.md)
@@ -63,15 +81,17 @@ is available for a quick audit. Reproduce missing raw runs using the saved
 commands/configs into new directories; preserve historical evidence paths
 and distinguish reruns from the original execution.
 
-## Next task: M2-02
+## Next task: M2-04
 
-**Deliver:** the fixed-sample conditional log-probability derivative check.
-For saved old state and sampled `h_new`, perturb one weight by `+/- eps`,
-recompute Gaussian log probabilities and compare the central difference with
-`agent::score::conditional_score`. Keep `h_new` fixed; never resample it.
-Use several parameters and epsilon values around `1e-6` (spec 17.4).
+**Deliver:** the exact finite-rollout diagnostic mode (7.6). Use a
+weight-independent initial state, frozen weights during each rollout, fixed
+positive noise, no state clipping, no eligibility decay and a baseline fixed
+independently of the rollout perturbations. Sum scores and permit at most one
+terminal update. Test that online updates and running-baseline changes cannot
+occur within a rollout. Explicit diagnostic resets and no-decay semantics must
+remain distinct from the main birth-only continuous algorithm.
 
-Read spec Sections 7.1–7.2, 7.6 and 17.4 alongside the
+Read spec Sections 7.1–7.2, 7.6, 9 and 17.6 alongside the
 [M2 task queue](../to-do.md#m2---verify-the-stochastic-score-independently).
 Inspect `src/agent/score.rs`, `tests/score.rs` and `src/agent/actor.rs`
 (receiving-`xi` buffer and `leak_alpha` helper). The score reads the receiving neuron's
@@ -84,6 +104,11 @@ tanh derivative or `1 - lambda_e`.
   no mask, decay, gate or learning behavior; callers supply the edge inputs.
 - Verify with the stated checks, then run the applicable full quality
   checks and append tracker evidence.
+
+The new M2-03 test contains test-local Welford statistics and optional immutable
+evidence output that M2-05/06 may reuse or consolidate when needed. Do not run
+Monte Carlo implicitly in the fast suite. Keep the saved M2-03 files unchanged;
+fresh reruns must use a new result path.
 
 M2 validates score arithmetic under restricted diagnostics only — it
 says nothing about continual-learning performance. Do not start M3
@@ -104,6 +129,8 @@ plasticity on the strength of implemented code alone.
 | Actor transition (M1-03) | `src/agent/actor.rs` | `tests/actor.rs`; orientation/simultaneity/leak/no-clip fixtures |
 | Perturbation schedule (M1-04) | `src/agent/actor.rs` + `weights.rs` | `tests/actor_noise.rs`; per-tick draws, moments, resume primitive |
 | Conditional score (M2-01) | `src/agent/score.rs` | `tests/score.rs`; receiver indexing, golden arithmetic, saturation, zero activity, invalid inputs and overflow |
+| Conditional derivative diagnostic (M2-02) | `tests/score_log_probability.rs` | Saved-sample finite differences across edges/leaks/noise scales; moving-sample negative control |
+| One-neuron direction diagnostic (M2-03) | `tests/score_learning_direction.rs` | Fast statistics/forced-sample fixtures plus ignored bounded Monte Carlo with immutable evidence export |
 | Adaptation at strength 0 (M1-05) | `src/agent/actor.rs` (verified) | `tests/adaptation.rs`; inertness, sign, persistence, config pin |
 | Motor readout (M1-06) | `src/agent/motor.rs` | `tests/motor.rs`; golden filters, new-q commitment, tie-only draws |
 | Nonplastic actor (M1-07, B3) | `src/agent/no_learning.rs` | `tests/no_learning.rs`; continuity, W0 invariance, schedule parity, guard separation |

@@ -32,17 +32,19 @@ and [continuation guide](docs/handoff.md).
 | --- | --- |
 | Current milestone | M2 open; M1-GATE passed 2026-09-21 UTC |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M2-01 — pure conditional score and deterministic contract tests |
+| Last verified task | M2-03 — one-neuron analytical learning-direction diagnostic |
 | Claimed task | None |
-| Next eligible task | M2-02 |
+| Next eligible task | M2-04 |
 | Current blocker | None |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | 2026-09-21 UTC M2-01; completion ledger below and tests/score.rs |
+| Last evidence record | 2026-09-21 UTC M2-03; completion ledger below and docs/evidence/m2-03/summary.md |
 
 ### Session ownership and handoffs
 
 | Owner/session | Task IDs | Files or interfaces owned | Status / handoff |
 | --- | --- | --- | --- |
+| Codex 2026-09-21 M2-03 | M2-03 | tests/score_learning_direction.rs, docs/evidence/m2-03/, docs/experiments.md, README.md, docs/handoff.md, to-do.md | Done; million-sample diagnostic and full fast checks pass; next M2-04 |
+| Codex 2026-09-21 continuation | M2-02 | tests/score_log_probability.rs, docs/evidence/m2-02/, README.md, docs/handoff.md, to-do.md | Done; 288 derivative comparisons and full Rust checks pass; next M2-03 |
 | Codex 2026-09-21 | M2-01 | src/agent/{mod,score}.rs, tests/score.rs, README.md, docs/handoff.md, to-do.md | Done; eight score tests and full Rust checks pass; next M2-02 |
 | Codex review 2026-09-21 | M1-REVIEW | M1 implementation, regression tests, review evidence, README and handoff | Done; M1-GATE re-verified; next M2-01 |
 | Codex documentation | M0-DOCS | Agent guidance, current handoff, README, tracker, manifest notes, source/config comments | Done; no behavior changes; handoff to M1-01 |
@@ -244,11 +246,11 @@ Validate the conditional Gaussian score and restricted finite-rollout interpreta
   - Deliver: Implement S[j,i] = alpha_h[j] * r_old[i] * xi[j] / sigma[j]. Keep it independently callable by tests and reusable by the later trace implementation.
   - Verify: Tests use receiving xi, one alpha_h factor, actual sigma, and no tanh derivative. All incoming edges share their receiver perturbation; zero presynaptic activity yields zero score; active score with sigma <= 0 is rejected.
 
-- [ ] **M2-02 - Implement the fixed-sample conditional log-probability check**
+- [x] **M2-02 - Implement the fixed-sample conditional log-probability check**
   - Deliver: For a saved old state and saved h_new, perturb one weight by +/- eps and recompute Gaussian log probability. Compare its central finite difference with the analytical score.
   - Verify: Test several eps values around 1e-6 and several parameters. The sampled h_new must stay fixed; do not resample it or use the perturbed noise realization as a new observation.
 
-- [ ] **M2-03 - Implement the one-neuron analytical learning-direction test**
+- [x] **M2-03 - Implement the one-neuron analytical learning-direction test**
   - Deliver: Use alpha=0.2, input=0.7, weight=0.3, sigma=0.4; compare the mean of (reward-0.5)*score against the closed-form derivative, approximately 0.138862. Save sample count, seed, mean, and standard error.
   - Verify: Use a tolerance declared before execution, such as five standard errors plus numerical tolerance. Confirm the opposite target reverses the derivative sign. Investigate a failure instead of rerunning until it passes.
 
@@ -2413,13 +2415,91 @@ Tracker boxes updated: M2-01 checked.
 Next eligible task: M2-02.
 ```
 
+```text
+Date / agent or session: 2026-09-21 UTC / Codex M2-02 continuation
+Task IDs: M2-02
+Spec sections: 6.1, 7.1-7.2, 7.6, 16/M2, 17.4
+Change and affected files: tests/score_log_probability.rs; README, handoff,
+  tracker and docs/evidence/m2-02/summary.md. No production/spec changes.
+Code revision / dirty-tree state: clean base 9d31b9d (m2-01 done);
+  task changes uncommitted. Source SHA-256s in the saved evidence.
+Commands actually executed:
+  cargo fmt --all
+  cargo test --locked --test score_log_probability -- --nocapture (3 pass)
+  cargo fmt --all -- --check (clean)
+  cargo clippy --all-targets --locked -- -D warnings (clean)
+  cargo test --all-targets --locked (196 passed, 0 failed, 1 ignored)
+Outcome: 288 fixed-sample derivatives pass: 12 edges x 6 tau/sigma settings
+  x 4 epsilon values. Largest absolute difference 3.790982994190e-8;
+  predeclared tolerance 2e-8 + 2e-7*abs(score). No tolerance adjustment.
+  Gaussian-density known values pass. Invalid moving-sample control has
+  near-zero derivative, while the fixed-sample score is 0.42. Old state,
+  original weights, sampled h_new and unaffected receivers are preserved.
+Checks not run / failures / blockers: No failures/blockers. Existing ignored
+  weight-printing probe unrun; Python/standalone CLI smoke not repeated for
+  this test-only change. M2-03 onward Monte Carlo work remains queued.
+Configuration and suite hashes: Deterministic explicit fixture; no RNG
+  draws or seed namespace consumed. Parameters/epsilons and source hashes
+  saved in docs/evidence/m2-02/summary.md.
+Artifact paths: tests/score_log_probability.rs; docs/evidence/m2-02/summary.md.
+Interpretation and claim limits: Conditional derivative only; M2-GATE open,
+  no online-learning or convergence claim and no scientific deviation.
+Tracker boxes updated: M2-02 checked.
+Next eligible task: M2-03.
+```
+
+```text
+Date / agent or session: 2026-09-21 UTC / Codex M2-03 continuation
+Task IDs: M2-03
+Spec sections: 7.2, 7.6, 16/M2, 17.5
+Change and affected files: tests/score_learning_direction.rs; predeclared
+  plan, result.json and summary under docs/evidence/m2-03/; README, handoff,
+  experiments and tracker. No production, dependency or spec changes.
+Code revision / dirty-tree state: base 9d31b9d (m2-01 done), with prior
+  M2-02 changes preserved; M2-03 changes uncommitted. Result records source
+  SHA-256s, actual dirty status, toolchain and linux/x86_64 platform.
+Commands actually executed:
+  cargo fmt --all
+  cargo test --locked --test score_learning_direction (3 pass, 1 ignored)
+  cargo fmt --all -- --check (clean)
+  cargo clippy --all-targets --locked -- -D warnings (clean)
+  cargo test --all-targets --locked (199 pass, 0 fail, 2 default ignores)
+  CRA_M2_DIRECTION_EVIDENCE=docs/evidence/m2-03/result.json cargo test
+    --release --locked --test score_learning_direction
+    one_neuron_learning_direction -- --ignored --exact --nocapture
+    (1 pass, 0 fail; 0.07s reported test time, 7.24s compilation)
+Outcome: One million samples, positive mean 0.13871680603781847 versus
+  analytic 0.1388622064964956; SE 0.00010644926671077609. Error
+  0.0001454004586771418 < five-SE-plus-1e-12 tolerance
+  0.0005322463345538805. Paired opposite-target mean exactly negated,
+  with same SE. First execution passed; no reseeding/tolerance changes.
+  Fast tests check Welford variance/SE against hand values, constant terms,
+  forced reward/score cases and the spec's analytical approximation.
+Checks not run / failures / blockers: None blocking. Expensive diagnostic
+  is ignored by default and was explicitly run above. Existing ignored
+  weight-printing probe unrun. Python and standalone CLI smoke not rerun
+  for this test-only change. M2-04 onward remain incomplete.
+Configuration and suite hashes: alpha=.2, input=.7, weight=.3, sigma=.4,
+  baseline=.5; development/root1/outer203/lifetime0/actor_noise. Existing
+  NormalStream retains paired spare across independent samples. Full seed,
+  SHA-256 identities, counts, statistics and pass flags in result.json.
+Artifact paths: docs/evidence/m2-03/{plan,summary}.md and result.json;
+  tests/score_learning_direction.rs. Export rejects existing file paths.
+Interpretation and claim limits: One-transition direction diagnostic, no
+  online updates or convergence claim. M2-GATE open; no scientific deviation.
+Tracker boxes updated: M2-03 checked.
+Next eligible task: M2-04.
+```
+
 ## Blockers and decision register - keep current
 
 No blockers. M1-GATE re-verified after the 2026-09-21 UTC owner-requested
 corrective review: 185 Rust passes (1 ignored probe), 15 Python passes,
 clean fmt/Clippy, eleven corrected audited runs and two original comparisons.
-M2-01 now verified: eight score tests, 193 Rust passes overall (one existing
-ignored probe), clean fmt/Clippy. Next: M2-02; M2-GATE remains open.
+M2-01–M2-03 verified: score/derivative tests and million-sample one-neuron
+direction diagnostic pass; 199 fast Rust passes, two default ignores (the
+separately passed diagnostic and existing probe), clean fmt/Clippy.
+Next: M2-04; M2-GATE remains open.
 M1 findings, corrections and claim limits: `docs/m1-review.md`.
 M0 historical evidence remains in `docs/m0-review.md`.
 Scientific decisions remain in the append-only `docs/decisions.md`.

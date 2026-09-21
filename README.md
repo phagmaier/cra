@@ -7,7 +7,8 @@ feedback?
 
 Status: **M0 complete and re-verified; M1 complete and re-verified (continuous
 nonplastic actor demo, bitwise replay on linux/x86_64 — explicitly not
-learning); M2-01 pure conditional score complete; next task M2-02.** The simulator core exists as a library
+learning); M2-01–M2-03 score and one-transition diagnostics complete;
+next task M2-04.** The simulator core exists as a library
 (`src/environment/`, `src/agent/` nonplastic dynamics plus `B3`
 harness, `src/checkpoint.rs`, `src/logging/`) with deterministic
 fixtures, randomized checks, baseline/actor runners, replay proofs, and
@@ -24,7 +25,7 @@ records checkpoint/diagnostic fixes and fresh measured evidence.
 
 Start with [AGENTS.md](AGENTS.md), the [current tracker](to-do.md), and
 the [agent continuation guide](docs/handoff.md). The guide maps existing
-code/tests to M2-02 and records the integration limits to preserve.
+code/tests to M2-04 and records the integration limits to preserve.
 
 | Document | Responsibility |
 | --- | --- |
@@ -73,8 +74,34 @@ M2-01 adds eight deterministic score-contract tests, callable with
 tests passing**, one existing ignored weight-printing probe, and clean
 fmt/Clippy. The pure function in `src/agent/score.rs` validates finite inputs
 and positive noise, then computes the per-edge conditional Gaussian score.
-Finite-difference and Monte Carlo diagnostics remain queued in M2; this is
-not a completed M2 gate or evidence of learning.
+M2-02 checks the fixed-sample conditional derivative at four epsilon values
+across six leak/noise settings (288 comparisons), with a moving-sample
+negative control. Run it with:
+
+```bash
+cargo test --locked --test score_log_probability -- --nocapture
+```
+
+Its [saved evidence](docs/evidence/m2-02/summary.md) records three new tests,
+**196 Rust tests passing** overall, one existing ignored probe, and clean
+fmt/Clippy.
+
+M2-03 adds the bounded one-neuron learning-direction diagnostic. Its
+[predeclared plan and results](docs/evidence/m2-03/summary.md) record one
+million development samples: mean 0.1387168, SE 0.00010645, analytical
+derivative 0.1388622; the opposite target negates the estimate. Both pass
+the declared five-SE tolerance. Run explicitly (it is ignored by default):
+
+```bash
+cargo test --release --locked --test score_learning_direction one_neuron_learning_direction -- --ignored --exact --nocapture
+```
+
+To save immutable JSON, set `CRA_M2_DIRECTION_EVIDENCE` to a fresh file in
+an existing directory; existing files are rejected. M2-03 verification:
+**199 fast Rust tests passed**, two default ignores (this separately passed
+diagnostic and the existing weight-printing probe), clean fmt/Clippy.
+The recurrent finite-rollout diagnostic remains queued. M2-GATE is open;
+these checks are not evidence of online learning or convergence.
 
 To save the bounded observability tests' measured diagnostics, choose a fresh
 output directory (existing evidence files are never overwritten):
