@@ -731,6 +731,33 @@ impl PlasticState {
         })
     }
 
+    /// Explicitly diagnostic trace reset between episodic rollouts
+    /// (M3-04; spec 7.7, 16/M3).
+    ///
+    /// Zeros every `E` entry, preserving `P`, the running baseline,
+    /// exactly-once bookkeeping, the bound, masks, and the effective cache
+    /// (the cache is unchanged because `P` is unchanged, so no refresh is
+    /// needed). Only the `no_decay_diagnostic` policy may use this entry
+    /// point: the persistent continuous rule never resets traces
+    /// mid-lifetime, and a call under any other policy is an explicit
+    /// error. The episodic runner (M3-04) calls this once per rollout
+    /// boundary and logs the reset tick; M4 owns the fully persistent
+    /// condition without this call.
+    pub fn reset_traces_episodic_diagnostic(&mut self) -> Result<(), PlasticityError> {
+        if !matches!(self.trace_policy, TracePolicy::NoDecayDiagnostic) {
+            return Err(PlasticityError::InvalidParams(format!(
+                "reset_traces_episodic_diagnostic requires trace_policy 'no_decay_diagnostic'; found '{}'",
+                self.trace_policy.name()
+            )));
+        }
+        for row in &mut self.e {
+            for cell in row.iter_mut() {
+                *cell = 0.0;
+            }
+        }
+        Ok(())
+    }
+
     /// Versioned snapshot for checkpoint embedding (M3-10/M4-06). The
     /// effective cache is not stored: restore recomputes it through the
     /// single refresh location from the supplied `w0`. The running baseline

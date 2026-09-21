@@ -1,7 +1,8 @@
 # Agent continuation guide
 
-Updated 2026-09-21 UTC after owner-requested M3 preflight hardening at base
-`9fe089b`. The worktree was clean at session start; check Git and the tracker
+Updated 2026-09-21 UTC after M3-05 matched controls at base `4ad7aaa`
+(with M3-04 still uncommitted).
+The worktree was clean at session start; check Git and the tracker
 for newer work before claiming.
 
 ## Start here
@@ -19,9 +20,31 @@ for newer work before claiming.
 ## Current position and evidence
 
 **M0-GATE passed and was re-verified. M1-GATE and M2-GATE passed. M3-01
-through M3-03 plus M3-PREFLIGHT verified 2026-09-21 UTC. Next task: M3-04.**
+through M3-05 verified 2026-09-21 UTC. Next task: M3-06.**
 There is no outstanding milestone blocker. The claim track remains `family_only`.
 No reserved final-test outcomes have been inspected.
+
+M3-05 adds the matched control family (`run_episodic_no_learning`,
+`run_episodic_shuffled`, `run_episodic_conditions`): B3/B4/shuffled share
+one profile, schedule, inheritance, and streams, differing only in declared
+mechanism flags; the shuffle protocol is an independent fair coin on a
+dedicated public-seed stream with observed/applied rewards recorded
+separately. Full checks: **265 fast Rust tests passed** (5 new),
+three default ignores, two compile-fail doc checks, 17 Python audit tests,
+clean fmt/Clippy. Machinery only — no grid, criterion, or acquisition
+claim. Commands, hashes, and limits:
+[M3-05 evidence](evidence/m3-05/summary.md).
+
+M3-04 adds the explicitly episodic clean-learning runner
+(`experiments::episodic`, `configs/episodic_stationary.toml`): fixed-gate
+learner with agent-only construction, one coupled eligibility update per
+transition, pre-transition terminal updates, `no_decay_diagnostic` traces,
+and logged per-rollout resets. Full checks: **260 fast Rust tests passed**
+(10 new integration + 1 unit guard), three default ignores, two
+compile-fail doc checks, 17 Python audit tests, clean fmt/Clippy.
+`simulate` still rejects the profile on both rungs. No acquisition or
+continuous claim. Commands, hashes, and limits:
+[M3-04 evidence](evidence/m3-04/summary.md).
 
 M3-PREFLIGHT separates hidden stable/volatile membership onto the dedicated
 `cue_membership` stream while preserving actor `init` and every other stream
@@ -156,32 +179,34 @@ is available for a quick audit. Reproduce missing raw runs using the saved
 commands/configs into new directories; preserve historical evidence paths
 and distinguish reruns from the original execution.
 
-## Next task: M3-04
+## Next task: M3-06
 
-**Deliver:** create the explicitly episodic clean-learning runner. Use two
-unknown cue-action mappings, zero noise, no reversals or blank gap, short
-delay, reset state/traces between diagnostic rollouts, no trace decay, and
-one terminal update. Name this profile `episodic_stationary`, separate from
-continuous `debug_stationary`.
+**Deliver:** the development grid and acquisition criterion. Specify a small
+grid over eta, input scale, recurrent gain, and sigma using development
+seeds only. Declare number of seeds, sample lengths, acquisition windows,
+and the learning-vs-control criterion before results.
 
-Read spec Sections 5, 7.6–7.7, 9–10, 16/M3, 19.2, plus the
+Read spec Sections 14, 16/M3, plus the
 [M3 task queue](../to-do.md#m3---make-an-ungated-local-learner-learn-a-clean-task).
-Inspect `src/agent/plasticity.rs` (`apply_feedback_once`, M3-02),
-`src/experiments/finite_rollout.rs` (fixed-baseline diagnostic precedent),
-`src/config.rs` (reset/trace validation), and the M3-02/M3-03 tests.
+Inspect `src/experiments/episodic.rs` (`run_episodic_conditions`: matched
+B3/B4/shuffled with shared inheritance, `condition_id`/`learning_enabled`/
+`reward_protocol` flags, observed/applied separation) and
+`tests/episodic_controls.rs` (pairing, first-action parity, `P`-movement,
+protocol fidelity).
 
-- Configuration and logs must visibly identify diagnostic resets. Every
-  rollout respects the terminal-credit contract. Do not present this run as
-  the main continuous result.
+- Treat the spec's example final-200-choice median accuracy >0.8 in a
+  2,000-choice run as a proposed debugging target, not a guaranteed
+  benchmark or automatically fixed final-study threshold. Log tuning budget
+  and every outcome.
 - Checkpoint embedding/replay with nonzero `P`/`E` is M3-10/M4-06. Keep the
   M1 checkpoint schema at 2 until then and reject incompatible state rather
   than defaulting it.
 - Main `simulate` guards still reject enabled learning. Do not enable a
   nominal learner before the ordered implementation and empirical tasks.
 
-M2-GATE passed only the restricted score diagnostics. Acquisition and
-continuous learning remain unverified; M3/M4 need their own measured gates.
-M3-01 through M3-03 verified arithmetic/fixture only.
+M2-GATE passed only the restricted score diagnostics. M3-04/M3-05 verified
+runner and control infrastructure only; acquisition and continuous learning
+remain unverified and need their own measured gates.
 
 ## Implementation map
 
@@ -206,6 +231,8 @@ M3-01 through M3-03 verified arithmetic/fixture only.
 | Plastic offsets/eligibility/masks (M3-01) | `src/agent/plasticity.rs` | `tests/plasticity.rs`; `P`/`E` separate from `W0`, both masks, `persistent` vs `no_decay_diagnostic`, single `refresh_effective` writer, versioned `PlasticSnapshot` validation (now schema 3 with bound compatibility) |
 | Exactly-once feedback/baseline (M3-02) | `src/agent/plasticity.rs` (`apply_feedback_once`, `FeedbackUpdateParams`, `FeedbackOutcome`) | `tests/feedback_updates.rs`; old-baseline `delta`, ordered clamps with separated reports, monotonic dedup, zero-change cases, `W0` invariance, named update parameters |
 | Golden update fixture (M3-03) | `tests/golden_updates.rs` (fixture only) | spec 17.3 chain at `1e-12`–`1e-15` plus separate clipped cases; no production change |
+| Episodic diagnostic runner (M3-04) | `src/experiments/episodic.rs`, `configs/episodic_stationary.toml` | `tests/episodic_runner.rs`; agent-only fixed-gate learner, `no_decay_diagnostic` traces, one terminal update per one-choice rollout, logged resets, guard separation, ordering/RNG regression |
+| Matched controls (M3-05) | `src/experiments/episodic.rs` (`run_episodic_no_learning`, `run_episodic_shuffled`, `run_episodic_conditions`), `src/agent/no_learning.rs` (diagnostic reset) | `tests/episodic_controls.rs`; shared W0/schedule/resets, first-action parity, P-movement plus behavior, re-derived shuffle protocol, observed/applied separation |
 | Effective-weight actor path (M3-01) | `src/agent/actor.rs` (`step_with_effective_weights`, `step_with_effective_and_perturbations`) | `tests/plasticity.rs`; shared `W0` core, `P = 0` bitwise parity, missing/nonfinite rejection, `B`/bias read from inherited parameters |
 | Adaptation at strength 0 (M1-05) | `src/agent/actor.rs` (verified) | `tests/adaptation.rs`; inertness, sign, persistence, config pin |
 | Motor readout (M1-06) | `src/agent/motor.rs` | `tests/motor.rs`; golden filters, new-q commitment, tie-only draws |
@@ -222,15 +249,15 @@ M3-01 through M3-03 verified arithmetic/fixture only.
 
 | Topic | Current implementation | Next responsibility |
 | --- | --- | --- |
-| Tick API | `Lifetime::advance` builds a tick and advances the environment before returning. The ordinary runner still dispatches feedback before the agent transition, but this is not the literal Section 9 finish-last API. | Preserve complete-tick checkpoint splits and current causal behavior in M3-04. M4-01 owns the observe/apply/advance/commit/log/finish split and exact learning-sensitive tick-20/delay-3 fixture. |
-| Agent feedback | Ordinary runners call `apply_feedback` once before `advance(features)`; B3 dedups without learning; selection reads policy state only. M3-01 eligibility is transition-ordered and M3-02 `apply_feedback_once` is unit-level, both currently only reachable from tests; no runner calls them. | M3-04 wires the episodic runner around the M3-02 entry point; M4-01 fixes the authoritative apply-before-advance runner order. Keep the information boundary for gates (M6). `TickOutput` belongs to the driver/evaluator. |
-| Effective weights | `PlasticState::refresh_effective` is the single `W0 + P` cache writer. `step_with_effective_weights` reads it; no runner uses it yet and `P` changes only through `apply_feedback_once` or validated restore. | M3-10/M4-06 embed `PlasticSnapshot` (schema 3) in checkpoint schema and prove split replay with nonzero `P`/`E`/baseline/dedup/bound. |
-| Warmup | Replaces the first quiet interval; zero starts directly at cue presentation. | Preserve the documented M0 convention; use measured ticks for budgets. An additive-warmup change needs an explicit decision and new evidence. |
+| Tick API | `Lifetime::advance` builds a tick and advances the environment before returning. The ordinary and episodic runners dispatch feedback before the agent transition, but this is not the literal Section 9 finish-last API. | Preserve complete-tick checkpoint splits and current causal behavior. M4-01 owns the observe/apply/advance/commit/log/finish split and exact learning-sensitive tick-20/delay-3 fixture. |
+| Agent feedback | Ordinary runners call `apply_feedback` once before `advance(features)`; B3 dedups without learning; selection reads policy state only. The M3-04 episodic runner wires `apply_feedback_once` (fixed gate 1) around the same ordering with one coupled eligibility update per transition and logged resets. | M4-01 fixes the authoritative apply-before-advance runner order for the continuous condition. Keep the information boundary for gates (M6). `TickOutput` belongs to the driver/evaluator. |
+| Effective weights | `PlasticState::refresh_effective` is the single `W0 + P` cache writer. `step_with_effective_weights` reads it; the episodic runner is its first production caller and `P` changes only through `apply_feedback_once` or validated restore. | M3-10/M4-06 embed `PlasticSnapshot` (schema 3) in checkpoint schema and prove split replay with nonzero `P`/`E`/baseline/dedup/bound. |
+| Warmup | Replaces the first quiet interval; zero starts directly at cue presentation. `episodic_stationary` uses warmup 0. | Preserve the documented M0 convention; use measured ticks for budgets. An additive-warmup change needs an explicit decision and new evidence. |
 | Noise/hazard assignment | Stable membership is shuffled from dedicated `cue_membership`; noise rates cycle by cue index. | M5-02 owns factorial counterbalancing; current assignment is not a completed training-distribution implementation. |
-| Agent construction boundary | Existing B3 construction still receives broad config/master seed coordinates, although it uses only actor-safe values. | M3-04 must give the learner agent-only configuration, inherited parameters, and dedicated RNGs rather than copying that broad constructor capability. |
-| Event identity | IDs/choice indices restart per lifetime. Ordinary records carry lifetime identity; hidden rows align within contiguous lifetime blocks. | Checkpoint resume preserves exactly-once delivery (pending plus consumed/confirmed ledgers round-trip); M1-10 records the tolerance policy. A bare event ID is not a cross-lifetime join key. |
-| Logging | `event_log=false` omits event streams; audit coverage then stops at provenance/completion. Actor/health reads draw nothing (M1-07/M1-08 logging invariance). | Extend Rust validation, Python audit, fixtures, and versioning together when adding quantities (health and checkpoint schemas are 2; ordinary events remain 1). |
-| Execution guards | M0 still rejects neural/search sections for baselines; M1-07 adds `validate_actor_no_learning_execution` (actor required, learning disabled/absent, modulator absent/fixed, evolution disabled/absent). | Enable plasticity (M3), gates (M6), and search (M7) with their implementations/tests; never bypass guards to make a future config appear runnable. |
+| Agent construction boundary | Existing B3 construction still receives broad config/master seed coordinates, although it uses only actor-safe values. The M3-04 learner uses agent-only inputs (`Actor`/`Learning`, inherited params, cue count, dedicated RNGs). | Keep the narrow episodic constructor; do not regress it to broad-config construction in M3-05 controls. |
+| Event identity | IDs/choice indices restart per lifetime. Ordinary records carry lifetime identity; hidden rows align within contiguous lifetime blocks. Episodic rollouts reuse the same per-lifetime IDs with an added `rollout_index` (one choice per rollout). | Checkpoint resume preserves exactly-once delivery (pending plus consumed/confirmed ledgers round-trip); M1-10 records the tolerance policy. A bare event ID is not a cross-lifetime join key. |
+| Logging | `event_log=false` omits event streams; audit coverage then stops at provenance/completion. Actor/health reads draw nothing (M1-07/M1-08 logging invariance). Episodic summaries carry mode/policies/resets plus consumed raw/limited/actual reports. | Extend Rust validation, Python audit, fixtures, and versioning together when adding quantities (health and checkpoint schemas are 2; ordinary events remain 1). |
+| Execution guards | M0 still rejects neural/search sections for baselines; M1-07 adds `validate_actor_no_learning_execution` (actor required, learning disabled/absent, modulator absent/fixed, evolution disabled/absent). M3-04 adds `validate_episodic_execution` (clean task, `episodic_diagnostic` + `no_decay_diagnostic`, enabled learning, fixed gates). | Enable remaining plasticity controls (M3-05), gates (M6), and search (M7) with their implementations/tests; never bypass guards to make a future config appear runnable. |
 | Performance | Tick observations allocate; run logs are buffered. Simulation is serial. | Measure before scaling. M1 preallocates actor buffers; broader profiling/budget work remains in its queued milestones. |
 
 The [decision log](decisions.md) preserves the rationale and superseding

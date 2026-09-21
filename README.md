@@ -12,13 +12,19 @@ learning); M2-GATE passed (restricted score diagnostics); M3-01 implemented
 implemented (exactly-once gated `P` updates, running baseline, separated
 raw/limited/actual reports — unit level, no runner yet); M3-03 implemented
 (Section 17.3 golden fixture, fixture-only); M3 preflight hardening verified;
-next task M3-04.**
+M3-04 implemented (explicitly episodic clean-learning diagnostic runner,
+fixed-gate learner with logged rollout resets — not the continuous result);
+M3-05 implemented (matched B3/B4/shuffled-reward controls with recorded
+corruption protocol — machinery only, no acquisition claim);
+next task M3-06.**
 The simulator core exists as
 a library
 (`src/environment/`, `src/agent/` nonplastic dynamics plus `B3`
-harness, `src/checkpoint.rs`, `src/logging/`) with deterministic
+harness, `src/checkpoint.rs`, `src/logging/`, `src/experiments/episodic.rs`
+diagnostic runner) with deterministic
 fixtures, randomized checks, baseline/actor runners, replay proofs, and
-an offline log audit. Lifetime plastic state plus the feedback update now
+an offline log audit. Lifetime plastic state, the feedback update, and the
+episodic diagnostic runner now
 exist but no gating, evolution, or comparison
 pipeline is wired into a runner yet. Anything listed under "Planned" is a
 target from spec Section 18 / `to-do.md`, not working code.
@@ -210,8 +216,45 @@ cargo test --locked --test golden_updates
 
 Its [evidence record](docs/evidence/m3-03/summary.md) documents 4 new
 tests, **247 fast Rust tests passed**, three default ignores, two
-compile-fail doc checks, and clean fmt/Clippy. **M3-04 is next.** This
+compile-fail doc checks, and clean fmt/Clippy. This
 fixture proves arithmetic, not acquisition.
+
+M3-04 adds `src/experiments/episodic.rs` plus `configs/episodic_stationary.toml`:
+an explicitly episodic clean-learning diagnostic (2 cues, zero noise/hazard,
+no gap, delay 1, `episodic_diagnostic` resets with `no_decay_diagnostic`
+traces, fixed gate 1, one terminal update per one-choice rollout). The
+learner is built from agent-only inputs and the driver logs reset ticks,
+mode, policies, and every raw/limited/actual update report.
+
+```bash
+cargo test --locked --test episodic_runner
+cargo run --locked -- validate-config configs/episodic_stationary.toml
+```
+
+Its [evidence record](docs/evidence/m3-04/summary.md) documents 10 new
+integration tests plus 1 unit guard test, **260 fast Rust tests passed**,
+three default ignores, two compile-fail doc checks, 17 Python audit tests,
+and clean fmt/Clippy. `simulate` still rejects this profile on both the
+baseline and B3 rungs (it requires `birth_only`), so the diagnostic cannot
+masquerade as the continuous result. No acquisition or
+continuous-learning claim exists yet.
+
+M3-05 adds the matched control family in `src/experiments/episodic.rs`:
+`run_episodic_no_learning` (B3: same schedule/inheritance/streams/resets,
+no plastic state by construction), `run_episodic_shuffled` (B4 learner with
+the recorded independent-fair-coin corruption on a dedicated public-seed
+stream; observed rewards kept separately), and `run_episodic_conditions`
+(all three paired by construction).
+
+```bash
+cargo test --locked --test episodic_controls
+```
+
+Its [evidence record](docs/evidence/m3-05/summary.md) documents 5 new
+tests, **265 fast Rust tests passed**, three default ignores, two
+compile-fail doc checks, 17 Python audit tests, and clean fmt/Clippy.
+Control machinery only — the grid, criterion, and several-seed comparison
+are M3-06/M3-07. **M3-06 is next.**
 
 The owner-requested [M3 preflight hardening](docs/evidence/m3-preflight/summary.md)
 separates hidden cue-role RNG from actor initialization, replaces positional
@@ -343,10 +386,14 @@ runner), `agent/health.rs` (M1-08 read-only watchdog, summaries, stable
 traces), `checkpoint.rs` (M1-09 versioned lifetime files, config hash,
 checksum, atomic writes), `experiments/baseline.rs` (B0/B1/B3/O1 harness),
 `experiments/finite_rollout.rs` (M2-04 fixed-weight, no-decay diagnostic),
+`experiments/episodic.rs` (M3-04 fixed-gate episodic diagnostic runner with
+logged rollout resets),
 `logging/` (event records + validation), `run.rs` (provenance + simulation
 runner), and thin `main.rs`.
 `configs/` holds `env_smoke.toml` (M0 smoke), `debug_stationary.toml`
-(spec 19.2 reference + seeds), and `actor_no_learning.toml` (M1 B3 demo:
+(spec 19.2 reference + seeds), `episodic_stationary.toml` (M3-04 diagnostic:
+clean task with `episodic_diagnostic` resets and `no_decay_diagnostic`
+traces — library-only, rejected by `simulate`), and `actor_no_learning.toml` (M1 B3 demo:
 env-smoke timing plus the debug actor section, no
 learning/modulator/evolution). `manifests/` reserves disjoint seed ranges
 per namespace. `analysis/` holds the stdlib-only log audit plus fixtures.

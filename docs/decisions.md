@@ -821,3 +821,70 @@ make code or a result look successful.**
   were never top-level runnable checkpoints and are now explicitly
   incompatible. Golden update values, actor dynamics, and environment tick
   ordering are unchanged. Verification: [M3 preflight evidence](evidence/m3-preflight/summary.md).
+
+## 2026-09-21 UTC — M3-04 episodic clean-learning runner (spec 5, 7.6-7.7, 9-10, 16/M3, 19.2)
+
+- **Rollout equals one choice cycle with logged resets.** Rollout 0 starts at
+  tick 0; each later rollout starts the tick after the previous feedback.
+  Each rollout starts with `h = a = q = E = 0` and preserves `P`, the running
+  baseline, dedup, tick count, and RNG positions. Post-feedback-tick scores
+  are discarded by the next reset, so each terminal update uses only its own
+  rollout's `lambda = 1` accumulation. No reset follows the final feedback.
+  Affected spec sections: 7.6-7.7 (diagnostic resets, no decay, terminal
+  update), 9 (apply-before-advance, exactly once), 10.4 (birth state).
+- **Trace reset is a diagnostic-only entry point.** `PlasticState` gains
+  `reset_traces_episodic_diagnostic`, which requires the
+  `no_decay_diagnostic` policy and rejects `persistent`. The episodic learner
+  couples exactly one `advance_eligibility` call to each actor transition and
+  consumes every raw/limited/actual report into its summary.
+- **Agent-only construction.** `EpisodicLearner::from_agent_parts` takes the
+  `[actor]`/`[learning]` sections, inherited params, cue count, and two
+  dedicated RNGs only. The driver samples inheritance from the outer-seed
+  `init` tuple (pairing masks by construction) and derives per-lifetime
+  `actor_noise`/`tie_break`; it never passes hidden state, schedules, or
+  master seeds into the learner. Fixed gate 1; modulator stays `fixed`.
+- **Config separation is machine-checked.** `validate_environment_execution`
+  allows named diagnostic resets (the env schedule is unchanged); baseline
+  and B3 guards now explicitly require `birth_only`, and
+  `validate_episodic_execution` enforces the clean task (2 cues, zero
+  noise/hazard, no gap, delay `[1, 1]`, `episodic_diagnostic` +
+  `no_decay_diagnostic`, enabled learning, fixed gates, disabled search).
+  `simulate` therefore rejects `episodic_stationary` on both rungs, and the
+  summary carries mode/policies/profile/resets so the diagnostic cannot be
+  cited as continuous. Checkpoint schema stays 2; embedding is M3-10/M4-06.
+  Verification: [M3-04 evidence](evidence/m3-04/summary.md).
+
+## 2026-09-21 UTC — M3-05 matched no-update and shuffled-reward controls (spec 13.1, 16/M3, 17.8)
+
+- **One shared inheritance, three mechanisms.** `sample_matched_inheritance`
+  samples once from the outer-seed `init` tuple; B3, B4, and shuffled all
+  build agent-only from it with the same per-lifetime `actor_noise`/
+  `tie_break` draws and the same `Lifetime` schedule and rollout resets.
+  Summaries prove the pairing (`W0`, init record, cue order, reset ticks
+  identical) and name the only declared differences (`condition_id`,
+  `learning_enabled`, `reward_protocol`). Affected spec sections: 13.1 (B3
+  negative control, B4 always-on plasticity), 13.5 (matched topology,
+  weights, inputs, noise, duration), 16/M3 (controls before acquisition
+  claims).
+- **B3 owns no plastic state.** `NoLearningActor` gains the public
+  diagnostic-only `reset_state_episodic_diagnostic` (zeros `h`/`a`/`q`/
+  readout; preserves `W0`, dedup, ticks, RNGs). Its summary type has no
+  `P`/`E`/baseline/update fields, so the absence is structural rather than
+  a dropped log. First-rollout actions match B4 exactly (`P = 0` plus paired
+  draws on both sides), isolating later divergence to acquired offsets.
+- **Shuffle corrupts the signal, never the record.** `IndependentFairCoin`
+  draws each applied reward iid Bernoulli(0.5) from the dedicated
+  `shuffle_reward` stream (public seed tuple only — no hidden mapping,
+  correctness, noise, or hazard). `choice.reward` keeps the observed
+  environment outcome; `choice.applied_reward` drives the `P` update and the
+  running baseline, and `update.reward` equals the applied value. Tests
+  re-derive the exact coin sequence without hidden state, proving both
+  protocol fidelity and the information boundary. The expected finding is
+  weight movement without systematic latent gain; an improvement here would
+  indicate leakage, not learning.
+- **Behavior and `P` together.** B4 and shuffled must show real final-`P`
+  movement with consumed per-event raw/limited/actual reports and exact
+  `W0 + P` effectiveness; reward alone never passes. The focused 4-outcome
+  runs verify machinery, not acquisition — the grid, criterion, and
+  several-seed comparison are M3-06/M3-07. Verification:
+  [M3-05 evidence](evidence/m3-05/summary.md).

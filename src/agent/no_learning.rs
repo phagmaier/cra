@@ -285,6 +285,26 @@ impl NoLearningActor {
         self.last_feedback
     }
 
+    /// Explicitly diagnostic reset at an episodic rollout boundary (M3-05).
+    ///
+    /// Zeros actor membranes/adaptation (`h = a = 0` with fresh `r`/`xi`),
+    /// motor filters (`q = 0`), and the readout (`[0, 0]`), mirroring the
+    /// plastic learner's [`crate::experiments::episodic::EpisodicLearner`]
+    /// reset minus the eligibility term this actor does not own. Preserves
+    /// `W0`, feedback-dedup bookkeeping, tick count, and both RNG positions,
+    /// so the B3 control differs from B4 only by the absent plasticity
+    /// mechanism. The episodic driver logs the reset tick.
+    pub fn reset_state_episodic_diagnostic(&mut self) -> Result<(), NoLearningError> {
+        let n = self.actor_cfg.neuron_count;
+        self.state = ActorState::new(n).map_err(NoLearningError::Actor)?;
+        self.motor = MotorState::new();
+        self.last_output = MotorOutput {
+            action_0: 0.0,
+            action_1: 0.0,
+        };
+        Ok(())
+    }
+
     /// Read-only numerical health of the current state: finiteness plus
     /// the conservative finite watchdog from [`crate::agent::health`].
     /// Borrows immutably, draws no randomness, mutates nothing — diagnostic

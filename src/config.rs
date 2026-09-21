@@ -371,6 +371,13 @@ pub fn validate(cfg: &Config) -> Result<(), ConfigError> {
 
 /// Validate the environment modes actually implemented by the tick driver.
 /// Parsing a future profile does not authorize silently substituting a mode.
+///
+/// The tick driver (`Lifetime`) is identical for `birth_only` and the
+/// explicitly named diagnostic reset policies: the reset policy governs
+/// agent-side state/trace resets (M3-04/M4), never the exogenous
+/// cue/change/noise/timing schedule. Baseline and no-learning guards below
+/// still require `birth_only` explicitly so a diagnostic config cannot run
+/// as an M0/M1 condition.
 pub fn validate_environment_execution(cfg: &Config) -> Result<(), ConfigError> {
     validate(cfg)?;
     if matches!(
@@ -382,10 +389,11 @@ pub fn validate_environment_execution(cfg: &Config) -> Result<(), ConfigError> {
             cfg.environment.kind
         )));
     }
-    if cfg.simulation.reset_policy != "birth_only" {
-        return Err(ConfigError::UnsupportedExecution(
-            "M0 supports only birth_only lifetimes".to_owned(),
-        ));
+    if !SUPPORTED_RESET_POLICIES.contains(&cfg.simulation.reset_policy.as_str()) {
+        return Err(ConfigError::UnsupportedExecution(format!(
+            "unknown reset_policy '{}'",
+            cfg.simulation.reset_policy
+        )));
     }
     Ok(())
 }
@@ -393,6 +401,12 @@ pub fn validate_environment_execution(cfg: &Config) -> Result<(), ConfigError> {
 /// Baseline simulation must not pretend to execute neural/search sections.
 pub fn validate_baseline_execution(cfg: &Config) -> Result<(), ConfigError> {
     validate_environment_execution(cfg)?;
+    if cfg.simulation.reset_policy != "birth_only" {
+        return Err(ConfigError::UnsupportedExecution(format!(
+            "baseline execution requires reset_policy 'birth_only'; found '{}' (diagnostic resets arrive in M3-04/M4)",
+            cfg.simulation.reset_policy
+        )));
+    }
     if cfg.actor.is_some()
         || cfg.learning.is_some()
         || cfg.modulator.is_some()
@@ -416,6 +430,12 @@ pub fn validate_baseline_execution(cfg: &Config) -> Result<(), ConfigError> {
 /// validation still applies to every present section.
 pub fn validate_actor_no_learning_execution(cfg: &Config) -> Result<(), ConfigError> {
     validate_environment_execution(cfg)?;
+    if cfg.simulation.reset_policy != "birth_only" {
+        return Err(ConfigError::UnsupportedExecution(format!(
+            "no-learning actor execution requires reset_policy 'birth_only'; found '{}' (diagnostic resets arrive in M3-04/M4)",
+            cfg.simulation.reset_policy
+        )));
+    }
     if cfg.actor.is_none() {
         return Err(ConfigError::UnsupportedExecution(
             "no-learning actor execution requires an [actor] section".to_owned(),
@@ -441,6 +461,115 @@ pub fn validate_actor_no_learning_execution(cfg: &Config) -> Result<(), ConfigEr
     {
         return Err(ConfigError::UnsupportedExecution(
             "no-learning actor execution requires evolution.enabled = false (search arrives in M7)"
+                .to_owned(),
+        ));
+    }
+    Ok(())
+}
+
+/// Explicitly episodic clean-learning execution (M3-04, B4-family diagnostic).
+///
+/// This is a deliberately episodic diagnostic, not the main continuous
+/// condition (M4 owns `birth_only` + `persistent`). It requires:
+/// - `reset_policy = "episodic_diagnostic"` with
+///   `learning.trace_policy = "no_decay_diagnostic"` (schema `validate`
+///   already rejects the reverse mismatch);
+/// - the clean task: `stationary_clean`, 2 cues, `stable_fraction = 1.0`,
+///   zero noise, zero hazard, no memory gap, delay exactly `[1, 1]`;
+/// - an `[actor]` section plus `[learning]` with `enabled = true`;
+/// - fixed gates (`[modulator]` absent or `mode = "fixed"`, gates arrive M6);
+/// - no enabled search.
+///
+/// The runner resets agent state/traces at each rollout boundary and logs
+/// the reset ticks; every rollout ends with exactly one terminal update.
+/// Baselines and the B3 runner still reject this profile (they require
+/// `birth_only`), so this config cannot masquerade as a continuous result.
+pub fn validate_episodic_execution(cfg: &Config) -> Result<(), ConfigError> {
+    validate_environment_execution(cfg)?;
+    if cfg.simulation.reset_policy != "episodic_diagnostic" {
+        return Err(ConfigError::UnsupportedExecution(format!(
+            "episodic execution requires reset_policy 'episodic_diagnostic'; found '{}'",
+            cfg.simulation.reset_policy
+        )));
+    }
+    let env = &cfg.environment;
+    if env.kind != "stationary_clean" {
+        return Err(ConfigError::UnsupportedExecution(format!(
+            "episodic execution requires environment 'stationary_clean'; found '{}'",
+            env.kind
+        )));
+    }
+    if env.cue_count != 2 {
+        return Err(ConfigError::UnsupportedExecution(format!(
+            "episodic execution requires exactly 2 cues; found {}",
+            env.cue_count
+        )));
+    }
+    if env.stable_fraction != 1.0 {
+        return Err(ConfigError::UnsupportedExecution(format!(
+            "episodic execution requires stable_fraction 1.0 (no reversals); found {}",
+            env.stable_fraction
+        )));
+    }
+    if env.feedback_noise_values != vec![0.0] {
+        return Err(ConfigError::UnsupportedExecution(format!(
+            "episodic execution requires zero feedback noise [0.0]; found {:?}",
+            env.feedback_noise_values
+        )));
+    }
+    if env.volatile_hazard_values != vec![0.0] {
+        return Err(ConfigError::UnsupportedExecution(format!(
+            "episodic execution requires zero hazard [0.0]; found {:?}",
+            env.volatile_hazard_values
+        )));
+    }
+    if env.memory_gap_ticks != [0, 0] {
+        return Err(ConfigError::UnsupportedExecution(format!(
+            "episodic execution requires no blank gap [0, 0]; found {:?}",
+            env.memory_gap_ticks
+        )));
+    }
+    if env.reward_delay_ticks != [1, 1] {
+        return Err(ConfigError::UnsupportedExecution(format!(
+            "episodic execution requires short delay [1, 1]; found {:?}",
+            env.reward_delay_ticks
+        )));
+    }
+    let actor = cfg.actor.as_ref().ok_or_else(|| {
+        ConfigError::UnsupportedExecution(
+            "episodic execution requires an [actor] section".to_owned(),
+        )
+    })?;
+    let _ = actor;
+    let learning = cfg.learning.as_ref().ok_or_else(|| {
+        ConfigError::UnsupportedExecution(
+            "episodic execution requires a [learning] section with enabled = true".to_owned(),
+        )
+    })?;
+    if !learning.enabled {
+        return Err(ConfigError::UnsupportedExecution(
+            "episodic execution requires learning.enabled = true".to_owned(),
+        ));
+    }
+    if learning.trace_policy != "no_decay_diagnostic" {
+        return Err(ConfigError::UnsupportedExecution(format!(
+            "episodic execution requires trace_policy 'no_decay_diagnostic'; found '{}'",
+            learning.trace_policy
+        )));
+    }
+    if let Some(modulator) = &cfg.modulator
+        && modulator.mode != "fixed"
+    {
+        return Err(ConfigError::UnsupportedExecution(format!(
+            "episodic execution supports only modulator mode 'fixed'; found '{}' (gates arrive in M6)",
+            modulator.mode
+        )));
+    }
+    if let Some(evolution) = &cfg.evolution
+        && evolution.enabled
+    {
+        return Err(ConfigError::UnsupportedExecution(
+            "episodic execution requires evolution.enabled = false (search arrives in M7)"
                 .to_owned(),
         ));
     }

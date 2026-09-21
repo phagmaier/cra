@@ -19,8 +19,11 @@
 //! eligibility traces, plastic masks, and the single effective-weight
 //! refresh ([`agent::plasticity`]: `P`/`E` stored separately from immutable
 //! `W0`, `persistent` versus `no_decay_diagnostic` traces, versioned
-//! snapshots).
-//! Feedback-gated updates, gating, search, and
+//! snapshots). M3-02 adds exactly-once gated `P` updates with the running
+//! baseline; M3-04 adds the explicitly episodic clean-learning diagnostic
+//! runner ([`experiments::episodic`]: fixed-gate learner with logged rollout
+//! resets, `no_decay_diagnostic` traces, one terminal update per rollout).
+//! Gates, search, and
 //! comparative analysis remain later milestones.
 
 pub mod agent;

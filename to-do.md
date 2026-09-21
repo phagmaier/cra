@@ -30,19 +30,21 @@ and [continuation guide](docs/handoff.md).
 
 | Field | Current value |
 | --- | --- |
-| Current milestone | M3 in progress; M2-GATE passed; M3-PREFLIGHT verified 2026-09-21 UTC |
+| Current milestone | M3 in progress; M2-GATE passed; M3-05 verified 2026-09-21 UTC |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M3-PREFLIGHT — owner-requested pre-integration hardening |
+| Last verified task | M3-05 — matched no-update and shuffled-reward controls |
 | Claimed task | None |
-| Next eligible task | M3-04 |
+| Next eligible task | M3-06 |
 | Current blocker | None |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | 2026-09-21 UTC M3-PREFLIGHT; docs/evidence/m3-preflight/summary.md and ledger below |
+| Last evidence record | 2026-09-21 UTC M3-05; docs/evidence/m3-05/summary.md and ledger below |
 
 ### Session ownership and handoffs
 
 | Owner/session | Task IDs | Files or interfaces owned | Status / handoff |
 | --- | --- | --- | --- |
+| opencode 2026-09-21 M3-05 | M3-05 | src/agent/no_learning.rs, src/experiments/episodic.rs, tests/episodic_controls.rs, docs/evidence/m3-05/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; 5 new tests, 265 Rust/17 Python tests pass; next M3-06 |
+| opencode 2026-09-21 M3-04 | M3-04 | configs/episodic_stationary.toml, src/config.rs, src/agent/plasticity.rs, src/experiments/episodic.rs, src/experiments/mod.rs, src/lib.rs, tests/episodic_runner.rs, docs/evidence/m3-04/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; 10 new integration + 1 unit test, 260 Rust/17 Python tests pass; next M3-05 |
 | opencode 2026-09-21 M3 preflight | M3-PREFLIGHT | src/{rng,run,checkpoint,environment/mod}.rs, src/agent/{no_learning,topology,plasticity}.rs, tests/{seed_streams,environment_contract,plasticity,feedback_updates,golden_updates}.rs, analysis/{validate_logs,test_validate_logs}.py, analysis/fixtures/valid/seed_streams.json, docs/, README.md, to-do.md | Done; hardening plus versioned provenance, 249 Rust/17 Python tests pass; next M3-04 |
 | opencode 2026-09-21 M3-03 | M3-03 | tests/golden_updates.rs, docs/evidence/m3-03/, README.md, docs/{decisions,evidence/README,handoff}.md, to-do.md | Done; 4 new tests (fixture only) and full checks pass; next M3-04 |
 | opencode 2026-09-21 M3-02 | M3-02 | src/agent/plasticity.rs, tests/feedback_updates.rs, docs/evidence/m3-02/, README.md, docs/{decisions,evidence/README,handoff}.md, to-do.md | Done; 11 new tests and full checks pass; next M3-03 |
@@ -306,13 +308,15 @@ Demonstrate learning from delayed terminal rewards in a deliberately episodic di
   - Verify: stream identities are distinct, existing update goldens remain unchanged, out-of-bound snapshots fail explicitly, and focused plus full quality checks pass. Record any deterministic fixture migration rather than silently changing expected values.
   - Evidence: `docs/evidence/m3-preflight/summary.md` (2026-09-21 UTC). Hidden cue-role membership uses dedicated `cue_membership` while actor `init` and other streams remain unchanged; `FeedbackUpdateParams` replaces positional event hyperparameters; `plastic_bound` is stored and validated by plastic snapshot schema 3. Seed-stream provenance is schema 2 with legacy schema-1 audit support. Mixed-role assignment has a recorded deterministic migration. 249 fast Rust tests and 17 Python tests pass, a fresh release smoke audits clean, and M3-03 goldens are unchanged. No learner or acquisition claim.
 
-- [ ] **M3-04 - Create the explicitly episodic clean-learning runner**
+- [x] **M3-04 - Create the explicitly episodic clean-learning runner**
   - Deliver: Use two unknown cue-action mappings, zero noise, no reversals or blank gap, short delay, reset state/traces between diagnostic rollouts, no trace decay, and one terminal update. Name this profile episodic_stationary, separate from continuous debug_stationary.
   - Verify: Configuration and logs visibly identify diagnostic resets. Every rollout respects the terminal-credit contract. Do not present this run as the main continuous result.
+  - Evidence: `docs/evidence/m3-04/summary.md` (2026-09-21 UTC). `configs/episodic_stationary.toml` (clean 2-cue task, `episodic_diagnostic` + `no_decay_diagnostic`, fixed gate 1, motor-afferent mask, 50 outcomes, warmup 0); `src/experiments/episodic.rs` agent-only learner plus one-choice-per-rollout runner with apply-before-advance, one coupled eligibility update per transition, consumed raw/limited/actual reports, and logged reset ticks/mode/policies; `PlasticState::reset_traces_episodic_diagnostic` plus `validate_episodic_execution` with baseline/B3 guard separation (`simulate` rejects the profile on both rungs). 10 new tests in `tests/episodic_runner.rs` plus 1 unit guard; 260 fast Rust tests pass, 3 default ignores, 2 compile-fail doc checks, 17 Python tests pass, clean fmt/Clippy. No acquisition or continuous claim; M3-05 controls next.
 
-- [ ] **M3-05 - Add matched no-update and shuffled-reward controls**
+- [x] **M3-05 - Add matched no-update and shuffled-reward controls**
   - Deliver: Run B3 and always-on B4 through matched actor initialization, timing, and task schedules. Define a development shuffled-reward control with its corruption protocol recorded and no hidden information fed to the actor.
   - Verify: Controls differ only in the declared mechanism; observed environment reward remains separately recorded where diagnostic teaching signals are modified. Check both behavior and actual P changes rather than inferring learning from reward alone.
+  - Evidence: `docs/evidence/m3-05/summary.md` (2026-09-21 UTC). `sample_matched_inheritance` backs all runners; `run_episodic_no_learning` (B3, no plastic state by construction) plus `NoLearningActor::reset_state_episodic_diagnostic`; `run_episodic_shuffled` with recorded `IndependentFairCoin` protocol on the dedicated public-seed `shuffle_reward` stream and observed/applied separation; `run_episodic_conditions` paired set with `condition_id`/`learning_enabled`/`reward_protocol` as the only declared differences. 5 new tests in `tests/episodic_controls.rs`; 265 fast Rust tests pass, 3 default ignores, 2 compile-fail doc checks, 17 Python tests pass, clean fmt/Clippy. Machinery only; grid/criterion/comparison are M3-06/M3-07.
 
 - [ ] **M3-06 - Declare the development grid and acquisition criterion**
   - Deliver: Specify a small grid over eta, input scale, recurrent gain, and sigma using development seeds only. Declare number of seeds, sample lengths, acquisition windows, and the learning-vs-control criterion before results.
@@ -2884,6 +2888,107 @@ Tracker boxes updated: M3-PREFLIGHT checked after verification.
 Next eligible task: M3-04.
 ```
 
+```text
+Date / agent or session: 2026-09-21 / opencode (M3-04 episodic runner)
+Task IDs: M3-04
+Spec sections: 5, 7.6-7.7, 9-10, 16/M3, 19.2
+Change and affected files: configs/episodic_stationary.toml (new clean
+  diagnostic profile); src/config.rs (diagnostic-aware environment guard,
+  birth_only enforcement in baseline/B3 guards, new validate_episodic_execution);
+  src/agent/plasticity.rs (diagnostic-only reset_traces_episodic_diagnostic);
+  src/experiments/episodic.rs (new agent-only fixed-gate learner plus
+  one-choice-per-rollout runner with logged resets and consumed update reports);
+  src/experiments/mod.rs, src/lib.rs (module wiring/docs);
+  tests/episodic_runner.rs (10 new integration tests);
+  docs/evidence/m3-04/summary.md, README.md, docs/{decisions,handoff}.md,
+  to-do.md (evidence/tracker).
+Code revision / dirty-tree state: base 4ad7aaa; worktree held only the M3-04
+  files plus to-do.md at verification (hashes in evidence summary).
+Commands actually executed:
+  cargo test --locked --test episodic_runner
+  cargo fmt --all -- --check (after cargo fmt --all)
+  cargo clippy --all-targets --locked -- -D warnings
+  cargo test --all-targets --locked
+  cargo test --locked --doc
+  python3 analysis/test_validate_logs.py
+  cargo run --locked -- validate-config configs/episodic_stationary.toml
+  cargo run --locked -- simulate --config configs/episodic_stationary.toml --baseline random --lifetimes 1
+  cargo run --locked -- simulate --config configs/episodic_stationary.toml --baseline actor --lifetimes 1
+  git diff --check
+Outcome and checks passed: 10/10 episodic_runner pass; full fast Rust suite
+  260 passed, 0 failed, 3 intentional ignores; 2 compile-fail doc checks pass;
+  17 Python audit tests pass; clean fmt/Clippy/diff check. validate-config OK;
+  both simulate rungs correctly reject the diagnostic profile (birth_only
+  separation). 50-outcome diagnostic smoke completes finite with logged resets.
+Checks not run / failures / blockers: no failures. Slow M2 Monte Carlo not
+  rerun (score math unchanged). No final-test seeds used.
+Configuration and suite hashes: SHA-256 values recorded in
+  docs/evidence/m3-04/summary.md; episodic profile is 2 cues, zero
+  noise/hazard, no gap, delay [1, 1], episodic_diagnostic/no_decay_diagnostic,
+  motor_afferent_only, 50 outcomes, warmup 0.
+Seed namespace / outer seeds / lifetime count: development root1/outer1;
+  4-outcome focused runs plus one 50-outcome smoke (lifetime 0); deterministic
+  rerun parity verified; cue schedule matches constant-action driver.
+Artifact paths and checksums where relevant:
+  docs/evidence/m3-04/summary.md.
+Interpretation and claim limits: runner infrastructure only. No
+  acquisition/control comparison (M3-05-M3-07), no continuous claim (M4), no
+  gates/search. Diagnostic resets are explicit and logged; checkpoint schema
+  stays 2.
+Tracker boxes updated: M3-04 checked after verification.
+Next eligible task: M3-05.
+```
+
+```text
+Date / agent or session: 2026-09-21 / opencode (M3-05 matched controls)
+Task IDs: M3-05
+Spec sections: 13.1, 13.5, 16/M3, 17.8
+Change and affected files: src/agent/no_learning.rs (public
+  reset_state_episodic_diagnostic); src/experiments/episodic.rs
+  (sample_matched_inheritance, run_episodic_no_learning with B3 summary
+  types, run_episodic_shuffled with ShuffleProtocol::IndependentFairCoin on
+  the dedicated shuffle_reward stream, run_episodic_conditions paired set,
+  condition_id/learning_enabled/reward_protocol plus applied_reward fields);
+  tests/episodic_controls.rs (5 new tests); docs/evidence/m3-05/summary.md,
+  README.md, docs/{decisions,handoff}.md, to-do.md (evidence/tracker).
+Code revision / dirty-tree state: base 4ad7aaa; worktree held uncommitted
+  M3-04 files plus the M3-05 files and tracker/docs edits at verification
+  (hashes in evidence summary).
+Commands actually executed:
+  cargo test --locked --test episodic_controls
+  cargo test --locked --test episodic_runner
+  cargo fmt --all -- --check (after cargo fmt --all)
+  cargo clippy --all-targets --locked -- -D warnings
+  cargo test --all-targets --locked
+  cargo test --locked --doc
+  python3 analysis/test_validate_logs.py
+  git diff --check
+Outcome and checks passed: 5/5 episodic_controls pass; 10/10
+  episodic_runner still pass; full fast Rust suite 265 passed, 0 failed,
+  3 intentional ignores; 2 compile-fail doc checks pass; 17 Python audit
+  tests pass; clean fmt/Clippy/diff check. B3/B4/shuffled share W0, init
+  record, cue order, and reset ticks; first-rollout actions match; B4 and
+  shuffled show real final-P movement with consumed reports; shuffled
+  applied signals equal the re-derived public-coin sequence with
+  observed/applied separation.
+Checks not run / failures / blockers: no failures. Slow M2 Monte Carlo not
+  rerun (score math unchanged). No final-test seeds used.
+Configuration and suite hashes: SHA-256 values recorded in
+  docs/evidence/m3-05/summary.md; episodic profile unchanged from M3-04
+  (2 cues, zero noise/hazard, no gap, delay [1, 1], motor_afferent_only).
+Seed namespace / outer seeds / lifetime count: development root1/outer1;
+  4-outcome focused control runs (lifetimes 0-2) plus one 6-outcome shuffle
+  protocol run; deterministic rerun parity verified.
+Artifact paths and checksums where relevant:
+  docs/evidence/m3-05/summary.md.
+Interpretation and claim limits: control machinery only. No development
+  grid, criterion, or several-seed learning-vs-control comparison (M3-06/
+  M3-07), no continuous claim (M4), no gates/search. Checkpoint schema
+  stays 2.
+Tracker boxes updated: M3-05 checked after verification.
+Next eligible task: M3-06.
+```
+
 ## Blockers and decision register - keep current
 
 No blockers. M1-GATE re-verified after the 2026-09-21 UTC owner-requested
@@ -2911,7 +3016,17 @@ separate; feedback parameters are named; plastic snapshot v3 enforces its
 resolved bound. Full 249-test fast suite, 2 compile-fail docs, 17 Python tests,
 and one audited release smoke pass. The
 mixed-role seed migration is recorded; no learner/acquisition claim follows.
-Next: M3-04 (explicitly episodic clean-learning runner).
+M3-04 verified 2026-09-21 UTC: explicitly episodic runner with agent-only
+fixed-gate learner, one terminal update per one-choice rollout, no-decay
+traces, and logged resets; guard separation proven by simulate rejection.
+Full 260-test fast suite, 2 compile-fail docs, 17 Python tests pass. Runner
+infrastructure only; no acquisition/continuous claim.
+M3-05 verified 2026-09-21 UTC: matched B3/B4/shuffled controls with shared
+inheritance/schedule/resets, mechanism-only differences, real P-movement
+reporting, and a privilege-free recorded shuffle protocol with
+observed/applied separation. Full 265-test fast suite, 2 compile-fail
+docs, 17 Python tests pass. Machinery only; no grid/criterion/comparison.
+Next: M3-06 (development grid and acquisition criterion).
 M1 findings, corrections and claim limits: `docs/m1-review.md`.
 M0 historical evidence remains in `docs/m0-review.md`.
 Scientific decisions remain in the append-only `docs/decisions.md`.
