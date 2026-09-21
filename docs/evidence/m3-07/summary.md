@@ -23,7 +23,10 @@ CRA_M3_SWEEP_DIR=runs/m3-sweep-fresh cargo test --release --locked \
   schedules verified per (point, outer) inside the sweep (cue orders and
   reset ticks identical across conditions or the run aborts).
 - Measured 7,343,136 ticks vs the declared 7,344,000 nominal estimate
-  (864 fewer; nominal uses maximum cycle lengths, realized quiet draws vary).
+  (864 fewer, exactly 4 per lifetime: warmup 0 starts the first rollout
+  directly at cue presentation per the documented M0 warmup convention,
+  so each lifetime skips one 4-tick quiet interval; quiet_ticks is fixed
+  at [4, 4], nothing varies).
 - Raw aggregates: `runs/m3-sweep-fresh/{seed_records.jsonl,verdict.json}`
   (git-ignored workspace copy); archived copies:
   `docs/evidence/m3-07/{seed_records.jsonl,verdict.json}` (72 records,

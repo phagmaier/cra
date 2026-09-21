@@ -1,6 +1,6 @@
 # Agent continuation guide
 
-Updated 2026-09-21 UTC after M3-08 all-recurrent comparison at base `0d20d45`.
+Updated 2026-09-21 UTC after M3-GATE (M3 complete) at base `0672538`.
 The worktree was clean at session start; check Git and the tracker
 for newer work before claiming.
 

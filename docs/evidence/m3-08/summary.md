@@ -32,9 +32,11 @@ CRA_M3_FULL_SWEEP_DIR=runs/m3-full-final cargo test --release --locked \
   schedules verified per outer seed inside the comparison (cue orders
   and reset ticks identical across B3/B4/shuffled or the run aborts).
 - Measured 305,964 ticks vs the nominal 306,000 estimate for this
-  9-lifetime subset (36 fewer; 4 per lifetime — the same systematic
-  shortfall as the M3-07 sweep, which measured 7,343,136 vs 7,344,000
-  nominal over 216 lifetimes).
+  9-lifetime subset (36 fewer, exactly 4 per lifetime: warmup 0 starts
+  the first rollout directly at cue presentation per the documented M0
+  warmup convention, so each lifetime skips one 4-tick quiet interval —
+  the same deterministic shortfall as the M3-07 sweep, which measured
+  7,343,136 vs 7,344,000 nominal over 216 lifetimes).
 - Raw aggregates: `runs/m3-full-final/{seed_records.jsonl,verdict.json}`
   (git-ignored workspace copy); archived copies:
   `docs/evidence/m3-08/{seed_records.jsonl,verdict.json}` (3 records,
