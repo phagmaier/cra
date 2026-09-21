@@ -1,0 +1,50 @@
+[
+  {
+    "command": [
+      "cargo",
+      "fmt",
+      "--all",
+      "--",
+      "--check"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.20563548500285833,
+    "output": "docs/evidence/m2-05/check-1.log"
+  },
+  {
+    "command": [
+      "cargo",
+      "clippy",
+      "--all-targets",
+      "--locked",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.225892959999328,
+    "output": "docs/evidence/m2-05/check-2.log"
+  },
+  {
+    "command": [
+      "cargo",
+      "test",
+      "--all-targets",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 3.610957660999702,
+    "output": "docs/evidence/m2-05/check-3.log"
+  },
+  {
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--doc"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.35488074000022607,
+    "output": "docs/evidence/m2-05/check-4.log"
+  }
+]

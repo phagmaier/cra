@@ -138,3 +138,27 @@ interrupted runs — missing data is not a zero score.
   the existing weight-printing probe was not. Formatting/Clippy clean.
 - One-transition numerical direction evidence only, not online learning or
   convergence. M2-GATE open; next M2-04. No final-test inspection or search.
+
+## 2026-09-21 UTC — M2-05 two-neuron recurrent finite differences
+
+- Clean base `1e6fbf2`; test/documentation work uncommitted at execution.
+  [Plan](evidence/m2-05/plan.md) fixed before the first run: six ticks,
+  two recurrent neurons, baseline zero, fixed weights/noise, exact score
+  sums, binary terminal reward, two million development trajectory groups.
+  Seed root 1/outer 205/lifetime 0/actor_noise. Three +/- perturbation pairs
+  (0.04, 0.02, 0.01) share Gaussian draws with the base trajectory.
+- First run passes without reseeding or threshold changes. Score mean
+  0.41802543, SE 0.00069159; finite differences 0.41825625, 0.42040000,
+  0.41765000. Each paired discrepancy meets five SE plus 0.0005, every
+  five-SE half-width is <=0.02, and score/FD lower bounds are positive.
+  No failed samples; 14 million rollouts / 84 million transitions in
+  15.35 seconds reported test time, serial. Epsilon checks are correlated.
+- [Result](evidence/m2-05/result.json) saves configuration, all uncertainty
+  estimates, seed/provenance/source hashes and resource counts.
+  [Summary](evidence/m2-05/summary.md) records commands, final quality logs
+  and the corrected overflow fixture used during test development.
+  Five new fast checks; 212 fast Rust tests pass, three default ignores,
+  two compile-fail docs, clean fmt/Clippy. M2-03 was not rerun this session.
+- Restricted numerical validation only; no online-learning, convergence,
+  or lifetime-gradient claim. No production/spec change or final-test data.
+  M2-05 complete; M2-06 next; M2-GATE remains open.

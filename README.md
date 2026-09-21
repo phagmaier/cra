@@ -7,8 +7,8 @@ feedback?
 
 Status: **M0 complete and re-verified; M1 complete and re-verified (continuous
 nonplastic actor demo, bitwise replay on linux/x86_64 — explicitly not
-learning); M2-01–M2-04 score diagnostics and finite-rollout harness complete;
-next task M2-05.** The simulator core exists as a library
+learning); M2-01–M2-05 score diagnostics and recurrent check complete;
+next task M2-06.** The simulator core exists as a library
 (`src/environment/`, `src/agent/` nonplastic dynamics plus `B3`
 harness, `src/checkpoint.rs`, `src/logging/`) with deterministic
 fixtures, randomized checks, baseline/actor runners, replay proofs, and
@@ -25,7 +25,7 @@ records checkpoint/diagnostic fixes and fresh measured evidence.
 
 Start with [AGENTS.md](AGENTS.md), the [current tracker](to-do.md), and
 the [agent continuation guide](docs/handoff.md). The guide maps existing
-code/tests to M2-05 and records the integration limits to preserve.
+code/tests to M2-06 and records the integration limits to preserve.
 
 | Document | Responsibility |
 | --- | --- |
@@ -113,9 +113,26 @@ cargo test --locked --doc
 Set `CRA_M2_ROLLOUT_EVIDENCE` to a fresh file in an existing directory to
 save the golden test's result. [M2-04 evidence](docs/evidence/m2-04/summary.md):
 eight integration tests and two compile-fail API checks pass; **207 fast
-Rust tests pass** overall, two default ignores, clean fmt/Clippy. The recurrent
-Monte Carlo comparison is next. M2-GATE is open; these checks are not evidence
-of online learning or convergence.
+Rust tests pass** overall, two default ignores, clean fmt/Clippy.
+
+M2-05 compares a six-tick two-neuron recurrent score estimator with central
+finite differences at three perturbation sizes using paired Gaussian draws.
+Its [predeclared plan and results](docs/evidence/m2-05/summary.md) record two
+million independent trajectory groups: score 0.41802543 (SE 0.00069159),
+finite differences 0.41765–0.42040. All agreement and precision checks pass.
+
+```bash
+cargo test --locked --test score_recurrent
+cargo test --release --locked --test score_recurrent two_neuron_recurrent_finite_difference -- --ignored --exact --nocapture
+```
+
+Set `CRA_M2_RECURRENT_EVIDENCE` to a fresh file in an existing directory for
+immutable JSON output; existing files are rejected. Five new fast checks
+pass. Full M2-05 verification: **212 fast Rust tests passed**, three default
+ignores (M2-03, M2-05, weight-printing probe), two compile-fail doc checks,
+clean fmt/Clippy. M2-05's ignored diagnostic was separately executed; M2-03
+was not rerun this session. M2-06 is next and M2-GATE remains open. These
+checks are not evidence of online learning or convergence.
 
 To save the bounded observability tests' measured diagnostics, choose a fresh
 output directory (existing evidence files are never overwritten):

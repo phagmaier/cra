@@ -1,0 +1,279 @@
+   Compiling cra v0.1.0 (/home/phagmaier/Code/cra)
+    Finished `release` profile [optimized] target(s) in 7.71s
+     Running tests/score_recurrent.rs (target/release/deps/score_recurrent-5a4ae40a5d57acf5)
+
+running 1 test
+{
+  "base_reward": {
+    "count": 2000000,
+    "five_se_half_width": 0.0017617466033662214,
+    "mean": 0.45876850000002073,
+    "sample_variance": 0.2483000875577934,
+    "standard_error": 0.00035234932067324426
+  },
+  "claim_limit": "Restricted finite-horizon fixed-weight diagnostic only; not online learning, convergence or unbiased online updates. Five-SE bands are Monte Carlo uncertainty estimates, not certified bounds.",
+  "comparisons": [
+    {
+      "assessment": {
+        "agreement": true,
+        "discrepancy_tolerance": 0.00947095870427021,
+        "passed": true,
+        "positive_signal": true,
+        "precision_resolved": true
+      },
+      "epsilon": 0.04,
+      "finite_difference": {
+        "count": 2000000,
+        "five_se_half_width": 0.008009261163074561,
+        "mean": 0.41825624999999284,
+        "sample_variance": 5.131861150266758,
+        "standard_error": 0.001601852232614912
+      },
+      "minus_reward": {
+        "count": 2000000,
+        "five_se_half_width": 0.001755848640928064,
+        "mean": 0.44203650000002453,
+        "sample_variance": 0.2466403559879143,
+        "standard_error": 0.0003511697281856128
+      },
+      "paired_difference_fd_minus_score": {
+        "count": 2000000,
+        "five_se_half_width": 0.00897095870427021,
+        "mean": 0.0002308215746261167,
+        "sample_variance": 6.438248005897715,
+        "standard_error": 0.0017941917408540418
+      },
+      "plus_reward": {
+        "count": 2000000,
+        "five_se_half_width": 0.001765643394385143,
+        "mean": 0.4754970000000133,
+        "sample_variance": 0.24939972769087113,
+        "standard_error": 0.00035312867887702856
+      }
+    },
+    {
+      "assessment": {
+        "agreement": true,
+        "discrepancy_tolerance": 0.012645939281449853,
+        "passed": true,
+        "positive_signal": true,
+        "precision_resolved": true
+      },
+      "epsilon": 0.02,
+      "finite_difference": {
+        "count": 2000000,
+        "five_se_half_width": 0.011450037709618274,
+        "mean": 0.4204000000000321,
+        "sample_variance": 10.488269084134435,
+        "standard_error": 0.0022900075419236545
+      },
+      "minus_reward": {
+        "count": 2000000,
+        "five_se_half_width": 0.0017590475568078588,
+        "mean": 0.45039899999999333,
+        "sample_variance": 0.24753986456893579,
+        "standard_error": 0.00035180951136157176
+      },
+      "paired_difference_fd_minus_score": {
+        "count": 2000000,
+        "five_se_half_width": 0.012145939281449853,
+        "mean": 0.002374571574626129,
+        "sample_variance": 11.801907282293326,
+        "standard_error": 0.0024291878562899705
+      },
+      "plus_reward": {
+        "count": 2000000,
+        "five_se_half_width": 0.0017639631098666244,
+        "mean": 0.4672150000000227,
+        "sample_variance": 0.24892526823762665,
+        "standard_error": 0.0003527926219733249
+      }
+    },
+    {
+      "assessment": {
+        "agreement": true,
+        "discrepancy_tolerance": 0.017215393775973427,
+        "passed": true,
+        "positive_signal": true,
+        "precision_resolved": true
+      },
+      "epsilon": 0.01,
+      "finite_difference": {
+        "count": 2000000,
+        "five_se_half_width": 0.01621557083303328,
+        "mean": 0.4176500000000138,
+        "sample_variance": 21.035578995289566,
+        "standard_error": 0.0032431141666066556
+      },
+      "minus_reward": {
+        "count": 2000000,
+        "five_se_half_width": 0.0017604748380784913,
+        "mean": 0.4546304999999862,
+        "sample_variance": 0.2479417324405992,
+        "standard_error": 0.00035209496761569824
+      },
+      "paired_difference_fd_minus_score": {
+        "count": 2000000,
+        "five_se_half_width": 0.016715393775973426,
+        "mean": -0.00037542842537385265,
+        "sample_variance": 22.35235112686809,
+        "standard_error": 0.003343078755194685
+      },
+      "plus_reward": {
+        "count": 2000000,
+        "five_se_half_width": 0.001762916273687951,
+        "mean": 0.462983500000021,
+        "sample_variance": 0.24862990304270485,
+        "standard_error": 0.0003525832547375902
+      }
+    }
+  ],
+  "configuration": {
+    "actor": {
+      "adaptation_strength": 0.0,
+      "edge_probability": 1.0,
+      "input_scale": 0.3,
+      "motor_filter_tau": 3.0,
+      "motor_neurons_per_action": 1,
+      "neuron_count": 2,
+      "noise_sigma": 0.4,
+      "recurrent_gain": 0.8,
+      "self_edges": false,
+      "tau_a": 100.0,
+      "tau_h": 1.4426950408889634
+    },
+    "baseline": 0.0,
+    "common_random_numbers": true,
+    "epsilons": [
+      0.04,
+      0.02,
+      0.01
+    ],
+    "finite_epsilon_bias_allowance": 0.0005,
+    "horizon": 6,
+    "initial_state": "zero, independent of weights; explicit between-rollout reset",
+    "input": [
+      1.0
+    ],
+    "max_five_se_half_width": 0.02,
+    "online_updates": 0,
+    "parameters": {
+      "topology": {
+        "edge_probability": 1.0,
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ],
+        "init_seed_hex": "M2-05",
+        "mask": [
+          [
+            false,
+            true
+          ],
+          [
+            true,
+            false
+          ]
+        ],
+        "motor0": [
+          0
+        ],
+        "motor1": [
+          1
+        ],
+        "motor_per_action": 1,
+        "neuron_count": 2,
+        "self_edges": false
+      },
+      "weights": {
+        "bias": [
+          0.0,
+          0.0
+        ],
+        "input_weights": [
+          [
+            0.7
+          ],
+          [
+            -0.2
+          ]
+        ],
+        "w0": [
+          [
+            0.0,
+            -0.4
+          ],
+          [
+            0.3,
+            0.0
+          ]
+        ]
+      }
+    },
+    "perturbed_edge": [
+      1,
+      0
+    ],
+    "requires_positive_five_se_lower_bounds": true,
+    "samples": 2000000,
+    "score_decay": "none (exact sum)",
+    "se_multiplier": 5.0,
+    "terminal_reward": "1[h[1] > 0]"
+  },
+  "elapsed_seconds": 15.27720298,
+  "failures": [],
+  "mode": "fixed_weight_no_decay_rollout",
+  "passed": true,
+  "provenance": {
+    "arch": "x86_64",
+    "cargo": "cargo 1.98.0 (797e8a9bc 2026-08-05)",
+    "dirty": true,
+    "git_status": "M to-do.md\n?? docs/evidence/m2-05/\n?? tests/score_recurrent.rs",
+    "os": "linux",
+    "revision": "1e6fbf2d8fcec86191876a389f3ebdae6adee06f",
+    "rustc": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+    "source_sha256": {
+      "Cargo.lock": "6b394c6e527bfdeb15c117a9b0eafa8875b8725a26ea07f7a5902e9a2a1822b6",
+      "docs/evidence/m2-05/plan.md": "e675b0cc568c241366cd8486b23bdbd7770bbfe4589a1dab9f9b59d704a268f2",
+      "src/agent/actor.rs": "f28196ea9e8f886c8e3ea0ec684d224e020ff31cb5ad2960fc93805581ca3015",
+      "src/agent/score.rs": "b5d9f0fcf4d6d6f089bf2c17f3814c039f3e61b67557dbd1a7806f2754c3100f",
+      "src/agent/topology.rs": "3145c3e00de75553d7c4dd01189627479b32ae20113c27a1becbba2530748ff1",
+      "src/agent/weights.rs": "8631afe6d32ecc690309c3126126bfc5a69ae0d212c3b91db24938213d14372f",
+      "src/config.rs": "83145430f06859a820d824fd8aa758279edcb00366802db60e502baff659510e",
+      "src/experiments/finite_rollout.rs": "c00f9e79f353606592743b981c2f0be8bdbf5a8ebea3bf45550be23c4e0385da",
+      "src/rng.rs": "5ac42296c88511055828c19926761a045aeb4abb2fbbac6d50ccbcbd6c0a79f0",
+      "tests/score_recurrent.rs": "05eb525c19360ebc29a3d459a7ba75c180f91ca8580ac4b99f16954b26afc4f7"
+    }
+  },
+  "resource_counts": {
+    "completed_paired_samples": 2000000,
+    "completed_rollouts": 14000000,
+    "completed_transitions": 84000000,
+    "normal_draws": 24000000
+  },
+  "rng": "ChaCha8 / existing actor per-tick Box-Muller NormalStream; two draws/tick, shared across settings only; versions in Cargo.lock",
+  "schema_version": 1,
+  "score": {
+    "count": 2000000,
+    "five_se_half_width": 0.0034579254048664135,
+    "mean": 0.41802542842538726,
+    "sample_variance": 0.9565798484496442,
+    "standard_error": 0.0006915850809732828
+  },
+  "seed": {
+    "canonical": "cra-v1|root=1|ns=development|outer=205|lifetime=0|stream=actor_noise",
+    "derived_hex": "ce5adad40dabec2d94ed7a233fe4392a007426b677506103d6340d833e22ca06"
+  },
+  "task": "M2-05",
+  "workers": 1
+}
+test two_neuron_recurrent_finite_difference ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 15.35s
+

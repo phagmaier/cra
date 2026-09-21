@@ -1,0 +1,373 @@
+   Compiling cra v0.1.0 (/home/phagmaier/Code/cra)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.77s
+     Running unittests src/lib.rs (target/debug/deps/cra-329288639a8ecc1e)
+
+running 37 tests
+test agent::actor::tests::leak_alpha_stays_accurate_at_large_tau ... ok
+test agent::actor::tests::leak_alpha_matches_one_minus_exp ... ok
+test agent::health::tests::schema_and_bounds_are_pinned ... ok
+test agent::weights::tests::row_scale_is_gain_over_sqrt_degree ... ok
+test agent::motor::tests::birth_filter_is_zero_and_round_trips ... ok
+test agent::topology::tests::motor_pools_use_last_indices_and_stay_disjoint ... ok
+test agent::topology::tests::cycle_detection_handles_self_and_multi_hop_loops ... ok
+test checkpoint::tests::schema_version_is_pinned ... ok
+test agent::no_learning::tests::missing_actor_section_is_an_explicit_error ... ok
+test checkpoint::tests::config_dimension_drift_is_incompatible ... ok
+test config::tests::minimal_smoke_profile_validates ... ok
+test environment::hidden_state::tests::annotation_serializes_separately_from_observation ... ok
+test environment::hidden_state::tests::hazard_one_flips_every_repeat_but_not_the_first ... ok
+test environment::observation::tests::boundary_types_round_trip_through_json ... ok
+test environment::observation::tests::feature_dim_is_k_plus_six ... ok
+test environment::hidden_state::tests::hazard_zero_never_flips_and_first_presentation_is_clean ... ok
+test environment::schedule::tests::fixed_range_is_exact ... ok
+test environment::schedule::tests::inverted_range_is_an_explicit_error ... ok
+test environment::schedule::tests::sampled_lengths_stay_in_range ... ok
+test environment::tests::bad_namespace_rejected_at_birth ... ok
+test experiments::baseline::tests::constant_baseline_rejects_actions_outside_zero_one ... ok
+test logging::events::tests::field_and_order_violations_are_explicit ... ok
+test logging::events::tests::valid_stream_passes ... ok
+test rng::tests::canonical_format_is_stable ... ok
+test rng::tests::reserved_namespaces_and_streams_validate ... ok
+test environment::tests::birth_samples_mappings_and_first_quiet_is_warmup ... ok
+test checkpoint::tests::pending_phase_mismatch_is_incompatible ... ok
+test checkpoint::tests::corrupt_state_is_rejected_by_both_restore_halves ... ok
+test checkpoint::tests::tick_disagreement_is_incompatible ... ok
+test run::tests::baseline_selection_names_the_b3_actor_rung ... ok
+test run::tests::run_dir_name_is_unique_per_seed_and_time ... ok
+test run::tests::allocation_preserves_incomplete_runs_and_is_atomic ... ok
+test agent::weights::tests::normal_stream_is_deterministic_with_unit_moments ... ok
+test run::tests::actor_watchdog_failure_is_saved_as_interrupted ... ok
+test run::tests::actor_simulation_writes_b3_provenance_and_streams ... ok
+test run::tests::same_second_runs_never_share_a_directory ... ok
+test run::tests::actor_diagnostics_are_saved_and_logging_does_not_change_outcomes ... ok
+
+test result: ok. 37 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running unittests src/main.rs (target/debug/deps/cra-f3a93ff34219d957)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/actor.rs (target/debug/deps/actor-7d6b273454b3254b)
+
+running 7 tests
+test birth_state_is_zero_and_constructors_validate ... ok
+test reciprocal_edges_use_old_activity_only ... ok
+test one_edge_drives_receiver_not_sender ... ok
+test noise_is_added_after_leaky_integration ... ok
+test saturated_membrane_is_never_clipped ... ok
+test step_rejects_bad_dims_params_and_nonfinite_values ... ok
+test stochastic_step_shares_the_fixture_core ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/actor_noise.rs (target/debug/deps/actor_noise-ab1dc9284c78f98c)
+
+running 7 tests
+test draws_ignore_inputs_and_saturation ... ok
+test word_pos_resumes_next_tick_perturbations ... ok
+test word_pos_round_trips_the_uniform_stream ... ok
+test actor_stepping_never_touches_environment_streams ... ok
+test step_draws_match_reference_stream_every_tick ... ok
+test observation_draws_nothing ... ok
+test actor_noise_moments_match_standard_normal ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/adaptation.rs (target/debug/deps/adaptation-8fea8821c51822bd)
+
+running 5 tests
+test adaptation_runs_on_its_own_time_constant ... ok
+test adaptation_persists_across_input_changes ... ok
+test zero_strength_ignores_adaptation_state ... ok
+test nonzero_strength_opposes_sustained_activity ... ok
+test debug_profile_keeps_adaptation_at_zero ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/baselines.rs (target/debug/deps/baselines-519b22a3a09aaaf7)
+
+running 7 tests
+test baselines_reject_duplicate_and_invalid_feedback_without_consuming_it ... ok
+test oracle_tracks_hidden_flips ... ok
+test oracle_latent_accuracy_is_exactly_one ... ok
+test constant_baselines_commit_only_their_action ... ok
+test ordinary_runner_delivers_feedback_before_the_transition ... ok
+test paired_lifetimes_share_noise_bits_but_not_rewards ... ok
+test random_baseline_reproduces_its_action_sequence_from_seeds ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/checkpoint.rs (target/debug/deps/checkpoint-4ebe441e9f518320)
+
+running 12 tests
+test capture_rejects_relabelled_live_seed_and_config ... ok
+test capture_rejects_non_executable_configs ... ok
+test capture_rejects_unfinished_tick ... ok
+test concurrent_checkpoint_writes_produce_one_complete_file ... ok
+test incompatible_mutations_fail_without_silent_defaults ... ok
+test atomic_save_never_leaves_a_partial_target ... ok
+test nested_unknown_and_missing_state_are_rejected ... ok
+test resume_at_pending_feedback_boundary_matches_uninterrupted_run ... ok
+test resume_at_quiet_boundary_matches_uninterrupted_run ... ok
+test resume_at_response_boundary_matches_uninterrupted_run ... ok
+test corrupt_files_fail_without_state ... ok
+test every_completed_tick_resumes_with_variable_timing_and_odd_actor_size ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.09s
+
+     Running tests/config_validation.rs (target/debug/deps/config_validation-6e3ba6bd069fcc30)
+
+running 4 tests
+test oversized_motor_assignment_is_an_error_not_an_overflow ... ok
+test supported_schema_is_distinct_from_supported_execution ... ok
+test valid_profiles_pass ... ok
+test table_invalid_configs ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/environment_contract.rs (target/debug/deps/environment_contract-bc4a91f0777da5f1)
+
+running 20 tests
+test consumption_ledger_rejects_duplicates_and_unknown_ids ... ok
+test completed_lifetime_has_equal_counts_and_no_pending_reward ... ok
+test correct_action_scores_one_and_wrong_scores_zero_without_noise ... ok
+test double_commit_invalid_action_and_missing_commit_are_errors ... ok
+test cues_vanish_outside_presentation_and_feedback_lasts_one_tick ... ok
+test feature_channels_follow_phase_flags ... ok
+test forced_noise_bit_reverses_either_reward ... ok
+test event_ids_are_unique_and_each_commitment_delivers_once ... ok
+test hazard_one_flips_every_repeat_but_not_the_first ... ok
+test gap_and_delay_three_shape ... ok
+test hazard_zero_never_flips_across_cycles ... ok
+test hidden_birth_rejects_invalid_membership_and_probabilities ... ok
+test library_birth_rejects_invalid_config_before_simulation ... ok
+test exact_cycle_counts_with_zero_gap_and_delay_one ... ok
+test pending_reward_uses_mapping_saved_at_commit ... ok
+test previous_action_latch_changes_starting_next_tick ... ok
+test quiet_ticks_never_mutate_hidden_mappings ... ok
+test rejected_commits_do_not_shift_reward_noise_or_timing ... ok
+test zero_reward_is_distinguishable_from_no_outcome ... ok
+test agent_stream_draws_do_not_alter_the_exogenous_schedule ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/event_logging.rs (target/debug/deps/event_logging-2c76a2e2b890ffbc)
+
+running 5 tests
+test rejected_execution_creates_no_successful_looking_artifacts ... ok
+test hidden_accounting_and_overlapping_choices_are_rejected ... ok
+test round_trip_reconstructs_counts_and_schedule ... ok
+test tampered_logs_fail_validation ... ok
+test logging_off_yields_identical_behavior ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/event_order.rs (target/debug/deps/event_order-0aec69c1a55a593f)
+
+running 3 tests
+test birth_goldens ... ok
+test forced_wrong_action_at_20_delivers_zero_through_the_envelope ... ok
+test commit_at_20_delay_3_delivers_exactly_at_23 ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/finite_rollout.rs (target/debug/deps/finite_rollout-f8aaf6db2d4a07d1)
+
+running 8 tests
+test initial_state_is_independent_of_weights_and_finite_membranes_are_not_clipped ... ok
+test accumulation_and_terminal_overflow_are_explicit_failures ... ok
+test golden_sum_has_no_decay_and_only_one_terminal_update ... ok
+test lifecycle_rejects_online_updates_extra_ticks_and_duplicate_finish ... ok
+test invalid_configuration_and_inputs_are_explicit_errors ... ok
+test nonfinite_transitions_and_scores_cannot_be_finalized_or_retried ... ok
+test no_update_and_zero_delta_modes_leave_weights_unchanged ... ok
+test stochastic_rollout_matches_frozen_actor_and_draw_schedule ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/health.rs (target/debug/deps/health-ff245fbc06d328e4)
+
+running 11 tests
+test health_errors_map_onto_sim_errors_explicitly ... ok
+test finite_watchdog_trips_above_the_conservative_bound ... ok
+test diagnostic_output_round_trips_through_a_json_file ... ok
+test recorder_rejects_bad_configs_and_short_state ... ok
+test saturation_and_margin_math_matches_hand_values ... ok
+test forced_nonfinite_fails_visibly_and_records_nothing ... ok
+test empty_summary_round_trips_for_failure_before_first_tick ... ok
+test production_actor_enforces_finite_watchdog ... ok
+test trace_selection_is_stable_covers_motor_and_draws_nothing ... ok
+test health_observation_leaves_actor_trajectories_identical ... ok
+test full_lifetime_health_stays_finite_with_samples ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/leakage.rs (target/debug/deps/leakage-a478fb24372058fc)
+
+running 5 tests
+test ordinary_types_serialize_with_exactly_their_public_fields ... ok
+test feedback_ids_never_enter_the_feature_vector ... ok
+test pinned_fixture_ordinary_log_matches_expected_public_values ... ok
+test agent_trait_path_carries_only_ordinary_data ... ok
+test hidden_annotations_serialize_to_a_separate_stream ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/motor.rs (target/debug/deps/motor-819dce1335d8f9cd)
+
+running 8 tests
+test commitment_reads_new_q_not_stale_q ... ok
+test golden_filter_trajectory_over_three_ticks ... ok
+test invalid_pools_constants_and_activity_rejected ... ok
+test pool_means_read_assigned_populations ... ok
+test golden_filter_recurrence_from_zero ... ok
+test strict_decisions_draw_nothing_and_ties_draw_one_coin ... ok
+test motor_pools_are_equal_sized_sets ... ok
+test debug_profile_pools_match_topology_assignment ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/no_learning.rs (target/debug/deps/no_learning-dfe98dabfdc37f92)
+
+running 10 tests
+test actor_rejects_bad_seeds_and_missing_sections ... ok
+test birth_is_zero_with_paired_inheritance ... ok
+test actor_runner_completes_lifetime_and_keeps_weights_fixed ... ok
+test feature_width_mismatch_fails_without_advancing ... ok
+test duplicate_and_invalid_feedback_fail_without_state_change ... ok
+test environment_schedule_matches_constant_baseline ... ok
+test reward_is_sensory_input_only ... ok
+test execution_guards_separate_present_and_future_modes ... ok
+test every_phase_advances_without_resets_and_weights_stay_identical ... ok
+test observation_reads_draw_nothing_and_runs_reproduce ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/observability.rs (target/debug/deps/observability-dcaf359026996445)
+
+running 4 tests
+test long_quiet_lifetimes_remain_finite ... ok
+test alternating_cues_produce_distinguishable_activity ... ok
+test both_actions_reachable_across_initializations ... ok
+test fixed_inputs_stay_finite_over_long_quiet ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/randomized_env.rs (target/debug/deps/randomized_env-0b0343871e353787)
+
+running 5 tests
+test oracle_reward_matches_its_noise_conditioned_expectation ... ok
+test cue_presentations_are_balanced ... ok
+test random_action_correctness_is_chance ... ok
+test birth_mappings_are_balanced ... ok
+test birth_mapping_pairs_are_independent ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+
+     Running tests/replay.rs (target/debug/deps/replay-eafeee3c63d2290e)
+
+running 6 tests
+test reference_platform_is_recorded ... ok
+test every_phase_advances_without_resets ... ok
+test motor_commitment_reads_the_new_output ... ok
+test identical_seeds_reproduce_the_reference_trajectory ... ok
+test tick_exact_split_replays_the_reference ... ok
+test logging_and_checkpoint_paths_draw_no_randomness ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
+
+     Running tests/score.rs (target/debug/deps/score-e9db2c30f0e26418)
+
+running 8 tests
+test invalid_noise_is_rejected_even_for_zero_numerator ... ok
+test incoming_edges_share_receiver_noise_and_parameters ... ok
+test nonfinite_inputs_and_invalid_leaks_are_rejected ... ok
+test spec_golden_score_has_one_leak_factor_and_actual_sigma ... ok
+test zero_activity_or_perturbation_yields_zero_score ... ok
+test score_uses_actor_leak_without_an_extra_factor ... ok
+test saturated_activity_has_no_tanh_derivative ... ok
+test positive_sigma_is_not_floored_and_overflow_is_explicit ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/score_learning_direction.rs (target/debug/deps/score_learning_direction-42c37c48b25a723e)
+
+running 4 tests
+test one_neuron_learning_direction ... ignored, bounded million-sample M2-03 diagnostic; invoke explicitly per README
+test analytical_value_matches_specification ... ok
+test forced_samples_cover_both_rewards_and_opposite_target ... ok
+test moments_match_hand_calculated_sample_variance_and_standard_error ... ok
+
+test result: ok. 3 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/score_log_probability.rs (target/debug/deps/score_log_probability-2a3d3496c6822fd1)
+
+running 3 tests
+test log_probability_matches_known_gaussian_values ... ok
+test moving_sample_with_perturbed_mean_is_not_the_conditional_derivative ... ok
+test fixed_sample_log_probability_derivatives_match_scores ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/score_recurrent.rs (target/debug/deps/score_recurrent-3035b847b9785bcc)
+
+running 6 tests
+test two_neuron_recurrent_finite_difference ... ignored, bounded two-million-trajectory M2-05 diagnostic; invoke explicitly per README
+test broad_intervals_and_precise_disagreement_cannot_pass ... ok
+test paired_uncertainty_uses_sample_differences ... ok
+test failed_paired_sample_is_reported_without_counting_it_as_complete ... ok
+test forced_trajectory_preserves_weights_and_exposes_recurrent_effect ... ok
+test paired_sampler_resets_and_replays_exactly ... ok
+
+test result: ok. 5 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/seed_streams.rs (target/debug/deps/seed_streams-8578d9394fd8b91d)
+
+running 6 tests
+test namespaces_are_disjoint ... ok
+test snapshot_rejects_foreign_live_rng_and_nonzero_chacha_substream ... ok
+test unknown_namespace_and_bad_stream_rejected ... ok
+test reserved_streams_are_pairwise_distinct ... ok
+test golden_stream_outputs ... ok
+test agent_draws_do_not_shift_environment_streams ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/topology.rs (target/debug/deps/topology-c3c7d3891899734c)
+
+running 13 tests
+test invalid_motor_dimensions_rejected ... ok
+test hand_built_bad_graphs_yield_exact_reasons ... ok
+test hand_built_good_graph_is_accepted ... ok
+test motor_pools_are_fixed_disjoint_and_cover_last_indices ... ok
+test non_init_streams_and_bad_attempts_rejected ... ok
+test independent_outer_seeds_vary_the_mask ... ok
+test missing_edges_stay_absent_and_counts_agree ... ok
+test paired_gate_conditions_share_topology_by_construction ... ok
+test probability_boundaries_behave ... ok
+test rejected_samples_carry_logged_reasons_and_exhaustion_is_explicit ... ok
+test self_edges_obey_the_configured_flag ... ok
+test same_init_reproduces_same_mask_and_order ... ok
+test debug_profile_topology_validates_end_to_end ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/weights.rs (target/debug/deps/weights-39d91fccaea35f80)
+
+running 11 tests
+test golden_inherited_values_pin_the_draw_sequence ... ok
+test extreme_gains_fail_explicitly_not_silently ... ok
+test missing_edges_are_exactly_zero_and_biases_are_zero ... ok
+test probe_golden_values ... ignored
+test independent_outer_seeds_vary_weights ... ok
+test validation_rejects_bad_dimensions_params_and_streams ... ok
+test paired_conditions_share_weights_by_construction ... ok
+test same_seed_reproduces_weights ... ok
+test debug_profile_weights_validate_end_to_end ... ok
+test zero_in_degree_rows_stay_zero_and_draws_stay_deterministic ... ok
+test row_scale_matches_std_not_variance_on_full_mask ... ok
+
+test result: ok. 10 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.02s
+

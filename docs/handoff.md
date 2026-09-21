@@ -1,9 +1,8 @@
 # Agent continuation guide
 
-Updated 2026-09-21 UTC after M2-04. Current HEAD is
-`72ad075` (`m2-03`), with M2-04 changes uncommitted. The session began at
-`9d31b9d`; the earlier M2-02/03 work was committed during this session. Check the tracker
-and Git state for newer work before claiming a task.
+Updated 2026-09-21 UTC after M2-05. Session base HEAD is
+`1e6fbf2` (`M2-04`), clean at entry. M2-05 changes are uncommitted.
+Check the tracker and Git state for newer work before claiming a task.
 
 ## Start here
 
@@ -19,8 +18,8 @@ and Git state for newer work before claiming a task.
 
 ## Current position and evidence
 
-**M0-GATE passed and was re-verified. M1-GATE passed. M2-01–M2-04 complete.
-Next task: M2-05.**
+**M0-GATE passed and was re-verified. M1-GATE passed. M2-01–M2-05 complete.
+Next task: M2-06.**
 There is no outstanding M1 blocker. The claim track remains `family_only`.
 No reserved final-test outcomes have been inspected.
 
@@ -59,6 +58,18 @@ API checks pass; fresh full suite: **207 fast tests passed**, two default
 ignores, clean fmt/Clippy. The M2-03 Monte Carlo test was not rerun this session.
 Golden output, exact commands and hashes: [M2-04 evidence](evidence/m2-04/summary.md).
 
+M2-05 adds `tests/score_recurrent.rs`: a paired six-tick, two-neuron
+finite-difference diagnostic at epsilon 0.04/0.02/0.01. First bounded run:
+2,000,000 independent trajectory groups, 14,000,000 fixed-weight rollouts,
+84,000,000 transitions, no failures. Score 0.41802543 (SE 0.00069159);
+finite differences 0.41825625, 0.42040000, 0.41765000. All prespecified
+agreement/precision criteria pass. Development/root 1/outer 205/lifetime 0/
+actor_noise; existing actor RNG draws paired across weight settings.
+Five new fast checks; fresh full suite **212 fast tests passed**, three
+default ignores, two compile-fail docs, clean fmt/Clippy. M2-03's slow test
+was not rerun. [M2-05 evidence](evidence/m2-05/summary.md) records the fixed
+plan, immutable result, source hashes and exact checks. Production unchanged.
+
 M1 implements a continuous nonplastic actor and exits as a verified dynamics
 foundation, explicitly not learning. The [M1 corrective review](m1-review.md)
 fixed checkpoint seed/config/state validation, concurrent checkpoint writes,
@@ -91,44 +102,36 @@ is available for a quick audit. Reproduce missing raw runs using the saved
 commands/configs into new directories; preserve historical evidence paths
 and distinguish reruns from the original execution.
 
-## Next task: M2-05
+## Next task: M2-06
 
-**Deliver:** the short two-neuron recurrent finite-difference diagnostic
-(17.6). Compare sampled expected-reward differences under several positive/
-negative weight perturbations with terminal reward times summed local scores.
-Prespecify development seeds, horizon, samples, perturbation magnitudes and
-uncertainty tolerances. Report unresolved uncertainty honestly; do not accept
-a very wide interval as strong evidence or reseed after seeing a failure.
+**Deliver:** package the score tests as bounded reproducible diagnostics.
+Keep deterministic checks fast and Monte Carlo explicit, preserve their
+configuration/expectations/seeds/results, and verify all required diagnostics
+have actually run before considering M2-GATE.
 
-Read spec Sections 7.1–7.2, 7.6, 9 and 17.6 alongside the
+Read spec Sections 7.1–7.2, 7.6, 9, 17.4–17.6 and the
 [M2 task queue](../to-do.md#m2---verify-the-stochastic-score-independently).
-Inspect `src/experiments/finite_rollout.rs`, `tests/finite_rollout.rs`,
-`src/agent/score.rs` and `src/agent/actor.rs` (receiving-`xi` buffer and
-`leak_alpha` helper). The score reads the receiving neuron's
-perturbation on all its incoming edges, carries exactly one `alpha_h`
-factor, divides by the actual positive `sigma`, and never multiplies a
-tanh derivative or `1 - lambda_e`.
+Inspect the score tests, `src/experiments/finite_rollout.rs`, README commands,
+and evidence bundles M2-01 through M2-05. M2-03 and M2-05 currently have
+separate test-local Welford statistics and immutable JSON exporters; they
+may be consolidated if packaging benefits, preserving numerical behavior.
 
-- Use a fresh `FiniteRollout::new(actor, params, horizon, baseline)` per weight
-  setting; baseline zero yields the terminal-reward-times-score quantity in
-  17.6. `step` takes the caller's RNG; `step_with_perturbations` supports paired
-  saved perturbations. `finish(reward, None)` returns the estimator without
-  updating weights. `reset_between_rollouts` clears state/scores and retains
-  the original parameters/baseline. Record failed samples instead of silently
-  dropping them. Motor filtering/environment feedback are not in this harness.
-- Keep the actor transition untouched. No M3 eligibility decay or online
-  plasticity is enabled by the diagnostic.
-- Verify with the stated checks, then run the applicable full quality
-  checks and append tracker evidence.
-
-The new M2-03 test contains test-local Welford statistics and optional immutable
-evidence output that M2-05/06 may reuse or consolidate when needed. Do not run
-Monte Carlo implicitly in the fast suite. Keep the saved M2-03 files unchanged;
-fresh reruns must use a new result path.
+- Both Monte Carlo checks have recorded first-run passes. M2-03 was last
+  executed in its own session; M2-05 was executed this session. Distinguish
+  historical evidence from any new checks, and retain all old artifacts.
+- Fresh result exports must use new paths. Diagnostic seeds are development
+  only; no retry-until-pass, hidden reset, or tolerance changes after results.
+- The finite-rollout harness uses zero state, fixed parameters/baseline,
+  exact score sums, and explicit resets between independent rollouts.
+  No main eligibility decay or online plasticity is enabled.
+- M2-05 uses actual Gaussian draws replayed at different weight settings;
+  states evolve separately, unlike M2-02's fixed-observation density test.
+  Its uncertainty is computed from paired sample differences, with an
+  additional absolute precision limit; failed samples fail the diagnostic.
 
 M2 validates score arithmetic under restricted diagnostics only — it
-says nothing about continual-learning performance. Do not start M3
-plasticity on the strength of implemented code alone.
+says nothing about continual-learning performance. M2-GATE remains open;
+do not start M3 until the gate is verified and recorded.
 
 ## Implementation map
 
@@ -147,6 +150,7 @@ plasticity on the strength of implemented code alone.
 | Conditional score (M2-01) | `src/agent/score.rs` | `tests/score.rs`; receiver indexing, golden arithmetic, saturation, zero activity, invalid inputs and overflow |
 | Conditional derivative diagnostic (M2-02) | `tests/score_log_probability.rs` | Saved-sample finite differences across edges/leaks/noise scales; moving-sample negative control |
 | One-neuron direction diagnostic (M2-03) | `tests/score_learning_direction.rs` | Fast statistics/forced-sample fixtures plus ignored bounded Monte Carlo with immutable evidence export |
+| Recurrent finite-difference diagnostic (M2-05) | `tests/score_recurrent.rs` | Five fast contract/statistics checks plus ignored bounded paired Monte Carlo with immutable evidence export |
 | Finite-rollout diagnostic (M2-04) | `src/experiments/finite_rollout.rs` | `tests/finite_rollout.rs` plus compile-fail docs; fixed parameters/baseline, no decay, terminal-only update and explicit reset |
 | Adaptation at strength 0 (M1-05) | `src/agent/actor.rs` (verified) | `tests/adaptation.rs`; inertness, sign, persistence, config pin |
 | Motor readout (M1-06) | `src/agent/motor.rs` | `tests/motor.rs`; golden filters, new-q commitment, tie-only draws |

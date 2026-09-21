@@ -32,17 +32,18 @@ and [continuation guide](docs/handoff.md).
 | --- | --- |
 | Current milestone | M2 open; M1-GATE passed 2026-09-21 UTC |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M2-04 — fixed-weight, no-decay finite-rollout diagnostic |
+| Last verified task | M2-05 — short two-neuron recurrent finite-difference check |
 | Claimed task | None |
-| Next eligible task | M2-05 |
+| Next eligible task | M2-06 |
 | Current blocker | None |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | 2026-09-21 UTC M2-04; completion ledger below and docs/evidence/m2-04/summary.md |
+| Last evidence record | 2026-09-21 UTC M2-05; completion ledger below and docs/evidence/m2-05/summary.md |
 
 ### Session ownership and handoffs
 
 | Owner/session | Task IDs | Files or interfaces owned | Status / handoff |
 | --- | --- | --- | --- |
+| Codex 2026-09-21 M2-05 | M2-05 | tests/score_recurrent.rs, docs/evidence/m2-05/, README.md, docs/{experiments,handoff}.md, to-do.md | Done; three Monte Carlo comparisons and full checks pass; next M2-06 |
 | Codex 2026-09-21 M2-04 | M2-04 | src/experiments/{mod,finite_rollout}.rs, tests/finite_rollout.rs, README.md, docs/{decisions,handoff}.md, docs/evidence/m2-04/, to-do.md | Done; 8 integration and 2 compile-fail checks pass; next M2-05 |
 | Codex 2026-09-21 M2-03 | M2-03 | tests/score_learning_direction.rs, docs/evidence/m2-03/, docs/experiments.md, README.md, docs/handoff.md, to-do.md | Done; million-sample diagnostic and full fast checks pass; next M2-04 |
 | Codex 2026-09-21 continuation | M2-02 | tests/score_log_probability.rs, docs/evidence/m2-02/, README.md, docs/handoff.md, to-do.md | Done; 288 derivative comparisons and full Rust checks pass; next M2-03 |
@@ -259,7 +260,7 @@ Validate the conditional Gaussian score and restricted finite-rollout interpreta
   - Deliver: Use weight-independent initial state, fixed weights during a rollout, fixed nonzero noise, no state clipping, no eligibility decay, and a baseline fixed independently of rollout perturbations. Sum local scores and apply at most one terminal update.
   - Verify: Tests prohibit online updates or running-baseline changes inside this diagnostic. Its resets and no-decay policy are explicit, not hidden meanings of birth_only or a very large finite tau.
 
-- [ ] **M2-05 - Run the short two-neuron recurrent finite-difference check**
+- [x] **M2-05 - Run the short two-neuron recurrent finite-difference check**
   - Deliver: Implement the Section 17.6 short-horizon test over several weight perturbation magnitudes. Compare sampled expected-reward finite differences with terminal reward times accumulated score and quantify uncertainty.
   - Verify: Weights stay fixed within each rollout; initial state and baseline obey the diagnostic assumptions. Use adequate samples or report unresolved uncertainty rather than accepting a wide interval as strong evidence.
 
@@ -2548,16 +2549,65 @@ Verification: Python stdlib evidence check revalidated all saved source
 Next eligible task: M2-05 (unchanged).
 ```
 
+```text
+Date / agent or session: 2026-09-21 UTC / Codex M2-05
+Task IDs: M2-05
+Spec sections: 7.1-7.2, 7.6, 9, 10, 17.6
+Change and affected files: tests/score_recurrent.rs; README, handoff,
+  experiments, tracker; docs/evidence/m2-05/. No production/spec/dependency
+  or schema changes. Existing frozen-weight rollout harness reused.
+Code revision / dirty-tree state: clean base 1e6fbf2; M2-05 uncommitted.
+Commands actually executed:
+  cargo fmt --all
+  cargo test --locked --test score_recurrent (5 fast passes, 1 ignored)
+  CRA_M2_RECURRENT_EVIDENCE=docs/evidence/m2-05/result.json cargo test
+    --release --locked --test score_recurrent
+    two_neuron_recurrent_finite_difference -- --ignored --exact --nocapture
+    (1 pass, first Monte Carlo execution; 15.35s test / 7.71s compile)
+  cargo fmt --all -- --check (clean)
+  cargo clippy --all-targets --locked -- -D warnings (clean)
+  cargo test --all-targets --locked (212 passed, 0 failed, 3 ignored)
+  cargo test --locked --doc (2 compile-fail API checks passed)
+Outcome: Score 0.41802543 (SE 0.00069159); finite differences 0.41825625,
+  0.42040000, 0.41765000 at epsilon .04/.02/.01. All paired comparisons
+  pass predeclared five-SE-plus-.0005 tolerance and <=.02 five-SE width
+  limit; positive score/FD lower bounds. No reseeding/tolerance changes.
+  Five fast tests cover statistics/precision guard, frozen weights,
+  recurrence/reset assumptions, exact paired replay and failure accounting.
+Checks not run / failures / blockers: M2-03 slow diagnostic and existing
+  weight-printing probe not rerun; M2-05 slow diagnostic explicitly passed.
+  Initial failure-accounting test used a large finite drive that correctly
+  stayed finite; corrected fixture to force overflow with two f64::MAX
+  summands. No production change. No blocker. Python/CLI smoke not rerun
+  for this test-only change. M2-06 and M2-GATE remain incomplete.
+Configuration and suite hashes: two neurons with both cross edges, six
+  ticks, fixed W=[[0,-.4],[.3,0]], alpha=.5, sigma=.4, input B=[.7,-.2],
+  zero birth state/baseline, no decay/updates, terminal 1[h[1]>0]. Exactly
+  2,000,000 independent paired samples; development/root1/outer205/
+  lifetime0/actor_noise. Seven settings, 14,000,000 rollouts, 84,000,000
+  transitions, 24,000,000 independent normals, one worker, zero failures.
+  Source/plan/lock SHA-256 identities and complete settings in result.json.
+Artifact paths: docs/evidence/m2-05/{plan,summary}.md, result.json,
+  diagnostic.log, checks.json and check-{1,2,3,4}.log. Output refuses overwrite.
+Interpretation and claim limits: finite-horizon fixed-weight validation
+  only, not online learning/convergence/unbiased lifetime gradients.
+  Epsilon comparisons are correlated, not independent replications.
+Tracker boxes updated: M2-05 checked. No scientific-contract deviation.
+Next eligible task: M2-06.
+```
+
 ## Blockers and decision register - keep current
 
 No blockers. M1-GATE re-verified after the 2026-09-21 UTC owner-requested
 corrective review: 185 Rust passes (1 ignored probe), 15 Python passes,
 clean fmt/Clippy, eleven corrected audited runs and two original comparisons.
-M2-01–M2-04 verified: score/derivative tests, one-neuron direction diagnostic
-and finite-rollout harness pass. Fresh M2-04 checks: 207 fast Rust passes,
-two compile-fail doc tests, two default ignores (M2-03 diagnostic passed in
-its recorded prior run; existing probe unrun), clean fmt/Clippy.
-Next: M2-05; M2-GATE remains open.
+M2-01–M2-05 verified: score/derivative tests, one-neuron direction diagnostic,
+finite-rollout harness and recurrent Monte Carlo check pass. Fresh M2-05
+checks: 212 fast Rust passes, two compile-fail doc tests, three default
+ignores (M2-05 explicitly passed this session; M2-03 passed in its recorded
+prior run; existing probe unrun), clean fmt/Clippy. Two million recurrent
+samples pass all three predeclared agreement/precision comparisons.
+Next: M2-06; M2-GATE remains open.
 M1 findings, corrections and claim limits: `docs/m1-review.md`.
 M0 historical evidence remains in `docs/m0-review.md`.
 Scientific decisions remain in the append-only `docs/decisions.md`.
