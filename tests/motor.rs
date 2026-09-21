@@ -177,3 +177,12 @@ fn debug_profile_pools_match_topology_assignment() {
         .expect("update");
     assert!(out.action_0.is_finite() && out.action_1.is_finite());
 }
+
+#[test]
+fn motor_pools_are_equal_sized_sets() {
+    let mut state = MotorState::new();
+    for (m0, m1) in [(vec![0, 0], vec![2, 3]), (vec![0], vec![2, 3])] {
+        assert!(state.update(3.0, &[0.2; 4], &m0, &m1).is_err());
+        assert_eq!(state.q(), [0.0, 0.0]);
+    }
+}

@@ -140,8 +140,8 @@ fn run_lifetime(
 fn reference_platform_is_recorded() {
     assert_eq!(std::env::consts::OS, REFERENCE_OS);
     assert_eq!(std::env::consts::ARCH, REFERENCE_ARCH);
-    assert_eq!(cra::checkpoint::CHECKPOINT_SCHEMA_VERSION, 1);
-    assert_eq!(cra::agent::health::HEALTH_SCHEMA_VERSION, 1);
+    assert_eq!(cra::checkpoint::CHECKPOINT_SCHEMA_VERSION, 2);
+    assert_eq!(cra::agent::health::HEALTH_SCHEMA_VERSION, 2);
     assert_eq!(cra::logging::events::EVENT_SCHEMA_VERSION, 1);
 }
 
@@ -349,7 +349,6 @@ fn logging_and_checkpoint_paths_draw_no_randomness() {
             &actor.inherited().topology.motor0.clone(),
             &actor.inherited().topology.motor1.clone(),
         );
-        let _ = Checkpoint::capture(&lifetime, &actor, &cfg, id.clone()).expect("capture");
         let committed = if out.commitment_due {
             let action = actor.select_action();
             lifetime.commit(action).expect("commit");
@@ -357,6 +356,8 @@ fn logging_and_checkpoint_paths_draw_no_randomness() {
         } else {
             None
         };
+        // A complete tick includes commitment before a resumable capture.
+        let _ = Checkpoint::capture(&lifetime, &actor, &cfg, id.clone()).expect("capture");
         probed.push(TickRecord {
             tick,
             phase: out.phase,

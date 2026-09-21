@@ -271,6 +271,7 @@ impl HiddenState {
 /// Serializable hidden-state snapshot for lifetime checkpoints (M1-09).
 /// Stored inside the checkpoint file only; never delivered to an agent.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct HiddenSnapshot {
     pub mapping: Vec<u8>,
     pub epsilon: Vec<f64>,

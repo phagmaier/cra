@@ -93,17 +93,31 @@ pub struct NoLearningActor {
     last_feedback: Option<u64>,
     cue_count: usize,
     ticks_advanced: u64,
+    initialization: Option<InitializationRecord>,
+}
+
+/// Structural sampling history; no performance-based selection.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct InitializationRecord {
+    pub accepted_attempt: u32,
+    pub rejected: Vec<crate::agent::topology::AttemptRecord>,
 }
 
 /// Serializable dynamic actor snapshot for lifetime checkpoints (M1-09).
 /// Live membranes/adaptation/filters plus RNG positions; inherited
 /// weights travel in the checkpoint body.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct AgentSnapshot {
     pub h: Vec<f64>,
+    pub last_perturbations: Vec<f64>,
+    #[serde(deserialize_with = "crate::checkpoint::required_option")]
+    pub initialization: Option<InitializationRecord>,
     pub a: Vec<f64>,
     pub q: [f64; 2],
     pub last_output: MotorOutput,
+    #[serde(deserialize_with = "crate::checkpoint::required_option")]
     pub last_feedback: Option<u64>,
     pub ticks_advanced: u64,
     pub noise_rng: RngState,
@@ -137,7 +151,7 @@ impl NoLearningActor {
             &init_tuple,
             DEFAULT_MAX_STRUCTURAL_ATTEMPTS,
         )?;
-        Self::from_sampled(
+        let mut actor = Self::from_sampled(
             actor_cfg,
             sampled.params,
             cue_count,
@@ -145,7 +159,12 @@ impl NoLearningActor {
             namespace,
             outer_seed,
             lifetime_index,
-        )
+        )?;
+        actor.initialization = Some(InitializationRecord {
+            accepted_attempt: sampled.accepted_attempt,
+            rejected: sampled.rejected,
+        });
+        Ok(actor)
     }
 
     /// Explicit-parts constructor for fixtures: skips sampling and takes
@@ -160,6 +179,7 @@ impl NoLearningActor {
         tie_rng: ChaCha8Rng,
     ) -> Result<Self, NoLearningError> {
         let n = actor_cfg.neuron_count;
+        params.validate(&actor_cfg, feature_dim(cue_count))?;
         if params.topology.neuron_count != n {
             return Err(NoLearningError::InvalidConfig(format!(
                 "topology has {} neurons but actor config has {n}",
@@ -187,6 +207,7 @@ impl NoLearningActor {
             last_feedback: None,
             cue_count,
             ticks_advanced: 0,
+            initialization: None,
         })
     }
 
@@ -216,6 +237,10 @@ impl NoLearningActor {
         ))
         .map_err(|e| NoLearningError::BadSeed(e.to_string()))?;
         Self::from_parts(actor_cfg, params, cue_count, noise_rng, tie_rng)
+    }
+
+    pub fn initialization(&self) -> Option<&InitializationRecord> {
+        self.initialization.as_ref()
     }
 
     /// Inherited actor configuration (scalar time constants, scales).
@@ -309,6 +334,8 @@ impl NoLearningActor {
         .map_err(bad)?;
         Ok(AgentSnapshot {
             h: self.state.h().to_vec(),
+            last_perturbations: self.state.last_perturbations().to_vec(),
+            initialization: self.initialization.clone(),
             a: self.state.a().to_vec(),
             q: self.motor.q(),
             last_output: self.last_output,
@@ -336,6 +363,7 @@ impl NoLearningActor {
     ) -> Result<Self, NoLearningError> {
         let invalid = |reason: String| NoLearningError::InvalidConfig(reason);
         let n = actor_cfg.neuron_count;
+        params.validate(&actor_cfg, feature_dim(cue_count))?;
         if params.topology.neuron_count != n {
             return Err(invalid(format!(
                 "topology has {} neurons but actor config has {n}",
@@ -359,6 +387,9 @@ impl NoLearningActor {
         {
             return Err(invalid("restored motor readout must be finite".to_owned()));
         }
+        if snapshot.q != [snapshot.last_output.action_0, snapshot.last_output.action_1] {
+            return Err(invalid("motor readout disagrees with filters".to_owned()));
+        }
         for (name, state) in [
             (Self::NOISE_STREAM, &snapshot.noise_rng),
             (Self::TIE_STREAM, &snapshot.tie_rng),
@@ -366,7 +397,7 @@ impl NoLearningActor {
             let tuple = SeedTuple::new(root_seed, namespace, outer_seed, lifetime_index, name);
             let expected = crate::rng::derive_seed_bytes(&tuple)
                 .map_err(|e| NoLearningError::BadSeed(e.to_string()))?;
-            if state.seed_bytes != expected {
+            if state.seed_bytes != expected || state.word_pos >= (1_u128 << 68) {
                 return Err(invalid(format!(
                     "rng stream '{name}' seed does not match the checkpoint seed identity"
                 )));
@@ -380,8 +411,9 @@ impl NoLearningActor {
             )));
         }
         Ok(Self {
-            state: ActorState::from_state(snapshot.h, snapshot.a)
+            state: ActorState::from_snapshot(snapshot.h, snapshot.a, snapshot.last_perturbations)
                 .map_err(NoLearningError::Actor)?,
+            initialization: snapshot.initialization,
             motor: MotorState::from_q(snapshot.q).map_err(NoLearningError::Motor)?,
             last_output: snapshot.last_output,
             last_feedback: snapshot.last_feedback,
@@ -453,6 +485,14 @@ impl crate::environment::Agent for NoLearningActor {
                 &self.params.topology.motor1,
             )
             .map_err(sim_from_motor)?;
+        check_state(
+            tick,
+            self.state.h(),
+            self.state.a(),
+            self.state.r(),
+            self.motor.q(),
+        )
+        .map_err(|e| e.to_sim_error())?;
         self.last_output = out;
         self.ticks_advanced += 1;
         Ok(out)

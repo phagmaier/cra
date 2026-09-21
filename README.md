@@ -5,11 +5,11 @@ generated gating improve a continuously running recurrent agent's adaptation
 to real changes without damaging stable associations under misleading
 feedback?
 
-Status: **M0 complete and re-verified; M1 complete (continuous
+Status: **M0 complete and re-verified; M1 complete and re-verified (continuous
 nonplastic actor demo, bitwise replay on linux/x86_64 — explicitly not
 learning); next task M2-01.** The simulator core exists as a library
 (`src/environment/`, `src/agent/` nonplastic dynamics plus `B3`
-harness, `src/checkpoint/`, `src/logging/`) with deterministic
+harness, `src/checkpoint.rs`, `src/logging/`) with deterministic
 fixtures, randomized checks, baseline/actor runners, replay proofs, and
 an offline log audit. No plasticity, gating, evolution, or comparison
 pipeline exists yet. Anything listed under "Planned" is a target from
@@ -17,13 +17,14 @@ spec Section 18 / `to-do.md`, not working code.
 
 M0 was re-reviewed and corrected without changing the original smoke
 trajectories. See [the review](docs/m0-review.md) for findings, verification,
-and the remaining M1 integration work.
+and the historical M1 integration work. The [M1 corrective review](docs/m1-review.md)
+records checkpoint/diagnostic fixes and fresh measured evidence.
 
 ## Continue development
 
 Start with [AGENTS.md](AGENTS.md), the [current tracker](to-do.md), and
 the [agent continuation guide](docs/handoff.md). The guide maps existing
-code/tests to M1-01 and records the integration limits to preserve.
+code/tests to M2-01 and records the integration limits to preserve.
 
 | Document | Responsibility |
 | --- | --- |
@@ -62,7 +63,17 @@ python3 analysis/test_validate_logs.py
 
 The last full M0 review recorded **73 Rust tests and 14 Python tests passing**,
 with fmt/clippy clean. See [recorded commands and outputs](docs/evidence/m0-review/commands.json).
-Those counts describe that execution; rerun relevant checks after changes.
+Those counts describe that execution. The fresh [M1 review](docs/m1-review.md)
+recorded **185 Rust tests and 15 Python tests passing**, with one existing
+ignored weight-printing probe and clean fmt/Clippy. Rerun relevant checks after
+changes.
+
+To save the bounded observability tests' measured diagnostics, choose a fresh
+output directory (existing evidence files are never overwritten):
+
+```bash
+CRA_M1_EVIDENCE_DIR=runs/m1-observability-fresh cargo test --locked --test observability
+```
 
 ## Implemented commands (M0/M1)
 
@@ -104,10 +115,21 @@ Notes:
   config is rejected for `actor`, and an actor config is rejected for
   the B0/B1/O1 rungs. Example M1 demo (condition B3, 2 lifetimes,
   16 commitments/outcomes): `runs/actor_no_learning-root1-outer1-1789975911`
+  (historical mean reward 0.5000; original raw directory was removed).
+  Fresh preserved review demo:
+  `runs/m1-review/actor_no_learning-root1-outer1-1789977523`
   (mean reward 0.5000, audit `OK (events + provenance)`); rerunning the
   command prints a fresh directory. Checkpoint pause/resume is exercised
   by `cargo test --locked --test checkpoint` (dedicated checkpoint CLI
-  arrives with later milestones).
+  arrives with later milestones). Checkpoint schema 2 rejects schema-1
+  files; it records complete tick state and the reference platform.
+- B3 runs also save `actor-inherited.json` and `actor-diagnostics-<index>.json`.
+  Diagnostics include structural sampling history, watchdog bounds, health,
+  and selected h/a/r/q traces (health schema 2). `full_trace_lifetimes` selects
+  the first N lifetimes and `trace_every_ticks` controls their sampling;
+  health/watchdog checks remain enabled with event logging or traces disabled.
+  Failures have explicit diagnostic/terminal records. The ordinary event audit
+  does not independently recompute neural dynamics from these diagnostics.
 - `simulate` runs real baseline lifetimes (M0-07–M0-11 contracts) into a
   fresh run directory with `resolved_config.toml`, `manifest.json`,
   `seed_streams.json`, `condition.json`, and `completion.json`, plus

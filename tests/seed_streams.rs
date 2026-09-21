@@ -95,3 +95,13 @@ fn unknown_namespace_and_bad_stream_rejected() {
     assert!(validate_tuple(&tuple(1, "development", 1, 0, "cue order")).is_err());
     assert!(rng_for(&tuple(1, "staging", 1, 0, "timing")).is_err());
 }
+
+#[test]
+fn snapshot_rejects_foreign_live_rng_and_nonzero_chacha_substream() {
+    let tuple = cra::rng::SeedTuple::new(1, "development", 1, 0, "actor_noise");
+    let foreign = cra::rng::SeedTuple::new(1, "development", 2, 0, "actor_noise");
+    let mut rng = cra::rng::rng_for(&tuple).unwrap();
+    assert!(cra::rng::RngState::capture(&rng, &foreign).is_err());
+    rng.set_stream(1);
+    assert!(cra::rng::RngState::capture(&rng, &tuple).is_err());
+}

@@ -54,6 +54,7 @@ impl Phase {
 /// lifetime checkpoints (M1-09); countdowns are validated on restore
 /// rather than trusted.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) enum PhaseState {
     Quiet { remaining: u64 },
     Cue { cue: usize, remaining: u64 },

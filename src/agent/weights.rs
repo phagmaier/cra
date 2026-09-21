@@ -99,6 +99,7 @@ pub fn row_std(recurrent_gain: f64, in_degree: usize) -> f64 {
 /// `w0` is `N x N` with exact `0.0` on missing edges. Future plastic
 /// offsets `P` (M3) are stored separately, never merged into these arrays.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Weights {
     pub w0: Vec<Vec<f64>>,
     pub input_weights: Vec<Vec<f64>>,
@@ -110,12 +111,70 @@ pub struct Weights {
 /// everything acquired within a lifetime (`P`, traces, state) lives
 /// elsewhere (M3/M7).
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct InheritedParams {
     pub topology: Topology,
     pub weights: Weights,
 }
 
 impl InheritedParams {
+    /// Validate stored parameters, including redundant topology metadata.
+    /// Hand-built fixtures may omit cycles; sampling enforces structure.
+    pub fn validate(&self, actor: &Actor, input_dim: usize) -> Result<(), ParamsError> {
+        validate_inherited(actor, input_dim)?;
+        let n = actor.neuron_count;
+        let t = &self.topology;
+        let w = &self.weights;
+        let bad = |s: &str| ParamsError::InvalidDimensions(s.to_owned());
+        let (m0, m1) = motor_pools(n, actor.motor_neurons_per_action)?;
+        if t.neuron_count != n
+            || t.motor_per_action != actor.motor_neurons_per_action
+            || t.motor0 != m0
+            || t.motor1 != m1
+            || t.self_edges != actor.self_edges
+            || t.edge_probability != actor.edge_probability
+        {
+            return Err(bad("topology metadata disagrees with actor configuration"));
+        }
+        if t.mask.len() != n
+            || t.mask.iter().any(|row| row.len() != n)
+            || w.w0.len() != n
+            || w.w0.iter().any(|row| row.len() != n)
+            || w.input_weights.len() != n
+            || w.input_weights.iter().any(|row| row.len() != input_dim)
+            || w.bias.len() != n
+        {
+            return Err(bad(
+                "mask, weights, bias or input projection has invalid dimensions",
+            ));
+        }
+        if t.edges != edge_list(&t.mask) {
+            return Err(bad("edge list disagrees with the mask"));
+        }
+        for (j, row) in t.mask.iter().enumerate() {
+            if !actor.self_edges && row[j] {
+                return Err(bad("forbidden self edge"));
+            }
+            for (i, &exists) in row.iter().enumerate() {
+                if !exists && w.w0[j][i] != 0.0 {
+                    return Err(bad("weight on missing edge"));
+                }
+            }
+        }
+        if !w
+            .w0
+            .iter()
+            .flatten()
+            .chain(w.input_weights.iter().flatten())
+            .chain(w.bias.iter())
+            .all(|v| v.is_finite())
+        {
+            return Err(ParamsError::InvalidParams(
+                "nonfinite inherited weight".to_owned(),
+            ));
+        }
+        Ok(())
+    }
     /// Sensory projection width (observable feature count).
     pub fn input_dim(&self) -> usize {
         self.weights.input_weights.first().map_or(0, Vec::len)

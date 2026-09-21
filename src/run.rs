@@ -496,7 +496,7 @@ fn run_lifetimes(
     let mut outcomes = 0u64;
     let mut reward_sum = 0.0;
     for lifetime_index in 0..lifetimes {
-        let summary = run_one_lifetime(cfg, seeds, baseline, lifetime_index)?;
+        let summary = run_one_lifetime(cfg, seeds, baseline, lifetime_index, dir)?;
         for (choice, annotation) in summary.choices.iter().zip(summary.annotations.iter()) {
             commitments += 1;
             outcomes += 1;
@@ -562,11 +562,46 @@ fn validate_per_lifetime(
     Ok(())
 }
 
+/// Read-only instrumentation around the same ordinary actor runner.
+struct ObservedActor<'a> {
+    actor: &'a mut crate::agent::no_learning::NoLearningActor,
+    summary: crate::agent::health::HealthSummary,
+    trace: Option<crate::agent::health::TraceRecorder>,
+}
+
+impl crate::environment::Agent for ObservedActor<'_> {
+    fn apply_feedback(&mut self, event: crate::environment::Feedback) -> Result<(), SimError> {
+        self.actor.apply_feedback(event)
+    }
+    fn advance(&mut self, features: &[f64]) -> Result<crate::environment::MotorOutput, SimError> {
+        let tick = self.actor.ticks_advanced();
+        let out = self.actor.advance(features)?;
+        let state = self.actor.actor_state();
+        let q = self.actor.motor_state().q();
+        self.summary
+            .observe(tick, state.h(), state.a(), state.r(), q)
+            .map_err(|e| e.to_sim_error())?;
+        if let Some(trace) = &mut self.trace {
+            trace
+                .maybe_record(tick, state.h(), state.a(), q)
+                .map_err(|e| e.to_sim_error())?;
+        }
+        Ok(out)
+    }
+}
+
+impl crate::experiments::baseline::OrdinaryPolicy for ObservedActor<'_> {
+    fn select_action(&mut self) -> u8 {
+        self.actor.select_action()
+    }
+}
+
 fn run_one_lifetime(
     cfg: &Config,
     seeds: &EffectiveSeeds,
     baseline: BaselineSel,
     lifetime_index: u64,
+    dir: &Path,
 ) -> Result<BaselineSummary, RunError> {
     match baseline {
         BaselineSel::Random => {
@@ -615,28 +650,82 @@ fn run_one_lifetime(
         )
         .map_err(RunError::Sim),
         BaselineSel::Actor => {
-            let mut policy = crate::agent::no_learning::NoLearningActor::new(
+            let actor = crate::agent::no_learning::NoLearningActor::new(
                 cfg,
                 seeds.root_seed,
                 &seeds.namespace,
                 seeds.outer_seed,
                 lifetime_index,
-            )
-            .map_err(|e| {
-                RunError::Sim(crate::environment::SimError::InvalidConfiguration(
-                    e.to_string(),
-                ))
-            })?;
-            crate::experiments::baseline::run_actor_ordinary(
+            );
+            let mut actor = match actor {
+                Ok(actor) => actor,
+                Err(error) => {
+                    write_json(
+                        dir,
+                        &format!("actor-initialization-failure-{lifetime_index}.json"),
+                        &error,
+                    )
+                    .map_err(RunError::Log)?;
+                    return Err(RunError::Sim(SimError::InvalidConfiguration(
+                        error.to_string(),
+                    )));
+                }
+            };
+            if lifetime_index == 0 {
+                write_json(dir, "actor-inherited.json", actor.inherited())
+                    .map_err(RunError::Log)?;
+            }
+            let t = &actor.inherited().topology;
+            let trace = if lifetime_index < cfg.logging.full_trace_lifetimes {
+                Some(
+                    crate::agent::health::TraceRecorder::new(
+                        t.neuron_count,
+                        &t.motor0,
+                        &t.motor1,
+                        cfg.logging.trace_every_ticks,
+                    )
+                    .map_err(|e| RunError::Sim(e.to_sim_error()))?,
+                )
+            } else {
+                None
+            };
+            let mut observed = ObservedActor {
+                actor: &mut actor,
+                summary: crate::agent::health::HealthSummary::new(),
+                trace,
+            };
+            let result = crate::experiments::baseline::run_actor_ordinary(
                 cfg,
                 seeds.root_seed,
                 &seeds.namespace,
                 seeds.outer_seed,
                 lifetime_index,
                 "actor-no-learning",
-                &mut policy,
+                &mut observed,
+            );
+            // Persist diagnostics even when a watchdog/transition stops the run.
+            // No hidden data or random draws enter the observation wrapper.
+            write_json(
+                dir,
+                &format!("actor-diagnostics-{lifetime_index}.json"),
+                &serde_json::json!({
+                    "schema_version": crate::agent::health::HEALTH_SCHEMA_VERSION,
+                    "lifetime_index": lifetime_index,
+                    "tick_convention": "state after transition at zero-based tick",
+                    "watchdog": {
+                        "h_abs_max": crate::agent::health::WATCHDOG_H_ABS_MAX,
+                        "a_abs_max": crate::agent::health::WATCHDOG_A_ABS_MAX,
+                        "q_abs_max": crate::agent::health::WATCHDOG_Q_ABS_MAX,
+                        "saturation_r_abs": crate::agent::health::SATURATION_R_ABS,
+                    },
+                    "initialization": observed.actor.initialization(),
+                    "summary": observed.summary,
+                    "trace": observed.trace,
+                    "failure": result.as_ref().err().map(ToString::to_string),
+                }),
             )
-            .map_err(RunError::Sim)
+            .map_err(RunError::Log)?;
+            result.map_err(RunError::Sim)
         }
     }
 }
@@ -833,5 +922,77 @@ outer_seed = 1
         .expect("manifest json");
         assert_eq!(manifest["condition_id"], "B3");
         let _ = std::fs::remove_dir_all(&base);
+    }
+    #[test]
+    fn actor_diagnostics_are_saved_and_logging_does_not_change_outcomes() {
+        let base =
+            std::env::temp_dir().join(format!("cra-actor-diagnostics-{}", std::process::id()));
+        let cfg = actor_test_config();
+        let seeds = EffectiveSeeds::from_config(&cfg);
+        let logged = run_simulation(&cfg, &seeds, BaselineSel::Actor, 2, &base).unwrap();
+        for index in 0..2 {
+            let value: serde_json::Value =
+                read_json(&logged.dir, &format!("actor-diagnostics-{index}.json")).unwrap();
+            assert_eq!(value["failure"], serde_json::Value::Null);
+            assert!(value["summary"]["ticks_observed"].as_u64().unwrap() > 0);
+            assert_eq!(
+                value["initialization"]["accepted_attempt"]
+                    .as_u64()
+                    .unwrap(),
+                value["initialization"]["rejected"]
+                    .as_array()
+                    .unwrap()
+                    .len() as u64
+            );
+            assert_eq!(
+                value["trace"].is_null(),
+                index >= cfg.logging.full_trace_lifetimes
+            );
+            if index < cfg.logging.full_trace_lifetimes {
+                let trace = &value["trace"];
+                assert!(!trace["samples"].as_array().unwrap().is_empty());
+                assert_eq!(
+                    trace["samples"][0]["r"].as_array().unwrap().len(),
+                    trace["selection"].as_array().unwrap().len()
+                );
+            }
+        }
+        assert!(logged.dir.join("actor-inherited.json").is_file());
+        let mut off = cfg.clone();
+        off.logging.event_log = false;
+        off.logging.full_trace_lifetimes = 0;
+        let unlogged = run_simulation(&off, &seeds, BaselineSel::Actor, 2, &base).unwrap();
+        assert_eq!(logged.mean_reward, unlogged.mean_reward);
+        assert_eq!(logged.outcomes, unlogged.outcomes);
+        for index in 0..2 {
+            let filename = format!("actor-diagnostics-{index}.json");
+            let a: serde_json::Value = read_json(&logged.dir, &filename).unwrap();
+            let b: serde_json::Value = read_json(&unlogged.dir, &filename).unwrap();
+            assert_eq!(a["summary"], b["summary"]);
+            assert!(b["trace"].is_null());
+        }
+        std::fs::remove_dir_all(base).unwrap();
+    }
+
+    #[test]
+    fn actor_watchdog_failure_is_saved_as_interrupted() {
+        let base = std::env::temp_dir().join(format!("cra-actor-watchdog-{}", std::process::id()));
+        let mut cfg = actor_test_config();
+        cfg.actor.as_mut().unwrap().input_scale = 1e6;
+        let seeds = EffectiveSeeds::from_config(&cfg);
+        let error = run_simulation(&cfg, &seeds, BaselineSel::Actor, 1, &base).unwrap_err();
+        assert!(error.to_string().contains("watchdog"));
+        let dir = std::fs::read_dir(&base)
+            .unwrap()
+            .next()
+            .unwrap()
+            .unwrap()
+            .path();
+        let completion = read_completion(&dir).unwrap();
+        assert!(matches!(completion.status, RunStatus::Interrupted { .. }));
+        let diagnostic: serde_json::Value = read_json(&dir, "actor-diagnostics-0.json").unwrap();
+        assert!(diagnostic["failure"].as_str().unwrap().contains("watchdog"));
+        assert_eq!(diagnostic["watchdog"]["h_abs_max"], 1e4);
+        std::fs::remove_dir_all(base).unwrap();
     }
 }

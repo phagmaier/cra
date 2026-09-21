@@ -54,6 +54,7 @@ pub fn feature_dim(cue_count: usize) -> usize {
 /// from these values only at the final response tick (M1); the no-learning
 /// baselines and oracles use the same commitment rule through this type.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct MotorOutput {
     pub action_0: f64,
     pub action_1: f64,

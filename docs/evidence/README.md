@@ -41,3 +41,20 @@ available for a small audit without restoring raw runs.
 For current verification commands see the [README](../../README.md#verification).
 For status and completed gates use the [tracker](../../to-do.md), not the
 presence of an evidence directory alone.
+
+
+## M1 review bundle
+
+[`m1-review/commands.json`](m1-review/commands.json) and
+[`m1-review/summary.json`](m1-review/summary.json) record fresh commands,
+results, source/binary hashes, thirteen audited run paths (eleven corrected,
+two original-commit comparisons) and artifact hashes. Corrections start from
+`13a4873`; no original raw run was overwritten. `regressions-before.txt`
+preserves the demonstrated pre-fix checkpoint failures.
+
+`observability/*.json` contains bounded measured diagnostics; the first
+B3 demo's health/traces are in `demo-diagnostics.json`. These small artifacts
+are committed; full raw outputs are ignored under `runs/m1-review/` and
+`runs/m1-review-original/`. The two TOMLs define the noisy logging parity
+check, not a search or final-test experiment. See [the review](../m1-review.md)
+for findings and scientific claim limits.

@@ -99,6 +99,8 @@ pub enum SeedError {
         "invalid stream name '{0}'; use lowercase [a-z0-9_] (max 64 chars), e.g. one of the reserved streams"
     )]
     InvalidStream(String),
+    #[error("RNG state does not match the declared seed or supported stream: {0}")]
+    StateMismatch(String),
 }
 
 /// True when `ns` is one of the four reserved namespaces.
@@ -167,6 +169,7 @@ pub fn rng_for(t: &SeedTuple) -> Result<ChaCha8Rng, SeedError> {
 /// `word_pos` is the `ChaCha8Rng` word position at the tick boundary, which
 /// seeks in O(1) without replaying draws.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct RngState {
     pub seed_bytes: [u8; 32],
     pub word_pos: u128,
@@ -175,8 +178,15 @@ pub struct RngState {
 impl RngState {
     /// Capture the current position alongside the tuple-derived seed.
     pub fn capture(rng: &ChaCha8Rng, tuple: &SeedTuple) -> Result<Self, SeedError> {
+        let seed_bytes = derive_seed_bytes(tuple)?;
+        // Never relabel a live generator using caller-supplied metadata.
+        // Production streams use ChaCha stream 0; reject other substreams
+        // because schema 1 does not encode their nonce.
+        if rng.get_seed() != seed_bytes || rng.get_stream() != 0 {
+            return Err(SeedError::StateMismatch(tuple.stream.clone()));
+        }
         Ok(Self {
-            seed_bytes: derive_seed_bytes(tuple)?,
+            seed_bytes,
             word_pos: rng.get_word_pos(),
         })
     }

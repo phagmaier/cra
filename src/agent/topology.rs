@@ -68,6 +68,7 @@ impl std::fmt::Display for RejectionReason {
 
 /// One rejected structural sample: attempt index, edge count, and reasons.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct AttemptRecord {
     pub attempt: u32,
     pub edge_count: usize,
@@ -97,6 +98,7 @@ pub enum TopologyError {
 /// order. `mask[receiver][sender]` is true exactly for existing edges;
 /// `edges` lists `(receiver, sender)` pairs sorted by receiver, then sender.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Topology {
     pub neuron_count: usize,
     pub motor_per_action: usize,

@@ -1,0 +1,91 @@
+{
+  "config": {
+    "actor": {
+      "adaptation_strength": 0.0,
+      "edge_probability": 0.25,
+      "input_scale": 0.3,
+      "motor_filter_tau": 3.0,
+      "motor_neurons_per_action": 2,
+      "neuron_count": 16,
+      "noise_sigma": 0.05,
+      "recurrent_gain": 0.8,
+      "self_edges": false,
+      "tau_a": 100.0,
+      "tau_h": 5.0
+    },
+    "environment": {
+      "cue_count": 2,
+      "cue_encoding": "one_hot",
+      "cue_ticks": 8,
+      "feedback_noise_values": [
+        0.0
+      ],
+      "feedback_ticks": 1,
+      "hazard_clock": "cue_exposure",
+      "kind": "stationary_clean",
+      "max_pending_choices": 1,
+      "memory_gap_ticks": [
+        0,
+        0
+      ],
+      "quiet_ticks": [
+        64,
+        64
+      ],
+      "response_ticks": 4,
+      "reward_delay_ticks": [
+        1,
+        1
+      ],
+      "stable_fraction": 1.0,
+      "volatile_hazard_values": [
+        0.0
+      ]
+    },
+    "evolution": null,
+    "learning": null,
+    "logging": {
+      "event_log": true,
+      "full_trace_lifetimes": 1,
+      "record_raw_and_applied_updates": true,
+      "trace_every_ticks": 10
+    },
+    "modulator": null,
+    "profile_name": "observability_test",
+    "schema_version": 1,
+    "seeds": {
+      "namespace": "development",
+      "outer_seed": 1,
+      "root_seed": 1
+    },
+    "simulation": {
+      "dt": 1.0,
+      "feedback_order": "before_neural_transition",
+      "outcomes_per_lifetime": 4,
+      "precision": "f64",
+      "reset_policy": "birth_only",
+      "warmup_ticks": 4
+    }
+  },
+  "lifetime_index": 0,
+  "namespace": "development",
+  "reference_arch": "x86_64",
+  "reference_os": "linux",
+  "results": {
+    "outcomes": 4,
+    "outer_seed": 1,
+    "summary": {
+      "max_abs_a": 0.6481027086441958,
+      "max_abs_h": 1.4959597374314637,
+      "max_abs_q": 0.6261244570134316,
+      "max_abs_r": 0.9044154755666971,
+      "max_motor_margin": 0.8098585073723492,
+      "min_motor_margin": 0.0069466660672457235,
+      "saturated_neuron_ticks": 3,
+      "schema_version": 2,
+      "ticks_observed": 248,
+      "total_neuron_ticks": 3968
+    }
+  },
+  "root_seed": 1
+}

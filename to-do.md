@@ -32,17 +32,18 @@ and [continuation guide](docs/handoff.md).
 | --- | --- |
 | Current milestone | M2 open; M1-GATE passed 2026-09-21 UTC |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M1-GATE (M1 milestone exit); M0 scope verification remains M0-REVIEW |
+| Last verified task | M1-REVIEW; M1-GATE re-verified after checkpoint and diagnostic corrections |
 | Claimed task | None |
 | Next eligible task | M2-01 |
 | Current blocker | None |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | 2026-09-21 UTC M1-GATE ledger entry (this file); M0 simulation evidence in docs/evidence/m0-review/ |
+| Last evidence record | 2026-09-21 UTC M1-REVIEW; docs/m1-review.md and docs/evidence/m1-review/ |
 
 ### Session ownership and handoffs
 
 | Owner/session | Task IDs | Files or interfaces owned | Status / handoff |
 | --- | --- | --- | --- |
+| Codex review 2026-09-21 | M1-REVIEW | M1 implementation, regression tests, review evidence, README and handoff | Done; M1-GATE re-verified; next M2-01 |
 | Codex documentation | M0-DOCS | Agent guidance, current handoff, README, tracker, manifest notes, source/config comments | Done; no behavior changes; handoff to M1-01 |
 | Codex review | M0-REVIEW | M0 Rust/Python implementation, regression tests, evidence and documentation | Done; M0-GATE re-verified, handoff to M1-01 |
 | agent 2026-09-21 | M0-01–M0-05 | src/{lib,main,config,rng,run}.rs, Cargo.toml, rust-toolchain.toml, configs/, manifests/, tests/{seed_streams,config_validation}.rs, README, docs/, analysis/ stub | Done, verified; handoff to M0-06 |
@@ -2316,13 +2317,70 @@ Tracker boxes updated: M1-GATE checked.
 Next eligible task: M2-01.
 ```
 
+```text
+Date / agent or session: 2026-09-21 UTC / Codex owner-requested M1 review
+Task IDs: M1-REVIEW (M1-01 through M1-12 and M1-GATE re-verification)
+Spec sections: 3-10, 16/M1, 17.2, 17.7, 18-20
+Change and affected files: src/agent/{actor,health,motor,no_learning,topology,
+  weights}.rs; src/{checkpoint,rng,run}.rs; environment snapshot types;
+  tests/{checkpoint,health,motor,observability,replay,seed_streams}.rs;
+  README, handoff, review, decisions/experiments and evidence bundle.
+  Fixed checkpoint relabelling/validation, complete-state restore and atomic
+  concurrent saves; enforced the existing finite watchdog in production;
+  saved health/traces/initialization history; validated supplied parameters
+  and equal-sized unique motor pools. No scientific equation/seed change.
+Code revision / dirty-tree state: clean base 13a4873; review changes
+  uncommitted. Source and binary SHA-256s in the evidence summary.
+Commands actually executed:
+  cargo fmt --all -- --check
+  cargo clippy --all-targets --locked -- -D warnings
+  cargo test --all-targets --locked
+    with CRA_M1_EVIDENCE_DIR=docs/evidence/m1-review/observability
+    (185 passed, 0 failed, 1 existing ignored weight-printing probe)
+  python3 analysis/test_validate_logs.py (15 passed)
+  cargo build --release --locked
+  validate-config on env_smoke, debug_stationary, actor_no_learning (OK)
+  11 corrected simulate runs + Python audits: eight clean B3 runs at
+    outer 1..8, O1, noisy variable-timing B3 and its logging-off pair;
+    all root 1/development/lifetimes 0..1. Exact argument lists saved.
+  Build original git archive 13a4873 separately; two additional clean/noisy
+    B3 comparison runs audited; ordinary/hidden records exactly equal to
+    corrected runs excluding run IDs.
+  Focused regression runs; before-fix checkpoint failures retained in
+    docs/evidence/m1-review/regressions-before.txt.
+  git diff --check (clean); local Markdown link/consistency check.
+Outcome and checks passed: Dynamics/goldens/replay preserved; checkpoint
+  tests now reject wrong live identity, incomplete ticks, nested unknown or
+  missing state and inconsistent halves; exact continuation at every completed
+  boundary of variable-timing odd-sized lifetimes. Concurrent save test passes.
+  Watchdog failure is explicit and saved as interrupted. Logging-off health
+  matches logging-on. Across/within cue distances 1.8681/0.2530; actions 20/12
+  across 8 four-choice initializations; 2000 zero-input ticks finite; long
+  quiet exactly 248 ticks. Fresh demo 16/16 outcomes, mean reward 0.5000.
+Checks not run / failures / blockers: One existing ignored weight-printing
+  probe remains unrun; not a milestone diagnostic. Earlier deleted M1 raw
+  directories could not be re-audited; fresh runs preserved instead. No
+  unresolved M1 blocker. No cross-platform study/search/final-test inspection.
+Configuration and suite hashes: See docs/evidence/m1-review/summary.json;
+  noisy_variable.toml and noisy_logging_off.toml committed beside evidence.
+Artifact paths: docs/m1-review.md; docs/evidence/m1-review/{commands,summary,
+  demo-diagnostics}.json and observability/*.json; ignored full raw output
+  runs/m1-review/ and runs/m1-review-original/ (preserved).
+Interpretation and claim limits: Dynamics/replay only; some individual actors
+  always choose one action in the short demo. No learning claim. Checkpoint
+  and health schema 2 supersede schema 1; event schema remains 1. Old checkpoints
+  are explicitly rejected, not silently migrated. Spec and history preserved.
+Tracker boxes updated: M1-GATE stays checked after corrective re-verification.
+Next eligible task: M2-01.
+```
+
 ## Blockers and decision register - keep current
 
-No blockers. M0-GATE re-verified after the 2026-09-21 UTC owner-requested
-corrective review: 73 Rust tests, 14 Python tests, clean fmt/clippy, four
-original audited runs, and seven fresh bounded runs. Next: M1-01.
-M0-DOCS completed the current continuation guide in `docs/handoff.md`.
-Review findings and remaining milestone scope: `docs/m0-review.md`.
+No blockers. M1-GATE re-verified after the 2026-09-21 UTC owner-requested
+corrective review: 185 Rust passes (1 ignored probe), 15 Python passes,
+clean fmt/Clippy, eleven corrected audited runs and two original comparisons.
+Next: M2-01. Findings, corrections and claim limits: `docs/m1-review.md`.
+M0 historical evidence remains in `docs/m0-review.md`.
 Scientific decisions remain in the append-only `docs/decisions.md`.
 
 ## First meaningful success

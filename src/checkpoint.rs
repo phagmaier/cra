@@ -28,7 +28,9 @@
 //! snapshots are built and restored through their own `pub(crate)`
 //! entry points, and only this module holds both at once.
 
+use std::io::Write;
 use std::path::Path;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -40,12 +42,22 @@ use crate::environment::{Lifetime, SimError};
 
 /// Schema version for M1 checkpoint files. Bumped only with a documented
 /// format change; older files are rejected, never silently migrated.
-pub const CHECKPOINT_SCHEMA_VERSION: u32 = 1;
+pub const CHECKPOINT_SCHEMA_VERSION: u32 = 2;
+
+// Option fields in live snapshots must be present, even when null.
+pub(crate) fn required_option<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    Option::<T>::deserialize(deserializer)
+}
 
 /// Seed identity bound to every RNG position in the file. Restore
 /// re-derives each stream's seed bytes from this tuple and rejects a
 /// mismatch instead of reseeding silently.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SeedIdentity {
     pub root_seed: u64,
     pub namespace: String,
@@ -59,6 +71,8 @@ pub struct SeedIdentity {
 struct CheckpointPayload {
     schema_version: u32,
     code_version: String,
+    reference_os: String,
+    reference_arch: String,
     config: Config,
     config_hash_sha256: String,
     seeds: SeedIdentity,
@@ -155,12 +169,19 @@ impl Checkpoint {
         crate::config::validate_actor_no_learning_execution(cfg).map_err(|e| {
             CheckpointError::Incompatible(format!("checkpoint config not executable: {e}"))
         })?;
+        if cfg.actor.as_ref() != Some(actor.actor_config()) {
+            return Err(CheckpointError::Incompatible(
+                "live actor configuration differs from capture configuration".to_owned(),
+            ));
+        }
         let resolved = resolved_toml(cfg).map_err(|e| {
             CheckpointError::Corrupt(format!("cannot resolve checkpoint config: {e}"))
         })?;
         let payload = CheckpointPayload {
             schema_version: CHECKPOINT_SCHEMA_VERSION,
             code_version: env!("CARGO_PKG_VERSION").to_owned(),
+            reference_os: std::env::consts::OS.to_owned(),
+            reference_arch: std::env::consts::ARCH.to_owned(),
             config: cfg.clone(),
             config_hash_sha256: sha256_hex(resolved.as_bytes()),
             env: lifetime.snapshot(
@@ -182,10 +203,12 @@ impl Checkpoint {
             &serde_json::to_vec(&payload)
                 .map_err(|e| CheckpointError::Corrupt(format!("cannot encode payload: {e}")))?,
         );
-        Ok(Self {
+        let checkpoint = Self {
             payload,
             checksum_sha256,
-        })
+        };
+        checkpoint.check_compatibility()?;
+        Ok(checkpoint)
     }
 
     /// Seed identity recorded in the file.
@@ -220,14 +243,31 @@ impl Checkpoint {
             .ok_or_else(|| io("no file name".to_owned()))?
             .to_string_lossy()
             .into_owned();
-        let tmp = parent.join(format!(".{file_name}.tmp.{}", std::process::id()));
         let file = CheckpointFile {
             payload: self.payload.clone(),
             checksum_sha256: self.checksum_sha256.clone(),
         };
         let bytes = serde_json::to_vec_pretty(&file)
             .map_err(|e| CheckpointError::Corrupt(format!("cannot encode file: {e}")))?;
-        std::fs::write(&tmp, &bytes).map_err(|e| io(e.to_string()))?;
+        static NEXT_TEMP: AtomicU64 = AtomicU64::new(0);
+        let (tmp, mut output) = loop {
+            let nonce = NEXT_TEMP.fetch_add(1, Ordering::Relaxed);
+            let tmp = parent.join(format!(".{file_name}.tmp.{}.{nonce}", std::process::id()));
+            match std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&tmp)
+            {
+                Ok(file) => break (tmp, file),
+                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
+                Err(e) => return Err(io(e.to_string())),
+            }
+        };
+        if let Err(e) = output.write_all(&bytes).and_then(|_| output.sync_all()) {
+            let _ = std::fs::remove_file(&tmp);
+            return Err(io(e.to_string()));
+        }
+        drop(output);
         std::fs::rename(&tmp, path).map_err(|e| {
             let _ = std::fs::remove_file(&tmp);
             io(e.to_string())
@@ -261,10 +301,12 @@ impl Checkpoint {
         if recomputed != file.checksum_sha256 {
             return Err(CheckpointError::ChecksumMismatch);
         }
-        Ok(Self {
+        let checkpoint = Self {
             payload: file.payload,
             checksum_sha256: file.checksum_sha256,
-        })
+        };
+        checkpoint.check_compatibility()?;
+        Ok(checkpoint)
     }
 
     /// Compatibility rules shared by both resume halves: executable
@@ -282,6 +324,14 @@ impl Checkpoint {
     }
 
     fn check_compatibility(&self) -> Result<(), CheckpointError> {
+        if self.payload.code_version != env!("CARGO_PKG_VERSION")
+            || self.payload.reference_os != std::env::consts::OS
+            || self.payload.reference_arch != std::env::consts::ARCH
+        {
+            return Err(CheckpointError::Incompatible(
+                "checkpoint code version or reference platform differs".to_owned(),
+            ));
+        }
         crate::config::validate_actor_no_learning_execution(&self.payload.config).map_err(|e| {
             CheckpointError::Incompatible(format!("checkpoint config not executable: {e}"))
         })?;
@@ -298,6 +348,88 @@ impl Checkpoint {
                 "agent ticks {} disagree with environment tick {}",
                 self.payload.agent.ticks_advanced, self.payload.env.tick
             )));
+        }
+        let p = &self.payload;
+        let cfg = &p.config;
+        let e = &p.env;
+        let bad = |s: &str| CheckpointError::Incompatible(s.to_owned());
+        let actor_cfg = cfg
+            .actor
+            .as_ref()
+            .ok_or_else(|| bad("missing actor config"))?;
+        p.inherited
+            .validate(
+                actor_cfg,
+                crate::environment::feature_dim(cfg.environment.cue_count),
+            )
+            .map_err(|err| bad(&err.to_string()))?;
+        if e.cue_count != cfg.environment.cue_count
+            || e.cue_ticks != cfg.environment.cue_ticks
+            || e.response_ticks != cfg.environment.response_ticks
+            || e.quiet_range != cfg.environment.quiet_ticks
+            || e.gap_range != cfg.environment.memory_gap_ticks
+            || e.delay_range != cfg.environment.reward_delay_ticks
+            || e.outcomes_target != cfg.simulation.outcomes_per_lifetime
+            || e.warmup_ticks != cfg.simulation.warmup_ticks
+        {
+            return Err(bad(
+                "stored environment differs from resolved configuration",
+            ));
+        }
+        let id = &p.seeds;
+        // Validate both halves even when the caller asks to restore only one.
+        let env = Lifetime::restore(
+            e.clone(),
+            id.root_seed,
+            &id.namespace,
+            id.outer_seed,
+            id.lifetime_index,
+        )?;
+        let actor = NoLearningActor::restore(
+            p.agent.clone(),
+            actor_cfg.clone(),
+            p.inherited.clone(),
+            e.cue_count,
+            id.root_seed,
+            &id.namespace,
+            id.outer_seed,
+            id.lifetime_index,
+        )?;
+        actor.health_check().map_err(|err| bad(&err.to_string()))?;
+        if e.confirmed != e.consumed || p.agent.last_feedback != e.consumed.last().copied() {
+            return Err(bad(
+                "agent feedback bookkeeping disagrees with delivered/confirmed events",
+            ));
+        }
+        if matches!(e.phase, crate::environment::schedule::PhaseState::Committed) {
+            return Err(bad("commitment must finish before capture"));
+        }
+        // Bind hidden static assignments to the recorded config/seed. Birth
+        // draws are local here and never touch the live simulation streams.
+        let birth = Lifetime::new(
+            cfg,
+            id.root_seed,
+            &id.namespace,
+            id.outer_seed,
+            id.lifetime_index,
+        )?;
+        for cue in 0..e.cue_count {
+            if env.hidden().epsilon(cue) != birth.hidden().epsilon(cue)
+                || env.hidden().hazard(cue) != birth.hidden().hazard(cue)
+                || env.hidden().role(cue) != birth.hidden().role(cue)
+            {
+                return Err(bad(
+                    "hidden noise/hazard assignment differs from config and seed",
+                ));
+            }
+        }
+        let init =
+            crate::rng::SeedTuple::new(id.root_seed, &id.namespace, id.outer_seed, 0, "init");
+        let init_hex = crate::rng::derive_seed_hex(&init).map_err(|err| bad(&err.to_string()))?;
+        if p.inherited.topology.init_seed_hex != init_hex {
+            return Err(bad(
+                "inherited initialization seed differs from checkpoint identity",
+            ));
         }
         Ok(())
     }
@@ -360,7 +492,7 @@ mod tests {
 
     #[test]
     fn schema_version_is_pinned() {
-        assert_eq!(CHECKPOINT_SCHEMA_VERSION, 1);
+        assert_eq!(CHECKPOINT_SCHEMA_VERSION, 2);
     }
 
     fn test_capture() -> (Checkpoint, SeedIdentity) {
@@ -436,5 +568,58 @@ mod tests {
             checkpoint.restore_env(&id),
             Err(CheckpointError::Incompatible(_))
         ));
+    }
+    #[test]
+    fn corrupt_state_is_rejected_by_both_restore_halves() {
+        let (original, id) = test_capture();
+        let mutations: Vec<(&str, Checkpoint)> = (0..9)
+            .map(|case| {
+                let mut cp = original.clone();
+                let name = match case {
+                    0 => {
+                        cp.payload.inherited.weights.w0[0].pop();
+                        "ragged W0"
+                    }
+                    1 => {
+                        cp.payload.inherited.weights.w0[0][0] = 1.0;
+                        "missing edge weight"
+                    }
+                    2 => {
+                        cp.payload.agent.last_output.action_0 = 0.4;
+                        "stale readout"
+                    }
+                    3 => {
+                        cp.payload.agent.last_feedback = Some(9);
+                        "foreign feedback"
+                    }
+                    4 => {
+                        cp.payload.env.commitments = 5;
+                        cp.payload.env.next_event_id = 5;
+                        "lost pending choice"
+                    }
+                    5 => {
+                        cp.payload.env.cue_ticks += 1;
+                        "config drift"
+                    }
+                    6 => {
+                        cp.payload.agent.noise_rng.word_pos = 1_u128 << 68;
+                        "wrapped RNG position"
+                    }
+                    7 => {
+                        cp.payload.reference_arch = "foreign".into();
+                        "platform mismatch"
+                    }
+                    _ => {
+                        cp.payload.inherited.topology.motor0[0] = 999;
+                        "invalid motor pool"
+                    }
+                };
+                (name, cp)
+            })
+            .collect();
+        for (name, cp) in mutations {
+            assert!(cp.restore_actor(&id).is_err(), "{name}: actor");
+            assert!(cp.restore_env(&id).is_err(), "{name}: env");
+        }
     }
 }

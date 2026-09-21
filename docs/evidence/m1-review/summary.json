@@ -1,0 +1,828 @@
+{
+  "base_revision": "13a48738eedd3bb146a828b1cb1aa48588a77973",
+  "dirty_tree": true,
+  "source_sha256": {
+    "Cargo.lock": "6b394c6e527bfdeb15c117a9b0eafa8875b8725a26ea07f7a5902e9a2a1822b6",
+    "Cargo.toml": "92ad7f41190defbd65510c8076f759f3813d55be9de58b05845c2ae9ef77380f",
+    "rust-toolchain.toml": "07487db9d6b45de2f308f9fb578c9c46041381c3ee44ef782eca64150a394772",
+    "src/agent/actor.rs": "f28196ea9e8f886c8e3ea0ec684d224e020ff31cb5ad2960fc93805581ca3015",
+    "src/agent/health.rs": "31003a9ee08d45f4d9b6d1433fdb729bed991e3ff85b455e3c3220ab9aaf428d",
+    "src/agent/mod.rs": "e3989e800db219f6851326fd48f108cdb54a3e296a776b49480c19c3e615988c",
+    "src/agent/motor.rs": "51fc8b6e5be70f5ea00e9e119c08652cdd922bc97ff67e2a4c19d2f247ee2ff1",
+    "src/agent/no_learning.rs": "5dba1a32d4372abf3606773418aa4b31a1c8264a9d94d2590a93e99cdf444257",
+    "src/agent/topology.rs": "3145c3e00de75553d7c4dd01189627479b32ae20113c27a1becbba2530748ff1",
+    "src/agent/weights.rs": "8631afe6d32ecc690309c3126126bfc5a69ae0d212c3b91db24938213d14372f",
+    "src/checkpoint.rs": "a816ace02f65e422c4c10e140d47c4fe12bbe3bc27c311a992064c9dd41e0c5b",
+    "src/config.rs": "83145430f06859a820d824fd8aa758279edcb00366802db60e502baff659510e",
+    "src/environment/hidden_state.rs": "b19615e49aeeb21761912609c313a4146fa4b86ee52093c8a1c79be97c1cb1dc",
+    "src/environment/mod.rs": "0c6a10825157b0c489b61d0d7139a395312fd9a42c55d9f41851a48dd10dd913",
+    "src/environment/observation.rs": "49dfa2123983027ade0a92145ea9d6cb40286ab03ac19ef33afbd13e38b8e2dc",
+    "src/environment/schedule.rs": "37d25bb1ad79ece6c06b04163a941e17dc41f0a877ab36ca14e6780989b0b902",
+    "src/experiments/baseline.rs": "88fe35fe3867eb716e8d818edbb4b197d9f2487b432af22394d4bd6b54cb1081",
+    "src/experiments/mod.rs": "fb1d30848bb45f33f672f3d098524703fb7b082155c76dec0df27dda232c2ea9",
+    "src/lib.rs": "8d380d50bfd7fca2060a305916b6f8e128cf31f4f089682a164f805000c5b0ec",
+    "src/logging/events.rs": "06820f42e25f18eb33bacdd6d5c92b8a5d040481164138d5a2519435edbff7c4",
+    "src/logging/mod.rs": "d5c042d7fdcf96c20b7dc954434b5de6d1e0aa0a8316accd2b124c8351d2e142",
+    "src/main.rs": "601700723f53e9879d9b440c18decb8d7a7e0e93939c1b2f9a60cc954a650bae",
+    "src/rng.rs": "5ac42296c88511055828c19926761a045aeb4abb2fbbac6d50ccbcbd6c0a79f0",
+    "src/run.rs": "3290e889d8fd5197c8d39d2fc0b0c8e64acf0b43a8ec230284ac028eb956af7a",
+    "tests/actor.rs": "01af59fb2c9139d00d0deb0a0408c9664db15ea0c0e54a0e96d2886be544617e",
+    "tests/actor_noise.rs": "c087e35bac7f6b076f4dd0e26e078cf17dd4d735e483b23d789a4c3ae6350e50",
+    "tests/adaptation.rs": "8826dcd8749fdd7f1f7d2ca80ef79e895b7acb53f6e31dd1ab1f1d92b96d1812",
+    "tests/baselines.rs": "a3ceef3d4e6bdc01b466e0e402b6d0ba701199da16c68b027c6c04ab81886872",
+    "tests/checkpoint.rs": "b2256c10c04928ace5564a062cdf3ad94a15d6b5adb15b1cdaa179c468a5e2b4",
+    "tests/config_validation.rs": "fbf3e5f2b850ceea8f3d076ecfb1c11a7fb89e80086ab8c1ec129bcbc9ebc26a",
+    "tests/environment_contract.rs": "2a6c5979cf633554ba169f999db20ce1d40b4ab425fb8d5ca65ad3368e224b50",
+    "tests/event_logging.rs": "8fc511deb1081de5f448c50be9498fcce4fb172bb7ea338f96b38c56cca2b2ab",
+    "tests/event_order.rs": "157ee4331f2923185b7f03a561555968d58afa5085cc08f3eaf5df7b57451a20",
+    "tests/health.rs": "83ae5e1419e0c918787d59c0e4efada132d1c2e5a21ae3e9f3e923fe25f06806",
+    "tests/leakage.rs": "fce00189eba77142ebc528279ebae7cb8b4c6eed4fa17f95af4aac8300e867c2",
+    "tests/motor.rs": "be9e8decc7c732c0904728d492684135aa9414c64ccf76b42a59c54f2d51c489",
+    "tests/no_learning.rs": "54290e53a8f9b14a82492cd0306ec785d6af7ca28cf0cc94e3ed2e05d6ad0932",
+    "tests/observability.rs": "560afa956e8c19e5df3998d97621dc206bd66125e74d0ba58fb2b22535c371dd",
+    "tests/randomized_env.rs": "c57e05beb9923485f88b9778c40cae25bd424b8153ea118637bb16a7d838e7fa",
+    "tests/replay.rs": "8549a0626f91a4123647f5fb3b5a60c044bfe9bf6f9f7fd7e68cf761e0c8e0dd",
+    "tests/seed_streams.rs": "7c159bd249dc6a39ca0b75c63936affac2b43dbacc8a05326fd8022d6854a871",
+    "tests/support/mod.rs": "647f265f1ae0d907d8f128c045ffc731cd1a8fffcc6071cc4b91f0fcc87023ee",
+    "tests/topology.rs": "dbf82ac66f73b5c66e2e72fc5aeffc1d9ebd3c7c34ba0e7a3cf159c26cba1cc5",
+    "tests/weights.rs": "d8d30eb8c8bd2f54fe5eb3cb13a496bb9135f5fa4518bc1927f10078317470a7"
+  },
+  "release_binary_sha256": "1243767e6f875ef3b5d8b8f69448e5462b84fcf765d1734d27a94853b0b907c1",
+  "runs": [
+    {
+      "directory": "runs/m1-review/actor_no_learning-root1-outer1-1789977523",
+      "config": "configs/actor_no_learning.toml",
+      "baseline": "actor",
+      "outer_seed": 1,
+      "original": false,
+      "artifact_sha256": {
+        "actor-diagnostics-0.json": "7f1ab1182c8365165eb3abfb8daa7c868bf7f2de9576deea307528d72d5784a3",
+        "actor-diagnostics-1.json": "144224dd78051a3d02b3f86167061cac9c67d2e88db4f9cb1a31052c07632bf9",
+        "actor-inherited.json": "e34484ef04244777032e31bb7033f4b70a2da9040d98f20c03484e96bbb9bb57",
+        "completion.json": "6eb993dfe4719ac32f32ca5a0b6e187aef5d9b31697c944e7a62a9c2c84af275",
+        "condition.json": "b8c5e8c9e6fb152ecb2694fca63c81a3d215815c3cee656a8136faebb72c3b06",
+        "events.jsonl": "66a9065cc7c6dae1331c4a84b13ed9cb95d1c345564ddc3a8edce1f185d8c352",
+        "hidden.jsonl": "05549ecf1ed9bde87875f6fbd98b2ba070f3600a16483d05dbba21c244369ebe",
+        "manifest.json": "c3891e4933e4484e48bca87fae0fa73c6cebc95fc64ce1856f15f2fc455bc1c7",
+        "resolved_config.toml": "674f75f2e5b75c226bced2380b4f28778463b453d27618636d52101d45b60768",
+        "seed_streams.json": "745af822bedcfea80acd65586be87d9c1aa11087b3bc3f3d43a14f2db48adefc"
+      },
+      "completion": {
+        "run_id": "actor_no_learning-root1-outer1-1789977523",
+        "status": "completed",
+        "lifetimes_completed": 2,
+        "commitments": 16,
+        "outcomes": 16
+      },
+      "mean_reward": 0.5,
+      "action_counts": [
+        16,
+        0
+      ],
+      "health": [
+        {
+          "max_abs_a": 0.5629424915787922,
+          "max_abs_h": 1.5648859320001927,
+          "max_abs_q": 0.6683993623248425,
+          "max_abs_r": 0.9162084728082911,
+          "max_motor_margin": 0.8979662946072959,
+          "min_motor_margin": 0.0069466660672457235,
+          "saturated_neuron_ticks": 9,
+          "schema_version": 2,
+          "ticks_observed": 136,
+          "total_neuron_ticks": 2176
+        },
+        {
+          "max_abs_a": 0.5740513932588815,
+          "max_abs_h": 1.625498486903373,
+          "max_abs_q": 0.6530322748159224,
+          "max_abs_r": 0.9254178419686511,
+          "max_motor_margin": 0.9002301401597237,
+          "min_motor_margin": 0.0011128868083177465,
+          "saturated_neuron_ticks": 8,
+          "schema_version": 2,
+          "ticks_observed": 136,
+          "total_neuron_ticks": 2176
+        }
+      ],
+      "initialization": [
+        {
+          "accepted_attempt": 0,
+          "rejected": []
+        },
+        {
+          "accepted_attempt": 0,
+          "rejected": []
+        }
+      ]
+    },
+    {
+      "directory": "runs/m1-review/actor_no_learning-root1-outer2-1789977523",
+      "config": "configs/actor_no_learning.toml",
+      "baseline": "actor",
+      "outer_seed": 2,
+      "original": false,
+      "artifact_sha256": {
+        "actor-diagnostics-0.json": "744c1bad046b62f8cd0a4d8dbf70c1dc1916ed6e3b4cfd0983dade00d904a3fe",
+        "actor-diagnostics-1.json": "6849f7299e1d3066cdc015bbd915edfafb625a12daca7994c5e41e080c4b1d03",
+        "actor-inherited.json": "7f90572c1b992de1ba46748f74808f97a1767f6bcd456c5212b3758b3bc7e441",
+        "completion.json": "bdf5c1e396adb9b00c0b0ee133e090f6458c4ba339ff2139d8f75e79770d7889",
+        "condition.json": "b8c5e8c9e6fb152ecb2694fca63c81a3d215815c3cee656a8136faebb72c3b06",
+        "events.jsonl": "8fcb58446ce674a6444b739fb116aae4254ab7b5482436daa9eebe08693bfec0",
+        "hidden.jsonl": "73e92728d991faa64f94b77dea4fce2de09d8121c909a3b68515c30bcee1f055",
+        "manifest.json": "ec6870c62ad75f820892ff2757374f50bb6d6ed05ff1484936ce9d20da8ac8b8",
+        "resolved_config.toml": "ad3de5acee347a96adb3d512e5e6131e2e6e766f319b22a7892281c1cb1310ba",
+        "seed_streams.json": "1ab85a08005b3d7483bb085a78ecc7c59c5c7832efcb44a07722492366644079"
+      },
+      "completion": {
+        "run_id": "actor_no_learning-root1-outer2-1789977523",
+        "status": "completed",
+        "lifetimes_completed": 2,
+        "commitments": 16,
+        "outcomes": 16
+      },
+      "mean_reward": 0.1875,
+      "action_counts": [
+        16,
+        0
+      ],
+      "health": [
+        {
+          "max_abs_a": 0.4945927613292772,
+          "max_abs_h": 1.468551479942233,
+          "max_abs_q": 0.5402636259572784,
+          "max_abs_r": 0.8993007730098713,
+          "max_motor_margin": 0.8505976890721261,
+          "min_motor_margin": 0.0005808709784930581,
+          "saturated_neuron_ticks": 0,
+          "schema_version": 2,
+          "ticks_observed": 136,
+          "total_neuron_ticks": 2176
+        },
+        {
+          "max_abs_a": 0.49403740182884304,
+          "max_abs_h": 1.3225731120990032,
+          "max_abs_q": 0.5422582508421202,
+          "max_abs_r": 0.8674223994186966,
+          "max_motor_margin": 0.8160707605326241,
+          "min_motor_margin": 0.0010571994089623449,
+          "saturated_neuron_ticks": 0,
+          "schema_version": 2,
+          "ticks_observed": 136,
+          "total_neuron_ticks": 2176
+        }
+      ],
+      "initialization": [
+        {
+          "accepted_attempt": 0,
+          "rejected": []
+        },
+        {
+          "accepted_attempt": 0,
+          "rejected": []
+        }
+      ]
+    },
+    {
+      "directory": "runs/m1-review/actor_no_learning-root1-outer3-1789977523",
+      "config": "configs/actor_no_learning.toml",
+      "baseline": "actor",
+      "outer_seed": 3,
+      "original": false,
+      "artifact_sha256": {
+        "actor-diagnostics-0.json": "f68c551fd00f7d68ce0be6542804714ac49fb24a38e3d70155599d452d3ffcfc",
+        "actor-diagnostics-1.json": "9dc1b4e6ff30d378a980dd1df7aa44790f26ef6807c4993e81965abcb7514324",
+        "actor-inherited.json": "878d2cf9f2ae60424a1e256233d7f40ad1983b2fcdc2d2c046d2fbeceb83ae64",
+        "completion.json": "d18f6ea52daa2c627d2a4a65106671e066a31ed9025bd1921f59190105d62e1a",
+        "condition.json": "b8c5e8c9e6fb152ecb2694fca63c81a3d215815c3cee656a8136faebb72c3b06",
+        "events.jsonl": "50139fa9eb33ea2473e1c7584a19912f80bdefd65715116b9e86f4c6650fa01b",
+        "hidden.jsonl": "8bc03debeabc54618b28a5560d9a4aa278a804a5a7da6691026b09d5dcc7c0e9",
+        "manifest.json": "16da9f716c9c2a9f376d661b1ba3fbcd2ea3345d62f2c04ccfe3ca4b940357d3",
+        "resolved_config.toml": "bd76b2d1fe8ed5735c930de5077fa70c74b4f75e3f932186e11b7174cc59ea64",
+        "seed_streams.json": "5ee815e8ec92f5ce5c14b3edb3ce2acef4bc8e09a23038b57dd152a501fb6ede"
+      },
+      "completion": {
+        "run_id": "actor_no_learning-root1-outer3-1789977523",
+        "status": "completed",
+        "lifetimes_completed": 2,
+        "commitments": 16,
+        "outcomes": 16
+      },
+      "mean_reward": 0.6875,
+      "action_counts": [
+        12,
+        4
+      ],
+      "health": [
+        {
+          "max_abs_a": 0.47092619028896077,
+          "max_abs_h": 1.3386724695448864,
+          "max_abs_q": 0.3889773034734728,
+          "max_abs_r": 0.8713530217661006,
+          "max_motor_margin": 0.36438163726914435,
+          "min_motor_margin": 0.00016236943920042157,
+          "saturated_neuron_ticks": 0,
+          "schema_version": 2,
+          "ticks_observed": 136,
+          "total_neuron_ticks": 2176
+        },
+        {
+          "max_abs_a": 0.4604530267636346,
+          "max_abs_h": 1.4264823457748312,
+          "max_abs_q": 0.4383219630794627,
+          "max_abs_r": 0.8909434585772188,
+          "max_motor_margin": 0.3447718372354911,
+          "min_motor_margin": 0.0031062255410820167,
+          "saturated_neuron_ticks": 0,
+          "schema_version": 2,
+          "ticks_observed": 136,
+          "total_neuron_ticks": 2176
+        }
+      ],
+      "initialization": [
+        {
+          "accepted_attempt": 0,
+          "rejected": []
+        },
+        {
+          "accepted_attempt": 0,
+          "rejected": []
+        }
+      ]
+    },
+    {
+      "directory": "runs/m1-review/actor_no_learning-root1-outer4-1789977523",
+      "config": "configs/actor_no_learning.toml",
+      "baseline": "actor",
+      "outer_seed": 4,
+      "original": false,
+      "artifact_sha256": {
+        "actor-diagnostics-0.json": "1e69f608be1c1a40d5f3055e84da58c4f79f7a0ad0115abef13378afdece7244",
+        "actor-diagnostics-1.json": "bf4efa813455423e01bb1312b9931ef5fba006af3da7c2b3395b01b2d2f537f8",
+        "actor-inherited.json": "7224a3e8bd06d588b1165b2c84b849bbe1287e2bbcd0a0b5aeae8253eaf01294",
+        "completion.json": "1e3a0300a68d82bf91de6f2933210c5151b7863e2f411a55dd4542dcf445cd4d",
+        "condition.json": "b8c5e8c9e6fb152ecb2694fca63c81a3d215815c3cee656a8136faebb72c3b06",
+        "events.jsonl": "0ddaedbbc75aac7f05ad7fa49cc160ee157b5b2dbad3fedca58b100cb3d62611",
+        "hidden.jsonl": "cd8457580a55f3e9b54516677098f4161214926f39190081569eab6760736d9d",
+        "manifest.json": "2983b6d2ecc869db4c9e371e1fee6ad6a28a7bfa61688bac626b6d2a9d4dc7e8",
+        "resolved_config.toml": "5d179f1aff3ff1afa2d1b468124eaa0ff99ae774d349b83d35802223a3a93085",
+        "seed_streams.json": "db15c40f68be718096a9f345e0c0ca3f0441089d5f737ae591f2af2f9fd3937f"
+      },
+      "completion": {
+        "run_id": "actor_no_learning-root1-outer4-1789977523",
+        "status": "completed",
+        "lifetimes_completed": 2,
+        "commitments": 16,
+        "outcomes": 16
+      },
+      "mean_reward": 0.5,
+      "action_counts": [
+        16,
+        0
+      ],
+      "health": [
+        {
+          "max_abs_a": 0.48214169409846813,
+          "max_abs_h": 1.3033380580044847,
+          "max_abs_q": 0.6827183013606479,
+          "max_abs_r": 0.8625800183341734,
+          "max_motor_margin": 0.946881516247344,
+          "min_motor_margin": 0.0027069815402132862,
+          "saturated_neuron_ticks": 0,
+          "schema_version": 2,
+          "ticks_observed": 136,
+          "total_neuron_ticks": 2176
+        },
+        {
+          "max_abs_a": 0.48728790837413655,
+          "max_abs_h": 1.4415999748720583,
+          "max_abs_q": 0.627639885972297,
+          "max_abs_r": 0.8940193489818705,
+          "max_motor_margin": 0.9206562782622429,
+          "min_motor_margin": 0.0003814552482986136,
+          "saturated_neuron_ticks": 0,
+          "schema_version": 2,
+          "ticks_observed": 136,
+          "total_neuron_ticks": 2176
+        }
+      ],
+      "initialization": [
+        {
+          "accepted_attempt": 0,
+          "rejected": []
+        },
+        {
+          "accepted_attempt": 0,
+          "rejected": []
+        }
+      ]
+    },
+    {
+      "directory": "runs/m1-review/actor_no_learning-root1-outer5-1789977523",
+      "config": "configs/actor_no_learning.toml",
+      "baseline": "actor",
+      "outer_seed": 5,
+      "original": false,
+      "artifact_sha256": {
+        "actor-diagnostics-0.json": "b7914a73e8ce0b8dc9898e0d9cf96bd8896734c7069de56593fe79f85cf99621",
+        "actor-diagnostics-1.json": "a2de8986debed0057d136c87665239d481d91c9ae68854f53247c7bc0423a193",
+        "actor-inherited.json": "5f833fa7b2342fbe86298d274ea1d53a19baa79d527fbc4f44f0a5c48dcfbe5b",
+        "completion.json": "ffaa57a968c2780b25074388563acedcb9cc23859372ac29c226b44cfba91b5c",
+        "condition.json": "b8c5e8c9e6fb152ecb2694fca63c81a3d215815c3cee656a8136faebb72c3b06",
+        "events.jsonl": "057d6ac71d376accf8abbf81477ae1b6ec493fd00b052c2a8f86c296eab8ef59",
+        "hidden.jsonl": "8194e37b46c8d5ed799491632900c15329a940f8b4edc10c14de0fd9b3c9464b",
+        "manifest.json": "4e19988f70d08903d697a49a077b948445a9e5afe74899049045516c94f56399",
+        "resolved_config.toml": "a1b898f262888b68fe402ebd0266d6714aca24e517acc82788a99f929371d9ac",
+        "seed_streams.json": "d7444510609a7b55570337dc64802808d977e4bf9c88fdffd31dee65b27b7efe"
+      },
+      "completion": {
+        "run_id": "actor_no_learning-root1-outer5-1789977523",
+        "status": "completed",
+        "lifetimes_completed": 2,
+        "commitments": 16,
+        "outcomes": 16
+      },
+      "mean_reward": 0.625,
+      "action_counts": [
+        0,
+        16
+      ],
+      "health": [
+        {
+          "max_abs_a": 0.48315298037004195,
+          "max_abs_h": 1.1122741730964678,
+          "max_abs_q": 0.28700208958037304,
+          "max_abs_r": 0.8048648057990252,
+          "max_motor_margin": 0.4085170174580315,
+          "min_motor_margin": 1.691637556044262e-06,
+          "saturated_neuron_ticks": 0,
+          "schema_version": 2,
+          "ticks_observed": 136,
+          "total_neuron_ticks": 2176
+        },
+        {
+          "max_abs_a": 0.4591029095776159,
+          "max_abs_h": 1.2755414909404768,
+          "max_abs_q": 0.34034618219784896,
+          "max_abs_r": 0.8552924732865874,
+          "max_motor_margin": 0.39223785802912337,
+          "min_motor_margin": 0.0007533587703836483,
+          "saturated_neuron_ticks": 0,
+          "schema_version": 2,
+          "ticks_observed": 136,
+          "total_neuron_ticks": 2176
+        }
+      ],
+      "initialization": [
+        {
+          "accepted_attempt": 0,
+          "rejected": []
+        },
+        {
+          "accepted_attempt": 0,
+          "rejected": []
+        }
+      ]
+    },
+    {
+      "directory": "runs/m1-review/actor_no_learning-root1-outer6-1789977524",
+      "config": "configs/actor_no_learning.toml",
+      "baseline": "actor",
+      "outer_seed": 6,
+      "original": false,
+      "artifact_sha256": {
+        "actor-diagnostics-0.json": "31470b93be0555b663b31aa7ad9052d2ecfad083882b876e550f4cd6d27d58ec",
+        "actor-diagnostics-1.json": "80e41009dff8fd8cef5e93eba63037a9b021cc7069cee3a31a167687f9f49bcd",
+        "actor-inherited.json": "978b74820010ff81b969ad2c42d79698fbae3fb4a5f105397a192a86daed4f3e",
+        "completion.json": "e6dfdfb19c114e04084376cc02628a9d223acc9711d50ee4f00ef98a156ef4d8",
+        "condition.json": "b8c5e8c9e6fb152ecb2694fca63c81a3d215815c3cee656a8136faebb72c3b06",
+        "events.jsonl": "3f0665208f6e50d4c24d39dd4772fb277ea89609e7843583f35f0db934b21305",
+        "hidden.jsonl": "a2f2cd588a06ab275d6d02f3d71db0dcbd14d963c9188959e27051f8232acdf0",
+        "manifest.json": "72ff7c32c79bca7a13a000da6ae759bc906063c7b8ec4eb73413ad199451e086",
+        "resolved_config.toml": "9c5dbb7c453c1413587dbbf1aa09ad4fbc87ab29c26170d2cb2060d3af926e60",
+        "seed_streams.json": "1836a8840d8af52caf608268f6d4360264bb76a09e7e51cb0fa1a25ee652a1d6"
+      },
+      "completion": {
+        "run_id": "actor_no_learning-root1-outer6-1789977524",
+        "status": "completed",
+        "lifetimes_completed": 2,
+        "commitments": 16,
+        "outcomes": 16
+      },
+      "mean_reward": 0.5,
+      "action_counts": [
+        8,
+        8
+      ],
+      "health": [
+        {
+          "max_abs_a": 0.34772423789935925,
+          "max_abs_h": 1.1756116469552553,
+          "max_abs_q": 0.39607505737292803,
+          "max_abs_r": 0.8260628247363029,
+          "max_motor_margin": 0.459681416497027,
+          "min_motor_margin": 8.930756614541902e-05,
+          "saturated_neuron_ticks": 0,
+          "schema_version": 2,
+          "ticks_observed": 136,
+          "total_neuron_ticks": 2176
+        },
+        {
+          "max_abs_a": 0.44390509695175895,
+          "max_abs_h": 1.2373449775960408,
+          "max_abs_q": 0.4388965833548769,
+          "max_abs_r": 0.8446966687154063,
+          "max_motor_margin": 0.4837256517906164,
+          "min_motor_margin": 0.003275232194294986,
+          "saturated_neuron_ticks": 0,
+          "schema_version": 2,
+          "ticks_observed": 136,
+          "total_neuron_ticks": 2176
+        }
+      ],
+      "initialization": [
+        {
+          "accepted_attempt": 0,
+          "rejected": []
+        },
+        {
+          "accepted_attempt": 0,
+          "rejected": []
+        }
+      ]
+    },
+    {
+      "directory": "runs/m1-review/actor_no_learning-root1-outer7-1789977524",
+      "config": "configs/actor_no_learning.toml",
+      "baseline": "actor",
+      "outer_seed": 7,
+      "original": false,
+      "artifact_sha256": {
+        "actor-diagnostics-0.json": "583018db9a6f5e65e299016ae81a2439f403ae00019b257434d562b8fdc273f2",
+        "actor-diagnostics-1.json": "0f5dd40aeab3558d3c881322b6848193e37ca42ee1a5e30b6cb7549829bf035d",
+        "actor-inherited.json": "111b5814d076271973eaf627fe8c12b831d43b6a58663f030030f5f3ed927506",
+        "completion.json": "b8f72a918a571e1706ada934163efc07e8b2aed7f62df9e87a8fa65d9a0093a3",
+        "condition.json": "b8c5e8c9e6fb152ecb2694fca63c81a3d215815c3cee656a8136faebb72c3b06",
+        "events.jsonl": "fdd9bb85d22b8efe76df477790e880558732bea9fe2920dd22e40ea7e2382f02",
+        "hidden.jsonl": "453759ff4fa27199ed9324effaf96c72e3ee49cbd942cff79e2be7afe26ef27c",
+        "manifest.json": "567f374a43bdccffee3c9025d22d4edb75f881c1509fa9d26c92cc0555f92560",
+        "resolved_config.toml": "4d0726302ee2bfc2695560ea8d36c0e5a179061fdc1f6fb7dadccb458aa36d6b",
+        "seed_streams.json": "b1b070d078e4f265299ed99f5d60b6c5130c9c82036b656778a83a229580a7df"
+      },
+      "completion": {
+        "run_id": "actor_no_learning-root1-outer7-1789977524",
+        "status": "completed",
+        "lifetimes_completed": 2,
+        "commitments": 16,
+        "outcomes": 16
+      },
+      "mean_reward": 0.125,
+      "action_counts": [
+        14,
+        2
+      ],
+      "health": [
+        {
+          "max_abs_a": 0.6112522885935306,
+          "max_abs_h": 2.125626261108074,
+          "max_abs_q": 0.4175575987687431,
+          "max_abs_r": 0.9719074593296778,
+          "max_motor_margin": 0.7174563222379463,
+          "min_motor_margin": 0.006552254790183509,
+          "saturated_neuron_ticks": 82,
+          "schema_version": 2,
+          "ticks_observed": 136,
+          "total_neuron_ticks": 2176
+        },
+        {
+          "max_abs_a": 0.5959943902666874,
+          "max_abs_h": 2.4112621667489402,
+          "max_abs_q": 0.41446087517147767,
+          "max_abs_r": 0.9840355579609499,
+          "max_motor_margin": 0.6126335455195276,
+          "min_motor_margin": 0.0007166875823892277,
+          "saturated_neuron_ticks": 78,
+          "schema_version": 2,
+          "ticks_observed": 136,
+          "total_neuron_ticks": 2176
+        }
+      ],
+      "initialization": [
+        {
+          "accepted_attempt": 0,
+          "rejected": []
+        },
+        {
+          "accepted_attempt": 0,
+          "rejected": []
+        }
+      ]
+    },
+    {
+      "directory": "runs/m1-review/actor_no_learning-root1-outer8-1789977524",
+      "config": "configs/actor_no_learning.toml",
+      "baseline": "actor",
+      "outer_seed": 8,
+      "original": false,
+      "artifact_sha256": {
+        "actor-diagnostics-0.json": "8cf588b92026a6818ad0e93d9ec687a1ee21c1bcf10eb319c7343b3e917395f2",
+        "actor-diagnostics-1.json": "f5e35c94aa697afb5803727bbfd6842aad9dad9532966a014d1b6c9ecad1bd62",
+        "actor-inherited.json": "0b3ddc656a186b8bd31be20196baf45b76a221accb2a14a480e28fedb1b04e71",
+        "completion.json": "ce4bc92aa80c0c6bd33e00c26bfdc1f9f8d920a68cc204ea55908bca3f9afd1f",
+        "condition.json": "b8c5e8c9e6fb152ecb2694fca63c81a3d215815c3cee656a8136faebb72c3b06",
+        "events.jsonl": "47be2d84fb465cc67c035552d4a0c03935b3b78bee2575886012e935d479c23a",
+        "hidden.jsonl": "f3345428c410324021c47fd91541e29fc06d0b27ef992a6b22fd4a868401e2ef",
+        "manifest.json": "03a884112e923492b8d17399d95c5a518c090927603931d7912064d47ea83406",
+        "resolved_config.toml": "501e32147d176376b48d9dc27905ee49b55df4e258d125bdc985246054380d4e",
+        "seed_streams.json": "6ed62233b9da8e4b1862e21738235627a14df3ac18fdeb0c1e9eba6f8e74406b"
+      },
+      "completion": {
+        "run_id": "actor_no_learning-root1-outer8-1789977524",
+        "status": "completed",
+        "lifetimes_completed": 2,
+        "commitments": 16,
+        "outcomes": 16
+      },
+      "mean_reward": 0.6875,
+      "action_counts": [
+        1,
+        15
+      ],
+      "health": [
+        {
+          "max_abs_a": 0.34330749443778913,
+          "max_abs_h": 0.9299364107210548,
+          "max_abs_q": 0.34148510803799625,
+          "max_abs_r": 0.7305642473263163,
+          "max_motor_margin": 0.46066498865187666,
+          "min_motor_margin": 0.0010647359673883862,
+          "saturated_neuron_ticks": 0,
+          "schema_version": 2,
+          "ticks_observed": 136,
+          "total_neuron_ticks": 2176
+        },
+        {
+          "max_abs_a": 0.3600184641801959,
+          "max_abs_h": 0.7984634504136285,
+          "max_abs_q": 0.29994849878137564,
+          "max_abs_r": 0.6631768775874779,
+          "max_motor_margin": 0.5364938407591447,
+          "min_motor_margin": 0.007548240746891935,
+          "saturated_neuron_ticks": 0,
+          "schema_version": 2,
+          "ticks_observed": 136,
+          "total_neuron_ticks": 2176
+        }
+      ],
+      "initialization": [
+        {
+          "accepted_attempt": 0,
+          "rejected": []
+        },
+        {
+          "accepted_attempt": 0,
+          "rejected": []
+        }
+      ]
+    },
+    {
+      "directory": "runs/m1-review/env_smoke-root1-outer1-1789977524",
+      "config": "configs/env_smoke.toml",
+      "baseline": "oracle",
+      "outer_seed": 1,
+      "original": false,
+      "artifact_sha256": {
+        "completion.json": "5c5a9e18b09ba7354149f36ff637113538fa33741d4b84d7fc9c9c94bca2f55a",
+        "condition.json": "3106b320adad085ee69420dd3a2e0ad614fa8a9714d310f1be92899d6d26c635",
+        "events.jsonl": "5efd0df268186bf6db716ab22bb04611256295d0dd38a15cbcd2c2b208d6ec1c",
+        "hidden.jsonl": "54799cc0e797762181368345d3b4bf546c54aad69a20225d4c359533b1f436d2",
+        "manifest.json": "7f5f0ae5bf37c6346abd0665207b5c623c0b8d69566cd432cb32aa7428ddb1bb",
+        "resolved_config.toml": "bec32af4149d6ccb6bb6549ab47226492aeda684728fd21b612c3b521dca1756",
+        "seed_streams.json": "745af822bedcfea80acd65586be87d9c1aa11087b3bc3f3d43a14f2db48adefc"
+      },
+      "completion": {
+        "run_id": "env_smoke-root1-outer1-1789977524",
+        "status": "completed",
+        "lifetimes_completed": 2,
+        "commitments": 16,
+        "outcomes": 16
+      },
+      "mean_reward": 1.0,
+      "action_counts": [
+        8,
+        8
+      ]
+    },
+    {
+      "directory": "runs/m1-review/m1_review_noisy-root1-outer1-1789977524",
+      "config": "docs/evidence/m1-review/noisy_variable.toml",
+      "baseline": "actor",
+      "outer_seed": 1,
+      "original": false,
+      "artifact_sha256": {
+        "actor-diagnostics-0.json": "6ffe25dda628f1390842d19ee1281948aa92e42b4020a2d91696522175346f50",
+        "actor-diagnostics-1.json": "ab10926fb8b7999852ef306b8325168148206be311eda64597c575a106fc38f4",
+        "actor-inherited.json": "e34484ef04244777032e31bb7033f4b70a2da9040d98f20c03484e96bbb9bb57",
+        "completion.json": "29f28e76b1591cd51ba187022d1db97dc140775a2585e2beb02a56b520ab0d28",
+        "condition.json": "58e60b6fd0b063c15fef56d1e2e033162a80e2df32d0fed0a36803c652569668",
+        "events.jsonl": "01829aecfb29e9e838c6537e3862bba47831b4c71a9a8a9f2a1a055ebc9387a3",
+        "hidden.jsonl": "74d497d775b7f8e258e0514d62a86be7ba0bd09cdf114ec581253f1c4498533e",
+        "manifest.json": "b41aad8f2602870eac3313426018d1498c95128d60104e54ba6936a6fd6bdd8f",
+        "resolved_config.toml": "b0f1b648f649696601764b81d4c050855b2f34af13f50537da240e647586b982",
+        "seed_streams.json": "745af822bedcfea80acd65586be87d9c1aa11087b3bc3f3d43a14f2db48adefc"
+      },
+      "completion": {
+        "run_id": "m1_review_noisy-root1-outer1-1789977524",
+        "status": "completed",
+        "lifetimes_completed": 2,
+        "commitments": 32,
+        "outcomes": 32
+      },
+      "mean_reward": 0.34375,
+      "action_counts": [
+        32,
+        0
+      ],
+      "health": [
+        {
+          "max_abs_a": 0.7535700041990321,
+          "max_abs_h": 1.666958205954653,
+          "max_abs_q": 0.6774715267498681,
+          "max_abs_r": 0.9311483830400263,
+          "max_motor_margin": 0.8869409153016037,
+          "min_motor_margin": 0.0069466660672457235,
+          "saturated_neuron_ticks": 11,
+          "schema_version": 2,
+          "ticks_observed": 295,
+          "total_neuron_ticks": 4720
+        },
+        {
+          "max_abs_a": 0.765924074477831,
+          "max_abs_h": 1.7348032060343233,
+          "max_abs_q": 0.6387089073993135,
+          "max_abs_r": 0.9396209942783311,
+          "max_motor_margin": 0.8921796100101627,
+          "min_motor_margin": 0.0011128868083177465,
+          "saturated_neuron_ticks": 26,
+          "schema_version": 2,
+          "ticks_observed": 307,
+          "total_neuron_ticks": 4912
+        }
+      ],
+      "initialization": [
+        {
+          "accepted_attempt": 0,
+          "rejected": []
+        },
+        {
+          "accepted_attempt": 0,
+          "rejected": []
+        }
+      ]
+    },
+    {
+      "directory": "runs/m1-review/m1_review_noisy_off-root1-outer1-1789977524",
+      "config": "docs/evidence/m1-review/noisy_logging_off.toml",
+      "baseline": "actor",
+      "outer_seed": 1,
+      "original": false,
+      "artifact_sha256": {
+        "actor-diagnostics-0.json": "bb591d9e424f427e51c7d8c3ba392a683dc0e3d802e056c8a44f29a1d6c3cc63",
+        "actor-diagnostics-1.json": "ab10926fb8b7999852ef306b8325168148206be311eda64597c575a106fc38f4",
+        "actor-inherited.json": "e34484ef04244777032e31bb7033f4b70a2da9040d98f20c03484e96bbb9bb57",
+        "completion.json": "a92ec6c240f2d3a23b160c6700b2f07eca157c8a1b2099ab61b09e081815348e",
+        "condition.json": "b4a93ad4bf96fee18c231a91da90a2139ffae7c56a61d38e3db06c65ac1bf1f6",
+        "manifest.json": "d3a7f11bc7d908347b4d90041bb3c5f1877a71d156f2b322ec05e2d6d2df6569",
+        "resolved_config.toml": "46fe9877eff8908d7bc4c7924a74488d223355f4e17e26c59f250ebe05a61073",
+        "seed_streams.json": "745af822bedcfea80acd65586be87d9c1aa11087b3bc3f3d43a14f2db48adefc"
+      },
+      "completion": {
+        "run_id": "m1_review_noisy_off-root1-outer1-1789977524",
+        "status": "completed",
+        "lifetimes_completed": 2,
+        "commitments": 32,
+        "outcomes": 32
+      },
+      "health": [
+        {
+          "max_abs_a": 0.7535700041990321,
+          "max_abs_h": 1.666958205954653,
+          "max_abs_q": 0.6774715267498681,
+          "max_abs_r": 0.9311483830400263,
+          "max_motor_margin": 0.8869409153016037,
+          "min_motor_margin": 0.0069466660672457235,
+          "saturated_neuron_ticks": 11,
+          "schema_version": 2,
+          "ticks_observed": 295,
+          "total_neuron_ticks": 4720
+        },
+        {
+          "max_abs_a": 0.765924074477831,
+          "max_abs_h": 1.7348032060343233,
+          "max_abs_q": 0.6387089073993135,
+          "max_abs_r": 0.9396209942783311,
+          "max_motor_margin": 0.8921796100101627,
+          "min_motor_margin": 0.0011128868083177465,
+          "saturated_neuron_ticks": 26,
+          "schema_version": 2,
+          "ticks_observed": 307,
+          "total_neuron_ticks": 4912
+        }
+      ],
+      "initialization": [
+        {
+          "accepted_attempt": 0,
+          "rejected": []
+        },
+        {
+          "accepted_attempt": 0,
+          "rejected": []
+        }
+      ]
+    },
+    {
+      "directory": "runs/m1-review-original/actor_no_learning-root1-outer1-1789977543",
+      "config": "configs/actor_no_learning.toml",
+      "baseline": "actor",
+      "outer_seed": 1,
+      "original": true,
+      "artifact_sha256": {
+        "completion.json": "603d051e65ddc5e6c760f92dc4fad126377816f138beca4455c64b54b2a3cd6c",
+        "condition.json": "b8c5e8c9e6fb152ecb2694fca63c81a3d215815c3cee656a8136faebb72c3b06",
+        "events.jsonl": "fb294483e8beef84d466b4eeb803cf754891e59368d33a6f439c3fc1f17e20d8",
+        "hidden.jsonl": "05549ecf1ed9bde87875f6fbd98b2ba070f3600a16483d05dbba21c244369ebe",
+        "manifest.json": "56a89fd1066db1066eec39ee1bcabb830c5840ffe589eefafd4b8c3d1261928a",
+        "resolved_config.toml": "674f75f2e5b75c226bced2380b4f28778463b453d27618636d52101d45b60768",
+        "seed_streams.json": "745af822bedcfea80acd65586be87d9c1aa11087b3bc3f3d43a14f2db48adefc"
+      },
+      "completion": {
+        "run_id": "actor_no_learning-root1-outer1-1789977543",
+        "status": "completed",
+        "lifetimes_completed": 2,
+        "commitments": 16,
+        "outcomes": 16
+      },
+      "mean_reward": 0.5,
+      "action_counts": [
+        16,
+        0
+      ]
+    },
+    {
+      "directory": "runs/m1-review-original/m1_review_noisy-root1-outer1-1789977543",
+      "config": "docs/evidence/m1-review/noisy_variable.toml",
+      "baseline": "actor",
+      "outer_seed": 1,
+      "original": true,
+      "artifact_sha256": {
+        "completion.json": "464640864bcc2448e1120846dc95eb4ebf60ba2bf0686dda9fb1e5fe79fb8f4d",
+        "condition.json": "58e60b6fd0b063c15fef56d1e2e033162a80e2df32d0fed0a36803c652569668",
+        "events.jsonl": "9f112f0d083942482d5ce124202d2ee99ffbda5633fd5c53bb1d9123032eacfb",
+        "hidden.jsonl": "74d497d775b7f8e258e0514d62a86be7ba0bd09cdf114ec581253f1c4498533e",
+        "manifest.json": "101a1fec9a08ec75ad04a34de5f5b5ab48c344ef13cdc32f54c167063af9b2cd",
+        "resolved_config.toml": "b0f1b648f649696601764b81d4c050855b2f34af13f50537da240e647586b982",
+        "seed_streams.json": "745af822bedcfea80acd65586be87d9c1aa11087b3bc3f3d43a14f2db48adefc"
+      },
+      "completion": {
+        "run_id": "m1_review_noisy-root1-outer1-1789977543",
+        "status": "completed",
+        "lifetimes_completed": 2,
+        "commitments": 32,
+        "outcomes": 32
+      },
+      "mean_reward": 0.34375,
+      "action_counts": [
+        32,
+        0
+      ]
+    }
+  ],
+  "original_event_parity": [
+    {
+      "original": "runs/m1-review-original/actor_no_learning-root1-outer1-1789977543",
+      "reviewed": "runs/m1-review/actor_no_learning-root1-outer1-1789977523",
+      "file": "events.jsonl",
+      "equal_excluding_run_id": true
+    },
+    {
+      "original": "runs/m1-review-original/actor_no_learning-root1-outer1-1789977543",
+      "reviewed": "runs/m1-review/actor_no_learning-root1-outer1-1789977523",
+      "file": "hidden.jsonl",
+      "equal_excluding_run_id": true
+    },
+    {
+      "original": "runs/m1-review-original/m1_review_noisy-root1-outer1-1789977543",
+      "reviewed": "runs/m1-review/m1_review_noisy-root1-outer1-1789977524",
+      "file": "events.jsonl",
+      "equal_excluding_run_id": true
+    },
+    {
+      "original": "runs/m1-review-original/m1_review_noisy-root1-outer1-1789977543",
+      "reviewed": "runs/m1-review/m1_review_noisy-root1-outer1-1789977524",
+      "file": "hidden.jsonl",
+      "equal_excluding_run_id": true
+    }
+  ],
+  "logging_off_health_parity": true,
+  "claim": "M1 dynamics and replay only; no learning claim"
+}

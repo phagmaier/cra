@@ -128,6 +128,21 @@ impl ActorState {
         })
     }
 
+    pub(crate) fn from_snapshot(
+        h: Vec<f64>,
+        a: Vec<f64>,
+        xi: Vec<f64>,
+    ) -> Result<Self, ActorError> {
+        let mut state = Self::from_state(h, a)?;
+        if xi.len() != state.n || !xi.iter().all(|v| v.is_finite()) {
+            return Err(ActorError::InvalidParams(
+                "invalid saved perturbations".to_owned(),
+            ));
+        }
+        state.xi_buf = xi;
+        Ok(state)
+    }
+
     pub fn neuron_count(&self) -> usize {
         self.n
     }

@@ -93,3 +93,27 @@ interrupted runs — missing data is not a zero score.
   documentation session uses document-consistency checks, not new empirical
   evidence. See the M0-DOCS tracker entry for executed validation.
 - Next implementation task remains M1-01; no milestone was advanced.
+
+## 2026-09-21 UTC — M1 corrective review and fresh evidence
+
+- Scope: owner-requested review from clean `13a4873`, with checkpoint,
+  validation and runtime diagnostic corrections; no learning/search code.
+- Fresh quality battery: 185 Rust tests passed, 0 failed, 1 existing ignored
+  weight-printing probe; 15 Python audit tests; clean fmt/Clippy. Three
+  checkpoint regressions were demonstrated before the fix and retained.
+- Eleven corrected runs plus two separately built original-commit comparisons
+  audited successfully. All use development/root 1, outer 1–8 as listed in
+  [the evidence summary](evidence/m1-review/summary.json), lifetimes 0–1.
+  Clean/noisy event trajectories match the original after removing run IDs;
+  logged/unlogged noisy runs have identical health summaries.
+- Saved observability measurements: across/within cue distances 1.8681/0.2530;
+  actions 20/12 over eight four-choice initializations; 2,000 zero-input ticks
+  finite; long-quiet case exactly 248 ticks. Fresh clean demo reward 0.5000,
+  all 16 commitments action 0. This last result is an action-biased nonlearner,
+  not acquisition evidence.
+- Commands, source/binary/artifact hashes and diagnostic data are under
+  `docs/evidence/m1-review/`; full raw runs remain in `runs/m1-review/` and
+  `runs/m1-review-original/`. The original comparison binaries were built from
+  an unmodified `git archive 13a4873` in `/tmp/cra-m1-original-13a4873`.
+- Interpretation: M1-GATE re-verified for dynamics/replay only. No final-test
+  data, search, M2 score evidence, or M3/M4 learning claim. Next: M2-01.

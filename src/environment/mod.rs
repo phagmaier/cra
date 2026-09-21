@@ -49,6 +49,7 @@ use schedule::{PhaseState, sample_cue, sample_len};
 /// Evaluator-side data (contains hidden truth); the agent only ever sees
 /// [`Feedback`].
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct PendingReward {
     pub event_id: u64,
     pub choice_index: u64,
@@ -99,6 +100,7 @@ pub struct Lifetime {
     gap_range: [u64; 2],
     delay_range: [u64; 2],
     outcomes_target: u64,
+    warmup_ticks: u64,
     hidden: HiddenState,
     cue_rng: ChaCha8Rng,
     timing_rng: ChaCha8Rng,
@@ -172,6 +174,7 @@ impl Lifetime {
             gap_range: env.memory_gap_ticks,
             delay_range: env.reward_delay_ticks,
             outcomes_target: cfg.simulation.outcomes_per_lifetime,
+            warmup_ticks: cfg.simulation.warmup_ticks,
             hidden,
             cue_rng,
             timing_rng,
@@ -601,6 +604,7 @@ impl Lifetime {
             gap_range: self.gap_range,
             delay_range: self.delay_range,
             outcomes_target: self.outcomes_target,
+            warmup_ticks: self.warmup_ticks,
             hidden: self.hidden.snapshot(),
             cue_rng: stream("cue_order", &self.cue_rng)?,
             timing_rng: stream("timing", &self.timing_rng)?,
@@ -637,7 +641,7 @@ impl Lifetime {
             let tuple = SeedTuple::new(root_seed, namespace, outer_seed, lifetime_index, name);
             let expected = crate::rng::derive_seed_bytes(&tuple)
                 .map_err(|e| SimError::InvalidConfiguration(format!("bad seed tuple: {e}")))?;
-            if state.seed_bytes != expected {
+            if state.seed_bytes != expected || state.word_pos >= (1_u128 << 68) {
                 return Err(inconsistent(format!(
                     "rng stream '{name}' seed does not match the checkpoint seed identity"
                 )));
@@ -765,6 +769,79 @@ impl Lifetime {
         if snapshot.last_action.is_some_and(|a| a > 1) {
             return Err(inconsistent("last action must be 0/1".to_owned()));
         }
+        if snapshot.commitments != snapshot.outcomes + u64::from(snapshot.pending.is_some())
+            || snapshot.consumed.iter().copied().ne(0..snapshot.outcomes)
+            || snapshot.confirmed != snapshot.consumed
+            || (snapshot.commitments == 0) != snapshot.last_action.is_none()
+        {
+            return Err(inconsistent(
+                "inconsistent commitment, action or feedback ledger".to_owned(),
+            ));
+        }
+        if matches!(snapshot.phase, PhaseState::Done)
+            != (snapshot.outcomes == snapshot.outcomes_target)
+        {
+            return Err(inconsistent(
+                "done phase disagrees with completed outcomes".to_owned(),
+            ));
+        }
+        if snapshot.current_cue.is_none()
+            || snapshot.cycle_gap < snapshot.gap_range[0]
+            || snapshot.cycle_gap > snapshot.gap_range[1]
+        {
+            return Err(inconsistent(
+                "missing current cue or invalid cycle gap".to_owned(),
+            ));
+        }
+        match snapshot.phase {
+            PhaseState::Quiet { remaining }
+                if remaining
+                    > if snapshot.outcomes == 0 {
+                        snapshot.warmup_ticks
+                    } else {
+                        snapshot.quiet_range[1]
+                    } =>
+            {
+                return Err(inconsistent("quiet countdown exceeds duration".to_owned()));
+            }
+            PhaseState::Cue { cue, remaining }
+                if Some(cue) != snapshot.current_cue || remaining > snapshot.cue_ticks =>
+            {
+                return Err(inconsistent(
+                    "cue phase disagrees with current cue/countdown".to_owned(),
+                ));
+            }
+            PhaseState::Gap { remaining } if remaining > snapshot.cycle_gap => {
+                return Err(inconsistent("gap countdown exceeds sampled gap".to_owned()));
+            }
+            PhaseState::Response { remaining } if remaining > snapshot.response_ticks => {
+                return Err(inconsistent(
+                    "response countdown exceeds duration".to_owned(),
+                ));
+            }
+            _ => {}
+        }
+        if let Some(pending) = &snapshot.pending {
+            let delay = pending.due_tick - pending.commit_tick;
+            let remaining = match snapshot.phase {
+                PhaseState::Delay { remaining } => remaining,
+                _ => 0,
+            };
+            if pending.event_id != snapshot.outcomes
+                || Some(pending.cue) != snapshot.current_cue
+                || Some(pending.action) != snapshot.last_action
+                || pending.commit_tick >= snapshot.tick
+                || pending.due_tick.checked_sub(snapshot.tick) != Some(remaining)
+                || delay < snapshot.delay_range[0]
+                || delay > snapshot.delay_range[1]
+                || pending.correct != (pending.action == pending.target_at_commit)
+                || pending.reward != f64::from(u8::from(pending.correct ^ pending.noise_bit))
+            {
+                return Err(inconsistent(
+                    "pending reward timing, identity or sampled outcome is inconsistent".to_owned(),
+                ));
+            }
+        }
         let hidden = HiddenState::restore(snapshot.hidden)?;
         if hidden.cue_count() != snapshot.cue_count {
             return Err(inconsistent(
@@ -779,6 +856,7 @@ impl Lifetime {
             gap_range: snapshot.gap_range,
             delay_range: snapshot.delay_range,
             outcomes_target: snapshot.outcomes_target,
+            warmup_ticks: snapshot.warmup_ticks,
             hidden,
             cue_rng: check_rng("cue_order", &snapshot.cue_rng)?,
             timing_rng: check_rng("timing", &snapshot.timing_rng)?,
@@ -806,6 +884,7 @@ impl Lifetime {
 /// absent: their effects survive in `hidden` plus the derived schedule
 /// positions below.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct LifetimeSnapshot {
     pub cue_count: usize,
     pub cue_ticks: u64,
@@ -814,6 +893,7 @@ pub(crate) struct LifetimeSnapshot {
     pub gap_range: [u64; 2],
     pub delay_range: [u64; 2],
     pub outcomes_target: u64,
+    pub warmup_ticks: u64,
     pub hidden: HiddenSnapshot,
     pub cue_rng: RngState,
     pub timing_rng: RngState,
@@ -821,16 +901,19 @@ pub(crate) struct LifetimeSnapshot {
     pub change_rng: RngState,
     pub tick: u64,
     pub phase: PhaseState,
+    #[serde(deserialize_with = "crate::checkpoint::required_option")]
     pub current_cue: Option<usize>,
     pub cycle_gap: u64,
     pub cycle_exposure_index: u64,
     pub cycle_changed: bool,
+    #[serde(deserialize_with = "crate::checkpoint::required_option")]
     pub pending: Option<PendingReward>,
     pub next_event_id: u64,
     pub commitments: u64,
     pub outcomes: u64,
     pub consumed: Vec<u64>,
     pub confirmed: Vec<u64>,
+    #[serde(deserialize_with = "crate::checkpoint::required_option")]
     pub last_action: Option<u8>,
 }
 

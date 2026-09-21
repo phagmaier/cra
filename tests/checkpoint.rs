@@ -216,8 +216,14 @@ fn split_resume_case(name: &str, at_boundary: impl Fn(&Lifetime) -> bool) {
     assert_eq!(loaded.seeds(), &id);
     assert_eq!(loaded.config().profile_name, "checkpoint_test");
 
+    let restored_actor = loaded.restore_actor(&id).expect("resume actor");
+    assert_eq!(
+        restored_actor.actor_state().last_perturbations(),
+        actor.actor_state().last_perturbations()
+    );
+    assert_eq!(restored_actor.initialization(), actor.initialization());
     let mut life = loaded.restore_env(&id).expect("resume env");
-    let mut actor = loaded.restore_actor(&id).expect("resume actor");
+    let mut actor = restored_actor;
     // Resume starts exactly where the prefix stopped: tick agreement is
     // the first proof the right lifetime was restored.
     assert_eq!(life.tick(), split_tick);
@@ -382,7 +388,7 @@ fn incompatible_mutations_fail_without_silent_defaults() {
     // still resumes for its own identity after the forgery attempts.
     checkpoint.restore_env(&seeds()).expect("env restores");
     checkpoint.restore_actor(&seeds()).expect("actor restores");
-    assert_eq!(CHECKPOINT_SCHEMA_VERSION, 1);
+    assert_eq!(CHECKPOINT_SCHEMA_VERSION, 2);
 }
 
 #[test]
@@ -411,4 +417,120 @@ fn atomic_save_never_leaves_a_partial_target() {
     let loaded = Checkpoint::load_from_path(&path).expect("load");
     assert_eq!(loaded, checkpoint);
     let _ = std::fs::remove_file(&path);
+}
+
+#[test]
+fn capture_rejects_relabelled_live_seed_and_config() {
+    let cfg = checkpoint_config();
+    let (life, actor) = birth_pair(&cfg);
+    let foreign = SeedIdentity {
+        outer_seed: 2,
+        ..seeds()
+    };
+    assert!(
+        Checkpoint::capture(&life, &actor, &cfg, foreign).is_err(),
+        "capture must verify the live RNG seed, not stamp a new one"
+    );
+    let mut changed = cfg.clone();
+    changed.actor.as_mut().unwrap().tau_h = 9.0;
+    assert!(Checkpoint::capture(&life, &actor, &changed, seeds()).is_err());
+    changed = cfg.clone();
+    changed.environment.cue_ticks += 1;
+    assert!(Checkpoint::capture(&life, &actor, &changed, seeds()).is_err());
+}
+
+#[test]
+fn capture_rejects_unfinished_tick() {
+    let cfg = checkpoint_config();
+    let (mut life, actor) = birth_pair(&cfg);
+    life.advance().unwrap();
+    assert!(Checkpoint::capture(&life, &actor, &cfg, seeds()).is_err());
+}
+
+#[test]
+fn nested_unknown_and_missing_state_are_rejected() {
+    let cfg = checkpoint_config();
+    let (life, actor) = birth_pair(&cfg);
+    let cp = Checkpoint::capture(&life, &actor, &cfg, seeds()).unwrap();
+    let path = tmp_path("nested");
+    for (section, field, remove) in [
+        ("agent", "future_plasticity", false),
+        ("agent", "last_feedback", true),
+        ("env", "pending", true),
+    ] {
+        cp.save_to_path(&path).unwrap();
+        let mut v: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        let obj = v["payload"][section].as_object_mut().unwrap();
+        if remove {
+            obj.remove(field);
+        } else {
+            obj.insert(field.into(), serde_json::json!([1.0]));
+        }
+        std::fs::write(&path, serde_json::to_vec(&v).unwrap()).unwrap();
+        assert!(
+            Checkpoint::load_from_path(&path).is_err(),
+            "{section}.{field}"
+        );
+    }
+    std::fs::remove_file(path).unwrap();
+}
+
+#[test]
+fn every_completed_tick_resumes_with_variable_timing_and_odd_actor_size() {
+    let mut cfg = checkpoint_config();
+    cfg.simulation.warmup_ticks = 0;
+    cfg.environment.quiet_ticks = [0, 4];
+    cfg.environment.memory_gap_ticks = [0, 3];
+    cfg.environment.reward_delay_ticks = [1, 5];
+    cfg.actor.as_mut().unwrap().neuron_count = 17;
+    for outer in 1..=3 {
+        let id = SeedIdentity {
+            outer_seed: outer,
+            ..seeds()
+        };
+        let mut life = Lifetime::new(&cfg, 1, "development", outer, 0).unwrap();
+        let mut actor = NoLearningActor::new(&cfg, 1, "development", outer, 0).unwrap();
+        let mut summary = HealthSummary::new();
+        loop {
+            let cp = Checkpoint::capture(&life, &actor, &cfg, id.clone()).unwrap();
+            let mut restored_life = cp.restore_env(&id).unwrap();
+            let mut restored_actor = cp.restore_actor(&id).unwrap();
+            assert_full_state_equal(&life, &actor, &restored_life, &restored_actor);
+            assert_eq!(
+                actor.actor_state().last_perturbations(),
+                restored_actor.actor_state().last_perturbations()
+            );
+            if life.is_complete() {
+                break;
+            }
+            let mut restored_summary = summary.clone();
+            assert_eq!(
+                step_both(&mut life, &mut actor, &mut summary),
+                step_both(
+                    &mut restored_life,
+                    &mut restored_actor,
+                    &mut restored_summary
+                )
+            );
+        }
+    }
+}
+
+#[test]
+fn concurrent_checkpoint_writes_produce_one_complete_file() {
+    let cfg = checkpoint_config();
+    let (life, actor) = birth_pair(&cfg);
+    let cp = Checkpoint::capture(&life, &actor, &cfg, seeds()).unwrap();
+    let path = tmp_path("concurrent");
+    std::thread::scope(|scope| {
+        let handles: Vec<_> = (0..8)
+            .map(|_| scope.spawn(|| cp.save_to_path(&path)))
+            .collect();
+        for handle in handles {
+            handle.join().unwrap().unwrap();
+        }
+    });
+    assert_eq!(Checkpoint::load_from_path(&path).unwrap(), cp);
+    std::fs::remove_file(path).unwrap();
 }

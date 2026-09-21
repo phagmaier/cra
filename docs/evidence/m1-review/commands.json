@@ -1,0 +1,624 @@
+[
+  {
+    "args": [
+      "cargo",
+      "fmt",
+      "--all",
+      "--",
+      "--check"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.19338679313659668,
+    "output": ""
+  },
+  {
+    "args": [
+      "cargo",
+      "clippy",
+      "--all-targets",
+      "--locked",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 1.402313232421875,
+    "output": "    Checking cra v0.1.0 (/home/phagmaier/Code/cra)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.32s\n"
+  },
+  {
+    "args": [
+      "cargo",
+      "test",
+      "--all-targets",
+      "--locked"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {
+      "CRA_M1_EVIDENCE_DIR": "/home/phagmaier/Code/cra/docs/evidence/m1-review/observability"
+    },
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 4.278353691101074,
+    "output": "   Compiling cra v0.1.0 (/home/phagmaier/Code/cra)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.41s\n     Running unittests src/lib.rs (target/debug/deps/cra-329288639a8ecc1e)\n\nrunning 37 tests\ntest agent::actor::tests::leak_alpha_stays_accurate_at_large_tau ... ok\ntest agent::actor::tests::leak_alpha_matches_one_minus_exp ... ok\ntest agent::motor::tests::birth_filter_is_zero_and_round_trips ... ok\ntest agent::topology::tests::cycle_detection_handles_self_and_multi_hop_loops ... ok\ntest agent::health::tests::schema_and_bounds_are_pinned ... ok\ntest agent::topology::tests::motor_pools_use_last_indices_and_stay_disjoint ... ok\ntest agent::weights::tests::row_scale_is_gain_over_sqrt_degree ... ok\ntest agent::no_learning::tests::missing_actor_section_is_an_explicit_error ... ok\ntest checkpoint::tests::schema_version_is_pinned ... ok\ntest config::tests::minimal_smoke_profile_validates ... ok\ntest environment::hidden_state::tests::annotation_serializes_separately_from_observation ... ok\ntest environment::hidden_state::tests::hazard_one_flips_every_repeat_but_not_the_first ... ok\ntest environment::hidden_state::tests::hazard_zero_never_flips_and_first_presentation_is_clean ... ok\ntest environment::observation::tests::boundary_types_round_trip_through_json ... ok\ntest environment::observation::tests::feature_dim_is_k_plus_six ... ok\ntest environment::schedule::tests::fixed_range_is_exact ... ok\ntest environment::schedule::tests::inverted_range_is_an_explicit_error ... ok\ntest environment::schedule::tests::sampled_lengths_stay_in_range ... ok\ntest checkpoint::tests::config_dimension_drift_is_incompatible ... ok\ntest environment::tests::bad_namespace_rejected_at_birth ... ok\ntest experiments::baseline::tests::constant_baseline_rejects_actions_outside_zero_one ... ok\ntest environment::tests::birth_samples_mappings_and_first_quiet_is_warmup ... ok\ntest logging::events::tests::valid_stream_passes ... ok\ntest logging::events::tests::field_and_order_violations_are_explicit ... ok\ntest rng::tests::canonical_format_is_stable ... ok\ntest rng::tests::reserved_namespaces_and_streams_validate ... ok\ntest checkpoint::tests::tick_disagreement_is_incompatible ... ok\ntest checkpoint::tests::pending_phase_mismatch_is_incompatible ... ok\ntest run::tests::allocation_preserves_incomplete_runs_and_is_atomic ... ok\ntest run::tests::baseline_selection_names_the_b3_actor_rung ... ok\ntest run::tests::run_dir_name_is_unique_per_seed_and_time ... ok\ntest checkpoint::tests::corrupt_state_is_rejected_by_both_restore_halves ... ok\ntest agent::weights::tests::normal_stream_is_deterministic_with_unit_moments ... ok\ntest run::tests::actor_watchdog_failure_is_saved_as_interrupted ... ok\ntest run::tests::actor_simulation_writes_b3_provenance_and_streams ... ok\ntest run::tests::same_second_runs_never_share_a_directory ... ok\ntest run::tests::actor_diagnostics_are_saved_and_logging_does_not_change_outcomes ... ok\n\ntest result: ok. 37 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s\n\n     Running unittests src/main.rs (target/debug/deps/cra-f3a93ff34219d957)\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n     Running tests/actor.rs (target/debug/deps/actor-7d6b273454b3254b)\n\nrunning 7 tests\ntest birth_state_is_zero_and_constructors_validate ... ok\ntest one_edge_drives_receiver_not_sender ... ok\ntest saturated_membrane_is_never_clipped ... ok\ntest noise_is_added_after_leaky_integration ... ok\ntest reciprocal_edges_use_old_activity_only ... ok\ntest step_rejects_bad_dims_params_and_nonfinite_values ... ok\ntest stochastic_step_shares_the_fixture_core ... ok\n\ntest result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n     Running tests/actor_noise.rs (target/debug/deps/actor_noise-ab1dc9284c78f98c)\n\nrunning 7 tests\ntest observation_draws_nothing ... ok\ntest word_pos_resumes_next_tick_perturbations ... ok\ntest word_pos_round_trips_the_uniform_stream ... ok\ntest draws_ignore_inputs_and_saturation ... ok\ntest step_draws_match_reference_stream_every_tick ... ok\ntest actor_stepping_never_touches_environment_streams ... ok\ntest actor_noise_moments_match_standard_normal ... ok\n\ntest result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s\n\n     Running tests/adaptation.rs (target/debug/deps/adaptation-8fea8821c51822bd)\n\nrunning 5 tests\ntest adaptation_runs_on_its_own_time_constant ... ok\ntest adaptation_persists_across_input_changes ... ok\ntest zero_strength_ignores_adaptation_state ... ok\ntest nonzero_strength_opposes_sustained_activity ... ok\ntest debug_profile_keeps_adaptation_at_zero ... ok\n\ntest result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n     Running tests/baselines.rs (target/debug/deps/baselines-519b22a3a09aaaf7)\n\nrunning 7 tests\ntest baselines_reject_duplicate_and_invalid_feedback_without_consuming_it ... ok\ntest oracle_tracks_hidden_flips ... ok\ntest oracle_latent_accuracy_is_exactly_one ... ok\ntest ordinary_runner_delivers_feedback_before_the_transition ... ok\ntest constant_baselines_commit_only_their_action ... ok\ntest paired_lifetimes_share_noise_bits_but_not_rewards ... ok\ntest random_baseline_reproduces_its_action_sequence_from_seeds ... ok\n\ntest result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n     Running tests/checkpoint.rs (target/debug/deps/checkpoint-4ebe441e9f518320)\n\nrunning 12 tests\ntest capture_rejects_unfinished_tick ... ok\ntest capture_rejects_non_executable_configs ... ok\ntest capture_rejects_relabelled_live_seed_and_config ... ok\ntest atomic_save_never_leaves_a_partial_target ... ok\ntest incompatible_mutations_fail_without_silent_defaults ... ok\ntest concurrent_checkpoint_writes_produce_one_complete_file ... ok\ntest nested_unknown_and_missing_state_are_rejected ... ok\ntest corrupt_files_fail_without_state ... ok\ntest resume_at_pending_feedback_boundary_matches_uninterrupted_run ... ok\ntest resume_at_quiet_boundary_matches_uninterrupted_run ... ok\ntest resume_at_response_boundary_matches_uninterrupted_run ... ok\ntest every_completed_tick_resumes_with_variable_timing_and_odd_actor_size ... ok\n\ntest result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.10s\n\n     Running tests/config_validation.rs (target/debug/deps/config_validation-6e3ba6bd069fcc30)\n\nrunning 4 tests\ntest oversized_motor_assignment_is_an_error_not_an_overflow ... ok\ntest valid_profiles_pass ... ok\ntest supported_schema_is_distinct_from_supported_execution ... ok\ntest table_invalid_configs ... ok\n\ntest result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s\n\n     Running tests/environment_contract.rs (target/debug/deps/environment_contract-bc4a91f0777da5f1)\n\nrunning 20 tests\ntest consumption_ledger_rejects_duplicates_and_unknown_ids ... ok\ntest completed_lifetime_has_equal_counts_and_no_pending_reward ... ok\ntest correct_action_scores_one_and_wrong_scores_zero_without_noise ... ok\ntest double_commit_invalid_action_and_missing_commit_are_errors ... ok\ntest exact_cycle_counts_with_zero_gap_and_delay_one ... ok\ntest event_ids_are_unique_and_each_commitment_delivers_once ... ok\ntest cues_vanish_outside_presentation_and_feedback_lasts_one_tick ... ok\ntest feature_channels_follow_phase_flags ... ok\ntest gap_and_delay_three_shape ... ok\ntest hazard_one_flips_every_repeat_but_not_the_first ... ok\ntest hazard_zero_never_flips_across_cycles ... ok\ntest library_birth_rejects_invalid_config_before_simulation ... ok\ntest hidden_birth_rejects_invalid_membership_and_probabilities ... ok\ntest forced_noise_bit_reverses_either_reward ... ok\ntest pending_reward_uses_mapping_saved_at_commit ... ok\ntest previous_action_latch_changes_starting_next_tick ... ok\ntest quiet_ticks_never_mutate_hidden_mappings ... ok\ntest zero_reward_is_distinguishable_from_no_outcome ... ok\ntest rejected_commits_do_not_shift_reward_noise_or_timing ... ok\ntest agent_stream_draws_do_not_alter_the_exogenous_schedule ... ok\n\ntest result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n     Running tests/event_logging.rs (target/debug/deps/event_logging-2c76a2e2b890ffbc)\n\nrunning 5 tests\ntest rejected_execution_creates_no_successful_looking_artifacts ... ok\ntest tampered_logs_fail_validation ... ok\ntest hidden_accounting_and_overlapping_choices_are_rejected ... ok\ntest round_trip_reconstructs_counts_and_schedule ... ok\ntest logging_off_yields_identical_behavior ... ok\n\ntest result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s\n\n     Running tests/event_order.rs (target/debug/deps/event_order-0aec69c1a55a593f)\n\nrunning 3 tests\ntest birth_goldens ... ok\ntest forced_wrong_action_at_20_delivers_zero_through_the_envelope ... ok\ntest commit_at_20_delay_3_delivers_exactly_at_23 ... ok\n\ntest result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n     Running tests/health.rs (target/debug/deps/health-ff245fbc06d328e4)\n\nrunning 11 tests\ntest finite_watchdog_trips_above_the_conservative_bound ... ok\ntest empty_summary_round_trips_for_failure_before_first_tick ... ok\ntest health_errors_map_onto_sim_errors_explicitly ... ok\ntest diagnostic_output_round_trips_through_a_json_file ... ok\ntest recorder_rejects_bad_configs_and_short_state ... ok\ntest saturation_and_margin_math_matches_hand_values ... ok\ntest forced_nonfinite_fails_visibly_and_records_nothing ... ok\ntest production_actor_enforces_finite_watchdog ... ok\ntest trace_selection_is_stable_covers_motor_and_draws_nothing ... ok\ntest health_observation_leaves_actor_trajectories_identical ... ok\ntest full_lifetime_health_stays_finite_with_samples ... ok\n\ntest result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n     Running tests/leakage.rs (target/debug/deps/leakage-a478fb24372058fc)\n\nrunning 5 tests\ntest ordinary_types_serialize_with_exactly_their_public_fields ... ok\ntest feedback_ids_never_enter_the_feature_vector ... ok\ntest pinned_fixture_ordinary_log_matches_expected_public_values ... ok\ntest agent_trait_path_carries_only_ordinary_data ... ok\ntest hidden_annotations_serialize_to_a_separate_stream ... ok\n\ntest result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n     Running tests/motor.rs (target/debug/deps/motor-819dce1335d8f9cd)\n\nrunning 8 tests\ntest motor_pools_are_equal_sized_sets ... ok\ntest commitment_reads_new_q_not_stale_q ... ok\ntest invalid_pools_constants_and_activity_rejected ... ok\ntest pool_means_read_assigned_populations ... ok\ntest golden_filter_trajectory_over_three_ticks ... ok\ntest golden_filter_recurrence_from_zero ... ok\ntest strict_decisions_draw_nothing_and_ties_draw_one_coin ... ok\ntest debug_profile_pools_match_topology_assignment ... ok\n\ntest result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n     Running tests/no_learning.rs (target/debug/deps/no_learning-dfe98dabfdc37f92)\n\nrunning 10 tests\ntest duplicate_and_invalid_feedback_fail_without_state_change ... ok\ntest actor_rejects_bad_seeds_and_missing_sections ... ok\ntest birth_is_zero_with_paired_inheritance ... ok\ntest actor_runner_completes_lifetime_and_keeps_weights_fixed ... ok\ntest every_phase_advances_without_resets_and_weights_stay_identical ... ok\ntest execution_guards_separate_present_and_future_modes ... ok\ntest environment_schedule_matches_constant_baseline ... ok\ntest feature_width_mismatch_fails_without_advancing ... ok\ntest reward_is_sensory_input_only ... ok\ntest observation_reads_draw_nothing_and_runs_reproduce ... ok\n\ntest result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s\n\n     Running tests/observability.rs (target/debug/deps/observability-dcaf359026996445)\n\nrunning 4 tests\ntest long_quiet_lifetimes_remain_finite ... ok\ntest alternating_cues_produce_distinguishable_activity ... ok\ntest fixed_inputs_stay_finite_over_long_quiet ... ok\ntest both_actions_reachable_across_initializations ... ok\n\ntest result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s\n\n     Running tests/randomized_env.rs (target/debug/deps/randomized_env-0b0343871e353787)\n\nrunning 5 tests\ntest oracle_reward_matches_its_noise_conditioned_expectation ... ok\ntest cue_presentations_are_balanced ... ok\ntest random_action_correctness_is_chance ... ok\ntest birth_mappings_are_balanced ... ok\ntest birth_mapping_pairs_are_independent ... ok\n\ntest result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s\n\n     Running tests/replay.rs (target/debug/deps/replay-eafeee3c63d2290e)\n\nrunning 6 tests\ntest reference_platform_is_recorded ... ok\ntest every_phase_advances_without_resets ... ok\ntest motor_commitment_reads_the_new_output ... ok\ntest identical_seeds_reproduce_the_reference_trajectory ... ok\ntest tick_exact_split_replays_the_reference ... ok\ntest logging_and_checkpoint_paths_draw_no_randomness ... ok\n\ntest result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s\n\n     Running tests/seed_streams.rs (target/debug/deps/seed_streams-8578d9394fd8b91d)\n\nrunning 6 tests\ntest golden_stream_outputs ... ok\ntest unknown_namespace_and_bad_stream_rejected ... ok\ntest namespaces_are_disjoint ... ok\ntest reserved_streams_are_pairwise_distinct ... ok\ntest snapshot_rejects_foreign_live_rng_and_nonzero_chacha_substream ... ok\ntest agent_draws_do_not_shift_environment_streams ... ok\n\ntest result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n     Running tests/topology.rs (target/debug/deps/topology-c3c7d3891899734c)\n\nrunning 13 tests\ntest hand_built_good_graph_is_accepted ... ok\ntest invalid_motor_dimensions_rejected ... ok\ntest motor_pools_are_fixed_disjoint_and_cover_last_indices ... ok\ntest non_init_streams_and_bad_attempts_rejected ... ok\ntest probability_boundaries_behave ... ok\ntest missing_edges_stay_absent_and_counts_agree ... ok\ntest hand_built_bad_graphs_yield_exact_reasons ... ok\ntest paired_gate_conditions_share_topology_by_construction ... ok\ntest rejected_samples_carry_logged_reasons_and_exhaustion_is_explicit ... ok\ntest independent_outer_seeds_vary_the_mask ... ok\ntest self_edges_obey_the_configured_flag ... ok\ntest same_init_reproduces_same_mask_and_order ... ok\ntest debug_profile_topology_validates_end_to_end ... ok\n\ntest result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n     Running tests/weights.rs (target/debug/deps/weights-39d91fccaea35f80)\n\nrunning 11 tests\ntest missing_edges_are_exactly_zero_and_biases_are_zero ... ok\ntest golden_inherited_values_pin_the_draw_sequence ... ok\ntest extreme_gains_fail_explicitly_not_silently ... ok\ntest independent_outer_seeds_vary_weights ... ok\ntest probe_golden_values ... ignored\ntest paired_conditions_share_weights_by_construction ... ok\ntest zero_in_degree_rows_stay_zero_and_draws_stay_deterministic ... ok\ntest validation_rejects_bad_dimensions_params_and_streams ... ok\ntest same_seed_reproduces_weights ... ok\ntest debug_profile_weights_validate_end_to_end ... ok\ntest row_scale_matches_std_not_variance_on_full_mask ... ok\n\ntest result: ok. 10 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.02s\n\n"
+  },
+  {
+    "args": [
+      "python3",
+      "analysis/test_validate_logs.py"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.15614080429077148,
+    "output": "...............\n----------------------------------------------------------------------\nRan 15 tests in 0.075s\n\nOK\n"
+  },
+  {
+    "args": [
+      "cargo",
+      "build",
+      "--release",
+      "--locked"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 8.347025871276855,
+    "output": "   Compiling cra v0.1.0 (/home/phagmaier/Code/cra)\n    Finished `release` profile [optimized] target(s) in 8.26s\n"
+  },
+  {
+    "args": [
+      "target/release/cra",
+      "validate-config",
+      "configs/env_smoke.toml"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.0011043548583984375,
+    "output": "OK: profile 'env_smoke' schema_version=1 kind='stationary_clean' cues=2 namespace='development'\n"
+  },
+  {
+    "args": [
+      "target/release/cra",
+      "validate-config",
+      "configs/debug_stationary.toml"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.0010061264038085938,
+    "output": "OK: profile 'debug_stationary' schema_version=1 kind='stationary_clean' cues=2 namespace='development'\n"
+  },
+  {
+    "args": [
+      "target/release/cra",
+      "validate-config",
+      "configs/actor_no_learning.toml"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.0010671615600585938,
+    "output": "OK: profile 'actor_no_learning' schema_version=1 kind='stationary_clean' cues=2 namespace='development'\n"
+  },
+  {
+    "args": [
+      "target/release/cra",
+      "simulate",
+      "--config",
+      "configs/actor_no_learning.toml",
+      "--baseline",
+      "actor",
+      "--lifetimes",
+      "2",
+      "--seed",
+      "1",
+      "--outer-seed",
+      "1",
+      "--out-dir",
+      "runs/m1-review"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.06975388526916504,
+    "output": "run dir: runs/m1-review/actor_no_learning-root1-outer1-1789977523\ncondition B3: 2 lifetimes, 16 commitments, 16 outcomes, mean reward 0.5000\n"
+  },
+  {
+    "args": [
+      "python3",
+      "analysis/validate_logs.py",
+      "runs/m1-review/actor_no_learning-root1-outer1-1789977523"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.06155276298522949,
+    "output": "OK runs/m1-review/actor_no_learning-root1-outer1-1789977523 (events + provenance)\n"
+  },
+  {
+    "args": [
+      "target/release/cra",
+      "simulate",
+      "--config",
+      "configs/actor_no_learning.toml",
+      "--baseline",
+      "actor",
+      "--lifetimes",
+      "2",
+      "--seed",
+      "1",
+      "--outer-seed",
+      "2",
+      "--out-dir",
+      "runs/m1-review"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.05593228340148926,
+    "output": "run dir: runs/m1-review/actor_no_learning-root1-outer2-1789977523\ncondition B3: 2 lifetimes, 16 commitments, 16 outcomes, mean reward 0.1875\n"
+  },
+  {
+    "args": [
+      "python3",
+      "analysis/validate_logs.py",
+      "runs/m1-review/actor_no_learning-root1-outer2-1789977523"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.03069329261779785,
+    "output": "OK runs/m1-review/actor_no_learning-root1-outer2-1789977523 (events + provenance)\n"
+  },
+  {
+    "args": [
+      "target/release/cra",
+      "simulate",
+      "--config",
+      "configs/actor_no_learning.toml",
+      "--baseline",
+      "actor",
+      "--lifetimes",
+      "2",
+      "--seed",
+      "1",
+      "--outer-seed",
+      "3",
+      "--out-dir",
+      "runs/m1-review"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.053604841232299805,
+    "output": "run dir: runs/m1-review/actor_no_learning-root1-outer3-1789977523\ncondition B3: 2 lifetimes, 16 commitments, 16 outcomes, mean reward 0.6875\n"
+  },
+  {
+    "args": [
+      "python3",
+      "analysis/validate_logs.py",
+      "runs/m1-review/actor_no_learning-root1-outer3-1789977523"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.03147315979003906,
+    "output": "OK runs/m1-review/actor_no_learning-root1-outer3-1789977523 (events + provenance)\n"
+  },
+  {
+    "args": [
+      "target/release/cra",
+      "simulate",
+      "--config",
+      "configs/actor_no_learning.toml",
+      "--baseline",
+      "actor",
+      "--lifetimes",
+      "2",
+      "--seed",
+      "1",
+      "--outer-seed",
+      "4",
+      "--out-dir",
+      "runs/m1-review"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.05217790603637695,
+    "output": "run dir: runs/m1-review/actor_no_learning-root1-outer4-1789977523\ncondition B3: 2 lifetimes, 16 commitments, 16 outcomes, mean reward 0.5000\n"
+  },
+  {
+    "args": [
+      "python3",
+      "analysis/validate_logs.py",
+      "runs/m1-review/actor_no_learning-root1-outer4-1789977523"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.03097057342529297,
+    "output": "OK runs/m1-review/actor_no_learning-root1-outer4-1789977523 (events + provenance)\n"
+  },
+  {
+    "args": [
+      "target/release/cra",
+      "simulate",
+      "--config",
+      "configs/actor_no_learning.toml",
+      "--baseline",
+      "actor",
+      "--lifetimes",
+      "2",
+      "--seed",
+      "1",
+      "--outer-seed",
+      "5",
+      "--out-dir",
+      "runs/m1-review"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.054197072982788086,
+    "output": "run dir: runs/m1-review/actor_no_learning-root1-outer5-1789977523\ncondition B3: 2 lifetimes, 16 commitments, 16 outcomes, mean reward 0.6250\n"
+  },
+  {
+    "args": [
+      "python3",
+      "analysis/validate_logs.py",
+      "runs/m1-review/actor_no_learning-root1-outer5-1789977523"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.02955150604248047,
+    "output": "OK runs/m1-review/actor_no_learning-root1-outer5-1789977523 (events + provenance)\n"
+  },
+  {
+    "args": [
+      "target/release/cra",
+      "simulate",
+      "--config",
+      "configs/actor_no_learning.toml",
+      "--baseline",
+      "actor",
+      "--lifetimes",
+      "2",
+      "--seed",
+      "1",
+      "--outer-seed",
+      "6",
+      "--out-dir",
+      "runs/m1-review"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.054965972900390625,
+    "output": "run dir: runs/m1-review/actor_no_learning-root1-outer6-1789977524\ncondition B3: 2 lifetimes, 16 commitments, 16 outcomes, mean reward 0.5000\n"
+  },
+  {
+    "args": [
+      "python3",
+      "analysis/validate_logs.py",
+      "runs/m1-review/actor_no_learning-root1-outer6-1789977524"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.03248262405395508,
+    "output": "OK runs/m1-review/actor_no_learning-root1-outer6-1789977524 (events + provenance)\n"
+  },
+  {
+    "args": [
+      "target/release/cra",
+      "simulate",
+      "--config",
+      "configs/actor_no_learning.toml",
+      "--baseline",
+      "actor",
+      "--lifetimes",
+      "2",
+      "--seed",
+      "1",
+      "--outer-seed",
+      "7",
+      "--out-dir",
+      "runs/m1-review"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.05492854118347168,
+    "output": "run dir: runs/m1-review/actor_no_learning-root1-outer7-1789977524\ncondition B3: 2 lifetimes, 16 commitments, 16 outcomes, mean reward 0.1250\n"
+  },
+  {
+    "args": [
+      "python3",
+      "analysis/validate_logs.py",
+      "runs/m1-review/actor_no_learning-root1-outer7-1789977524"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.03370523452758789,
+    "output": "OK runs/m1-review/actor_no_learning-root1-outer7-1789977524 (events + provenance)\n"
+  },
+  {
+    "args": [
+      "target/release/cra",
+      "simulate",
+      "--config",
+      "configs/actor_no_learning.toml",
+      "--baseline",
+      "actor",
+      "--lifetimes",
+      "2",
+      "--seed",
+      "1",
+      "--outer-seed",
+      "8",
+      "--out-dir",
+      "runs/m1-review"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.05671525001525879,
+    "output": "run dir: runs/m1-review/actor_no_learning-root1-outer8-1789977524\ncondition B3: 2 lifetimes, 16 commitments, 16 outcomes, mean reward 0.6875\n"
+  },
+  {
+    "args": [
+      "python3",
+      "analysis/validate_logs.py",
+      "runs/m1-review/actor_no_learning-root1-outer8-1789977524"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.032489776611328125,
+    "output": "OK runs/m1-review/actor_no_learning-root1-outer8-1789977524 (events + provenance)\n"
+  },
+  {
+    "args": [
+      "target/release/cra",
+      "simulate",
+      "--config",
+      "configs/env_smoke.toml",
+      "--baseline",
+      "oracle",
+      "--lifetimes",
+      "2",
+      "--seed",
+      "1",
+      "--outer-seed",
+      "1",
+      "--out-dir",
+      "runs/m1-review"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.05920243263244629,
+    "output": "run dir: runs/m1-review/env_smoke-root1-outer1-1789977524\ncondition O1: 2 lifetimes, 16 commitments, 16 outcomes, mean reward 1.0000\n"
+  },
+  {
+    "args": [
+      "python3",
+      "analysis/validate_logs.py",
+      "runs/m1-review/env_smoke-root1-outer1-1789977524"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.033776044845581055,
+    "output": "OK runs/m1-review/env_smoke-root1-outer1-1789977524 (events + provenance)\n"
+  },
+  {
+    "args": [
+      "target/release/cra",
+      "simulate",
+      "--config",
+      "docs/evidence/m1-review/noisy_variable.toml",
+      "--baseline",
+      "actor",
+      "--lifetimes",
+      "2",
+      "--seed",
+      "1",
+      "--outer-seed",
+      "1",
+      "--out-dir",
+      "runs/m1-review"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.0573732852935791,
+    "output": "run dir: runs/m1-review/m1_review_noisy-root1-outer1-1789977524\ncondition B3: 2 lifetimes, 32 commitments, 32 outcomes, mean reward 0.3438\n"
+  },
+  {
+    "args": [
+      "python3",
+      "analysis/validate_logs.py",
+      "runs/m1-review/m1_review_noisy-root1-outer1-1789977524"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.03138399124145508,
+    "output": "OK runs/m1-review/m1_review_noisy-root1-outer1-1789977524 (events + provenance)\n"
+  },
+  {
+    "args": [
+      "target/release/cra",
+      "simulate",
+      "--config",
+      "docs/evidence/m1-review/noisy_logging_off.toml",
+      "--baseline",
+      "actor",
+      "--lifetimes",
+      "2",
+      "--seed",
+      "1",
+      "--outer-seed",
+      "1",
+      "--out-dir",
+      "runs/m1-review"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.054044246673583984,
+    "output": "run dir: runs/m1-review/m1_review_noisy_off-root1-outer1-1789977524\ncondition B3: 2 lifetimes, 32 commitments, 32 outcomes, mean reward 0.3438\n"
+  },
+  {
+    "args": [
+      "python3",
+      "analysis/validate_logs.py",
+      "runs/m1-review/m1_review_noisy_off-root1-outer1-1789977524"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.028848886489868164,
+    "output": "OK runs/m1-review/m1_review_noisy_off-root1-outer1-1789977524 (provenance/completion only; event logging disabled)\n"
+  },
+  {
+    "args": [
+      "cargo",
+      "build",
+      "--release",
+      "--locked",
+      "--manifest-path",
+      "/tmp/cra-m1-original-13a4873/Cargo.toml"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 18.516125917434692,
+    "output": "   Compiling proc-macro2 v1.0.107\n   Compiling quote v1.0.47\n   Compiling unicode-ident v1.0.26\n   Compiling serde_core v1.0.229\n   Compiling version_check v0.9.5\n   Compiling libc v0.2.189\n   Compiling serde v1.0.229\n   Compiling cfg-if v1.0.5\n   Compiling getrandom v0.3.4\n   Compiling zerocopy v0.8.57\n   Compiling typenum v1.20.1\n   Compiling generic-array v0.14.7\n   Compiling utf8parse v0.2.2\n   Compiling anstyle-parse v1.0.0\n   Compiling colorchoice v1.0.5\n   Compiling is_terminal_polyfill v1.70.2\n   Compiling equivalent v1.0.2\n   Compiling anstyle-query v1.1.5\n   Compiling anstyle v1.0.14\n   Compiling zmij v1.0.23\n   Compiling hashbrown v0.17.1\n   Compiling syn v3.0.6\n   Compiling rand_core v0.9.5\n   Compiling block-buffer v0.10.4\n   Compiling crypto-common v0.1.7\n   Compiling anstream v1.0.0\n   Compiling thiserror v2.0.20\n   Compiling indexmap v2.14.2\n   Compiling winnow v0.7.15\n   Compiling toml_write v0.1.2\n   Compiling heck v0.5.0\n   Compiling serde_json v1.0.151\n   Compiling clap_lex v1.1.1\n   Compiling strsim v0.11.1\n   Compiling digest v0.10.7\n   Compiling clap_builder v4.6.7\n   Compiling itoa v1.0.18\n   Compiling cpufeatures v0.2.17\n   Compiling memchr v2.8.3\n   Compiling sha2 v0.10.9\n   Compiling ppv-lite86 v0.2.21\n   Compiling rand_chacha v0.9.0\n   Compiling serde_derive v1.0.229\n   Compiling clap_derive v4.6.7\n   Compiling thiserror-impl v2.0.20\n   Compiling rand v0.9.5\n   Compiling clap v4.6.7\n   Compiling toml_datetime v0.6.11\n   Compiling serde_spanned v0.6.9\n   Compiling toml_edit v0.22.27\n   Compiling toml v0.8.23\n   Compiling cra v0.1.0 (/tmp/cra-m1-original-13a4873)\n    Finished `release` profile [optimized] target(s) in 18.44s\n"
+  },
+  {
+    "args": [
+      "/tmp/cra-m1-original-13a4873/target/release/cra",
+      "simulate",
+      "--config",
+      "configs/actor_no_learning.toml",
+      "--baseline",
+      "actor",
+      "--lifetimes",
+      "2",
+      "--seed",
+      "1",
+      "--outer-seed",
+      "1",
+      "--out-dir",
+      "runs/m1-review-original"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.1755962371826172,
+    "output": "run dir: runs/m1-review-original/actor_no_learning-root1-outer1-1789977543\ncondition B3: 2 lifetimes, 16 commitments, 16 outcomes, mean reward 0.5000\n"
+  },
+  {
+    "args": [
+      "python3",
+      "analysis/validate_logs.py",
+      "runs/m1-review-original/actor_no_learning-root1-outer1-1789977543"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.03133726119995117,
+    "output": "OK runs/m1-review-original/actor_no_learning-root1-outer1-1789977543 (events + provenance)\n"
+  },
+  {
+    "args": [
+      "/tmp/cra-m1-original-13a4873/target/release/cra",
+      "simulate",
+      "--config",
+      "docs/evidence/m1-review/noisy_variable.toml",
+      "--baseline",
+      "actor",
+      "--lifetimes",
+      "2",
+      "--seed",
+      "1",
+      "--outer-seed",
+      "1",
+      "--out-dir",
+      "runs/m1-review-original"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.05665254592895508,
+    "output": "run dir: runs/m1-review-original/m1_review_noisy-root1-outer1-1789977543\ncondition B3: 2 lifetimes, 32 commitments, 32 outcomes, mean reward 0.3438\n"
+  },
+  {
+    "args": [
+      "python3",
+      "analysis/validate_logs.py",
+      "runs/m1-review-original/m1_review_noisy-root1-outer1-1789977543"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "seconds": 0.032222747802734375,
+    "output": "OK runs/m1-review-original/m1_review_noisy-root1-outer1-1789977543 (events + provenance)\n"
+  },
+  {
+    "args": [
+      "git",
+      "diff",
+      "--check"
+    ],
+    "cwd": "/home/phagmaier/Code/cra",
+    "env": {},
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": ""
+  }
+]

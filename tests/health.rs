@@ -341,7 +341,7 @@ fn diagnostic_output_round_trips_through_a_json_file() {
         .expect("write diagnostic");
     let back: serde_json::Value =
         serde_json::from_str(&std::fs::read_to_string(&path).expect("read")).expect("parse");
-    assert_eq!(back["schema_version"], 1);
+    assert_eq!(back["schema_version"], 2);
     let summary_back: HealthSummary =
         serde_json::from_value(back["summary"].clone()).expect("summary");
     assert_eq!(summary_back, summary);
@@ -410,4 +410,26 @@ fn health_errors_map_onto_sim_errors_explicitly() {
         HealthError::InvalidConfig("x".to_owned()).to_sim_error(),
         SimError::InvalidConfiguration(_)
     ));
+}
+
+#[test]
+fn production_actor_enforces_finite_watchdog() {
+    let mut cfg = no_learning_config();
+    cfg.actor.as_mut().unwrap().input_scale = 1e6;
+    let mut actor = birth(&cfg, 1, 0);
+    let mut features = vec![0.0; cfg.environment.cue_count + 6];
+    features[0] = 1.0;
+    let error = actor
+        .advance(&features)
+        .expect_err("finite blow-up must stop production");
+    assert!(error.to_string().contains("watchdog"));
+}
+
+#[test]
+fn empty_summary_round_trips_for_failure_before_first_tick() {
+    let empty = HealthSummary::new();
+    let json = serde_json::to_string(&empty).unwrap();
+    let restored: HealthSummary = serde_json::from_str(&json).unwrap();
+    assert_eq!(restored, empty);
+    assert_eq!(restored.min_margin(), None);
 }

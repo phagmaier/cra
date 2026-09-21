@@ -116,7 +116,17 @@ fn check_motor_dims(r_new: &[f64], motor0: &[usize], motor1: &[usize]) -> Result
             "motor pools must be non-empty".to_owned(),
         ));
     }
+    if motor0.len() != motor1.len() {
+        return Err(MotorError::DimensionMismatch(
+            "motor pools must be equal-sized".to_owned(),
+        ));
+    }
     for (name, pool) in [("motor0", motor0), ("motor1", motor1)] {
+        if pool.iter().enumerate().any(|(i, j)| pool[..i].contains(j)) {
+            return Err(MotorError::DimensionMismatch(format!(
+                "{name} contains duplicate indices"
+            )));
+        }
         if pool.iter().any(|&j| j >= r_new.len()) {
             return Err(MotorError::DimensionMismatch(format!(
                 "{name} indexes outside {}-neuron activity",

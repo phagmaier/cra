@@ -1,0 +1,43 @@
+   Compiling cra v0.1.0 (/home/phagmaier/Code/cra)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.01s
+     Running tests/checkpoint.rs (target/debug/deps/checkpoint-4ebe441e9f518320)
+
+running 10 tests
+test capture_rejects_unfinished_tick ... FAILED
+test capture_rejects_relabelled_live_seed_and_config ... FAILED
+test incompatible_mutations_fail_without_silent_defaults ... ok
+test capture_rejects_non_executable_configs ... ok
+test atomic_save_never_leaves_a_partial_target ... ok
+test nested_unknown_and_missing_state_are_rejected ... FAILED
+test resume_at_pending_feedback_boundary_matches_uninterrupted_run ... ok
+test resume_at_quiet_boundary_matches_uninterrupted_run ... ok
+test corrupt_files_fail_without_state ... ok
+test resume_at_response_boundary_matches_uninterrupted_run ... ok
+
+failures:
+
+---- capture_rejects_unfinished_tick stdout ----
+
+thread 'capture_rejects_unfinished_tick' (238) panicked at tests/checkpoint.rs:436:5:
+assertion failed: Checkpoint::capture(&life, &actor, &cfg, seeds()).is_err()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- capture_rejects_relabelled_live_seed_and_config stdout ----
+
+thread 'capture_rejects_relabelled_live_seed_and_config' (237) panicked at tests/checkpoint.rs:421:5:
+capture must verify the live RNG seed, not stamp a new one
+
+---- nested_unknown_and_missing_state_are_rejected stdout ----
+
+thread 'nested_unknown_and_missing_state_are_rejected' (241) panicked at tests/checkpoint.rs:455:9:
+agent.future_plasticity
+
+
+failures:
+    capture_rejects_relabelled_live_seed_and_config
+    capture_rejects_unfinished_tick
+    nested_unknown_and_missing_state_are_rejected
+
+test result: FAILED. 7 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+error: test failed, to rerun pass `--test checkpoint`

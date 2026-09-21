@@ -635,3 +635,39 @@ make code or a result look successful.**
 - **Scope guard for M2.** Plasticity, eligibility, gates, and search
   do not exist in the tree; B3 stays labeled a same-actor no-update
   control, never a B7 activity-only optimum. M2-01 is next.
+
+## 2026-09-21 UTC — M1 corrective review (M1-REVIEW)
+
+- **Checkpoint trust and complete ticks (spec 9, 10.7, 17.7, 20).** The
+  M1-09 checks were insufficient: deriving an alleged seed from caller metadata
+  did not verify the live generator, and nested state was not strict. Capture
+  now checks the generator's actual seed and stream; schema 2 requires the
+  last perturbations, initialization record, warmup duration and reference
+  platform. Nullable state must be explicitly present. Arrays, topology,
+  configuration, pending feedback and cross-half ledgers are validated on
+  capture/load/restore. Captures occur after commitment; a mid-tick capture
+  is rejected rather than inventing a continuation protocol. Old schema-1
+  checkpoints are rejected, not migrated with guessed state. RNG distribution,
+  seed derivation and valid-run draws are unchanged. Context7 supplied current
+  Rand ChaCha documentation; getter/position semantics were also checked in
+  the installed pinned `rand_chacha 0.9.0` source. Nonzero ChaCha substreams
+  are rejected because the production schema supports stream zero only.
+- **Atomic checkpoint writes (spec 10.7).** PID-only temporary filenames
+  were not unique for concurrent callers. Exclusive reservation plus a local
+  nonce, complete write/sync and atomic rename now ensure concurrent saves
+  leave a whole checkpoint. No parallel simulation was introduced.
+- **Runtime diagnostics (spec 6.5, 10.1, 10.6; M1-08/11).** This supersedes
+  the M1-08 note deferring runner watchdog enforcement and the M1-GATE claim
+  that the original CLI demo was watchdog-held. Production transitions now
+  enforce the previously declared 1e4 bounds; no membrane clipping was added.
+  A wrapper around the same ordinary runner saves health, selected h/a/r/q
+  traces, sampling rejection history and failures. Health schema 2 adds
+  explicit sampled activity and finite empty summaries. Event schema remains 1.
+  Log settings affect observation only; exact healthy-event parity with the
+  original commit and logged/unlogged health parity were verified.
+- **Evidence and claim boundary.** Original M1 smoke files were removed by
+  the earlier sessions; those historical claims remain recorded but are not
+  newly audited originals. Fresh preserved evidence supports the gate after
+  corrections. Some initializations remain strongly action-biased; both-action
+  reachability is across seeds, not a within-lifetime balance claim. M2-01
+  remains next. See [the review](m1-review.md) and its evidence bundle.

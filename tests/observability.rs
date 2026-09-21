@@ -13,6 +13,30 @@ use cra::agent::no_learning::NoLearningActor;
 use cra::config::{Actor, Config};
 use cra::environment::{Agent, Lifetime};
 
+// Optional immutable evidence export for the bounded milestone suite.
+// Assertions run identically with or without recording.
+fn save_evidence(name: &str, cfg: &Config, results: serde_json::Value) {
+    let Some(dir) = std::env::var_os("CRA_M1_EVIDENCE_DIR") else {
+        return;
+    };
+    let dir = std::path::PathBuf::from(dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(dir.join(format!("{name}.json")))
+        .expect("evidence path must be fresh");
+    serde_json::to_writer_pretty(
+        file,
+        &serde_json::json!({
+            "config": cfg, "root_seed": 1, "namespace": "development", "lifetime_index": 0,
+            "reference_os": std::env::consts::OS, "reference_arch": std::env::consts::ARCH,
+            "results": results,
+        }),
+    )
+    .unwrap();
+}
+
 fn actor_cfg() -> Actor {
     Actor {
         neuron_count: 16,
@@ -83,6 +107,11 @@ fn fixed_inputs_stay_finite_over_long_quiet() {
     // Diagnostics serialize for offline analysis (no notebook needed).
     let json = serde_json::to_string(&summary).expect("summary serializes");
     assert!(json.contains("ticks_observed"));
+    save_evidence(
+        "fixed-zero-input",
+        &cfg,
+        serde_json::json!({"outer_seed": 1, "summary": summary}),
+    );
 }
 
 #[test]
@@ -139,6 +168,15 @@ fn alternating_cues_produce_distinguishable_activity() {
         across / f64::from(n_across) > within / f64::from(n_within),
         "distinct cues must drive distinguishable activity"
     );
+    save_evidence(
+        "alternating-cues",
+        &cfg,
+        serde_json::json!({
+            "outer_seed": 1, "block_ticks": 50, "cue_sequence": [0,1,0,1,0,1],
+            "within_cue_distance": within / f64::from(n_within),
+            "across_cue_distance": across / f64::from(n_across), "activity_block_means": means,
+        }),
+    );
 }
 
 #[test]
@@ -149,6 +187,8 @@ fn both_actions_reachable_across_initializations() {
     let cfg = observability_config();
     let mut seen = [false, false];
     let mut summaries = Vec::new();
+    let mut action_counts = [0_u64; 2];
+    let mut diagnostics = Vec::new();
     for outer in 1..=8 {
         let mut lifetime = Lifetime::new(&cfg, 1, "development", outer, 0).expect("birth");
         let mut actor = NoLearningActor::new(&cfg, 1, "development", outer, 0).expect("birth");
@@ -192,6 +232,7 @@ fn both_actions_reachable_across_initializations() {
             if out.commitment_due {
                 let action = actor.select_action();
                 seen[usize::from(action)] = true;
+                action_counts[usize::from(action)] += 1;
                 lifetime.commit(action).expect("commit");
             }
         }
@@ -199,6 +240,8 @@ fn both_actions_reachable_across_initializations() {
         assert!(summary.max_abs_h < cra::agent::health::WATCHDOG_H_ABS_MAX);
         assert!(summary.min_margin().expect("margins").is_finite());
         assert!(!recorder.samples().is_empty());
+        diagnostics
+            .push(serde_json::json!({"outer_seed": outer, "summary": summary, "trace": recorder}));
         summaries.push(summary);
     }
     assert!(
@@ -206,6 +249,11 @@ fn both_actions_reachable_across_initializations() {
         "both actions must be reachable across initializations"
     );
     assert_eq!(summaries.len(), 8);
+    save_evidence(
+        "initializations",
+        &cfg,
+        serde_json::json!({"action_counts": action_counts, "lifetimes": diagnostics}),
+    );
 }
 
 #[test]
@@ -247,6 +295,11 @@ fn long_quiet_lifetimes_remain_finite() {
     assert_eq!(lifetime.outcomes(), 4);
     // 4 outcomes with 64-tick quiets: warmup 4 + cue 8 + response 4 +
     // feedback 1, then three full 77-tick cycles = 248 ticks total.
-    assert!(ticks > 200, "long quiets span many ticks, got {ticks}");
+    assert_eq!(ticks, 248, "exact warmup + four cycles");
+    save_evidence(
+        "long-quiet",
+        &cfg,
+        serde_json::json!({"outer_seed": 1, "outcomes": lifetime.outcomes(), "summary": summary}),
+    );
     assert!(summary.max_abs_h < cra::agent::health::WATCHDOG_H_ABS_MAX);
 }

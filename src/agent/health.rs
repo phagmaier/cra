@@ -30,7 +30,7 @@ use crate::environment::SimError;
 
 /// Version for health/trace JSON payloads. Bumped only with a documented
 /// format change.
-pub const HEALTH_SCHEMA_VERSION: u32 = 1;
+pub const HEALTH_SCHEMA_VERSION: u32 = 2;
 
 /// Conservative finite-state watchdog: no healthy `|h|` may reach this.
 /// See the module docs for the `O(1)`-vs-`1e4` rationale.
@@ -207,8 +207,8 @@ pub struct HealthSummary {
 }
 
 impl HealthSummary {
-    /// Empty summary: zero ticks, zero extrema, margins at the identity
-    /// extremes (`min = +inf` so the first observation sets it).
+    /// Empty, finite and JSON-round-trippable summary. The first observation
+    /// initializes the minimum margin; `min_margin` returns None until then.
     pub fn new() -> Self {
         Self {
             schema_version: HEALTH_SCHEMA_VERSION,
@@ -219,7 +219,7 @@ impl HealthSummary {
             max_abs_q: 0.0,
             saturated_neuron_ticks: 0,
             total_neuron_ticks: 0,
-            min_motor_margin: f64::INFINITY,
+            min_motor_margin: 0.0,
             max_motor_margin: 0.0,
         }
     }
@@ -252,7 +252,11 @@ impl HealthSummary {
         self.saturated_neuron_ticks += saturated;
         self.total_neuron_ticks += r.len() as u64;
         let margin = (q[0] - q[1]).abs();
-        self.min_motor_margin = self.min_motor_margin.min(margin);
+        self.min_motor_margin = if self.ticks_observed == 0 {
+            margin
+        } else {
+            self.min_motor_margin.min(margin)
+        };
         self.max_motor_margin = self.max_motor_margin.max(margin);
         self.ticks_observed += 1;
         Ok(())
@@ -290,6 +294,7 @@ pub struct TraceSample {
     pub tick: u64,
     pub h: Vec<f64>,
     pub a: Vec<f64>,
+    pub r: Vec<f64>,
     pub q: [f64; 2],
 }
 
@@ -384,6 +389,7 @@ impl TraceRecorder {
             tick,
             h: self.selection.iter().map(|&j| h[j]).collect(),
             a: self.selection.iter().map(|&j| a[j]).collect(),
+            r: self.selection.iter().map(|&j| h[j].tanh()).collect(),
             q,
         });
         Ok(true)
@@ -396,11 +402,11 @@ mod tests {
 
     #[test]
     fn schema_and_bounds_are_pinned() {
-        assert_eq!(HEALTH_SCHEMA_VERSION, 1);
+        assert_eq!(HEALTH_SCHEMA_VERSION, 2);
         assert_eq!(WATCHDOG_H_ABS_MAX, 1e4);
         assert_eq!(WATCHDOG_A_ABS_MAX, 1e4);
         assert_eq!(WATCHDOG_Q_ABS_MAX, 1e4);
         assert_eq!(SATURATION_R_ABS, 0.9);
-        assert_eq!(HealthSummary::new().schema_version, 1);
+        assert_eq!(HealthSummary::new().schema_version, 2);
     }
 }
