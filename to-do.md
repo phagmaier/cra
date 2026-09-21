@@ -30,14 +30,14 @@ and [continuation guide](docs/handoff.md).
 
 | Field | Current value |
 | --- | --- |
-| Current milestone | M1 open; M1-07 verified 2026-09-21 UTC, M1-GATE still open |
+| Current milestone | M1 open; M1-08 verified 2026-09-21 UTC, M1-GATE still open |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M1-07 (nonplastic actor integration); M0 scope verification remains M0-REVIEW |
+| Last verified task | M1-08 (numerical health and traces); M0 scope verification remains M0-REVIEW |
 | Claimed task | None |
-| Next eligible task | M1-08 |
+| Next eligible task | M1-09 |
 | Current blocker | None |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | 2026-09-21 UTC M1-07 ledger entry (this file); M0 simulation evidence in docs/evidence/m0-review/ |
+| Last evidence record | 2026-09-21 UTC M1-08 ledger entry (this file); M0 simulation evidence in docs/evidence/m0-review/ |
 
 ### Session ownership and handoffs
 
@@ -56,6 +56,7 @@ and [continuation guide](docs/handoff.md).
 | agent 2026-09-21 | M1-05 | tests/adaptation.rs | Done, verified; handoff to M1-06 |
 | agent 2026-09-21 | M1-06 | src/agent/{mod,motor}.rs, tests/motor.rs, docs/decisions.md | Done, verified; handoff to M1-07 |
 | agent 2026-09-21 | M1-07 | src/agent/{mod,no_learning}.rs, src/config.rs, src/experiments/baseline.rs, src/lib.rs, tests/no_learning.rs, docs/decisions.md | Done, verified; handoff to M1-08 |
+| agent 2026-09-21 | M1-08 | src/agent/{mod,health,no_learning}.rs, src/lib.rs, tests/health.rs, docs/decisions.md | Done, verified; handoff to M1-09 |
 
 Parallel work requires settled interfaces and satisfied dependencies. Do not parallelize successive scientific milestones or let two agents independently redefine feedback ordering, RNG policy, or checkpoint schema. Coordinate changes to this tracker through one integrator.
 
@@ -199,7 +200,7 @@ Establish correct, continuously evolving actor dynamics and replay before introd
   - Deliver: Expose continuously available motor output and the Section 18 agent boundary. Process public reward as sensory input without weight learning. Use an explicit actor-no-learning profile for B3.
   - Verify: All phases advance the network; no cue/reward/hidden-change boundary resets it. The inherited weights remain identical throughout. Environment scheduling is unchanged from M0.
 
-- [ ] **M1-08 - Add numerical health and selected actor traces**
+- [x] **M1-08 - Add numerical health and selected actor traces**
   - Deliver: Record sampled activity/adaptation/motor traces, saturation, margins, and state finiteness. Define a conservative watchdog and explicit failure records rather than clipping h.
   - Verify: A forced nonfinite value fails visibly. Trace selection is stable and does not consume simulation randomness. Diagnostic output is saved without making an interactive notebook mandatory.
 
@@ -1934,6 +1935,78 @@ Interpretation and claim limits: Continuous nonplastic dynamics only.
   work. M1-GATE remains open.
 Tracker boxes updated: M1-07 checked.
 Next eligible task: M1-08.
+```
+
+```text
+Date / agent or session: 2026-09-21 UTC / agent (M1-08 health session)
+Task IDs: M1-08
+Spec sections: 10.6 (f64, no h clipping, conservative watchdog, explicit
+  failures), 6.5 (observability needs: distinguishable, non-saturated
+  dynamics)
+Change and affected files: src/agent/health.rs (new: HEALTH_SCHEMA_VERSION
+  1, WATCHDOG bounds 1e4 for h/a/q, SATURATION_R_ABS 0.9, HealthError with
+  NonFinite/WatchdogTripped/InvalidConfig plus to_sim_error mapping,
+  selected_trace_indices pure stable selection, check_state finiteness plus
+  watchdog, HealthSummary extrema/saturation/margins with no-record-on-
+  failure, TraceRecorder sampled snapshots with tick-order/file-ready
+  JSON); src/agent/mod.rs + src/lib.rs (register/document health);
+  src/agent/no_learning.rs (read-only health_check borrowing h/a/r/q,
+  no RNG, no mutation); tests/health.rs (new, 9 tests); docs/decisions.md
+  (M1-08 conventions entry); docs/handoff.md (M1-09 continuation);
+  README.md (layout line).
+Code revision / dirty-tree state: base 3f0f0c6 (m1-07 done); clean at
+  start, M1-08 files new or modified and uncommitted at handoff
+  (M src/agent/mod.rs, src/agent/no_learning.rs, src/lib.rs, to-do.md,
+  docs/decisions.md, docs/handoff.md, README.md; ?? src/agent/health.rs,
+  tests/health.rs).
+Commands actually executed:
+  cargo test --locked --test health (9/9 pass)
+  cargo test --all-targets --locked (150 pass, 1 ignored: 28 lib incl. 1
+    new health unit + 0 bin + 7 actor + 7 actor_noise + 5 adaptation + 7
+    motor + 10 no_learning + 9 health + 7 baselines + 4 config + 20
+    contract + 5 logging + 3 order + 5 leakage + 5 randomized + 5 seeds
+    + 13 topology + 10 weights)
+  cargo fmt --all -- --check (clean after cargo fmt)
+  cargo clippy --all-targets --locked -- -D warnings (clean after
+    is_multiple_of plus two test-lint fixes)
+  python3 analysis/test_validate_logs.py (14/14 pass, unchanged layer)
+  cargo run --release --locked -- validate-config
+    configs/debug_stationary.toml (OK) and
+    cargo run --release --locked -- simulate --config
+    configs/env_smoke.toml --baseline oracle --lifetimes 2 --seed 1
+    (O1 2 lifetimes, 16/16 outcomes, mean 1.0; fresh run dir removed
+    afterward, no new committed artifacts)
+Outcome and checks passed: Forced NaN/Inf in h/a/r/q fails as NonFinite
+  naming the component through check_state/observe/maybe_record/
+  health_check with counters/samples untouched (no clipping); finite
+  10_001 trips the watchdog naming bound 1e4 while boundary 1e4 and O(1)
+  pass; saturation 2/4 = 0.5 and margins min 0.2/max 1.0 match hand
+  values with None before first tick; selection [0,1,12,14] stable,
+  motor-covering, <= 4 entries, degenerate cases covered, interleaved
+  calls leave trajectories identical; observed vs plain actor runs agree
+  bitwise; full 6-outcome lifetime stays finite (max |h/a/q| below
+  bounds, fraction in [0,1], margin finite, >= 3 ordered samples at
+  every 10); summary/selection/samples round-trip through a temp JSON
+  file; bad every/empty/short-state configs explicit with no append on
+  failure; non-sampled ticks trivially Ok(false); error mapping to
+  SimError explicit.
+Checks not run / failures / blockers: None. Two initial failures fixed
+  without weakening: float margin 0.1999 vs 0.2 moved to 1e-12 tolerance;
+  three clippy lints fixed (is_multiple_of, constant assertion removed,
+  bool assert). No notebook used.
+Configuration and suite hashes: actor_health_test profile (env_smoke
+  timing, N=16/m=2/p=0.25, 6 outcomes, no learning/modulator/evolution);
+  development namespace, outer 1; trace every 1/2/10 per test; no suites
+  consumed.
+Artifact paths and checksums where relevant: src/agent/health.rs,
+  tests/health.rs (diagnostic JSON only in temp dir, removed; no run
+  directories produced; smoke rerun dir removed).
+Interpretation and claim limits: Read-only diagnostics only. No dynamics
+  change (advance untouched; health_check borrows), no clipping, no
+  learning claim. Watchdog enforcement in the runner stays future work;
+  M1-11 judges usability from these summaries. M1-GATE remains open.
+Tracker boxes updated: M1-08 checked.
+Next eligible task: M1-09.
 ```
 
 ## Blockers and decision register - keep current

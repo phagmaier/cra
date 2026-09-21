@@ -10,9 +10,11 @@
 //! order, structural validation), M1-02 inherited weights
 //! ([`agent::weights`]: row-scaled `W0`, dense `B`, zero biases), M1-03
 //! the double-buffered actor transition ([`agent::actor`]), M1-06 the
-//! fixed motor readout ([`agent::motor`]), and M1-07 the nonplastic
+//! fixed motor readout ([`agent::motor`]), M1-07 the nonplastic
 //! continuous actor ([`agent::no_learning`]: B3 through the common ordinary
-//! runner). Plasticity, search, and
+//! runner), and M1-08 read-only numerical health plus selected traces
+//! ([`agent::health`]: conservative watchdog, summaries, stable sampling).
+//! Plasticity, search, and
 //! comparative analysis remain later milestones.
 
 pub mod agent;

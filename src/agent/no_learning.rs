@@ -30,6 +30,7 @@ use rand_chacha::ChaCha8Rng;
 use serde::{Deserialize, Serialize};
 
 use crate::agent::actor::{ActorError, ActorState};
+use crate::agent::health::{HealthError, check_state};
 use crate::agent::motor::{MotorError, MotorState, decide_action};
 use crate::agent::topology::DEFAULT_MAX_STRUCTURAL_ATTEMPTS;
 use crate::agent::weights::{InheritedParams, ParamsError, sample_inherited};
@@ -236,6 +237,20 @@ impl NoLearningActor {
     /// Highest consumed feedback id, if any (deduplication bookkeeping).
     pub fn last_feedback(&self) -> Option<u64> {
         self.last_feedback
+    }
+
+    /// Read-only numerical health of the current state: finiteness plus
+    /// the conservative finite watchdog from [`crate::agent::health`].
+    /// Borrows immutably, draws no randomness, mutates nothing — diagnostic
+    /// reads never perturb the trajectory (M1-08 logging invariance).
+    pub fn health_check(&self) -> Result<(), HealthError> {
+        check_state(
+            self.ticks_advanced,
+            self.state.h(),
+            self.state.a(),
+            self.state.r(),
+            self.motor.q(),
+        )
     }
 
     /// Choose the committed action from the newest readout. Strict winners

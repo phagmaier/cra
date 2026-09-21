@@ -481,3 +481,31 @@ make code or a result look successful.**
   (env-smoke timing, `N = 16`, six outcomes, no learning/modulator/
   evolution sections). `OrdinaryPolicy` for the actor is implemented in
   `experiments::baseline` so `agent` never depends on the harness.
+
+## 2026-09-21 UTC — M1-08 numerical health conventions (spec 6.5, 10.6)
+
+- **Scope:** read-only watchdog, running summary, and sampled traces over
+  live `h`/`a`/`r`/`q`. No dynamics change (`advance` untouched), no
+  clipping, no plasticity. Affected spec sections: 10.6 (f64, explicit
+  failures, conservative watchdog) and 6.5 (saturation/margins for the
+  M1-11 usability judgment).
+- **Conservative bounds, named in errors.** `|h|`, `|a|`, `|q| <= 1e4`
+  (module docs: healthy operation is `O(1)`, so the bound sits ~1000x
+  above normal for both `N = 16` and `N = 60`). Alternative (tight
+  threshold near observed maxima) rejected: it would false-alarm on new
+  seeds. Finiteness is checked first; a finite breach names value and
+  bound (`WatchdogTripped`), a nonfinite names the component
+  (`NonFinite`). Failed ticks leave counters/samples untouched.
+- **Observer never perturbs.** `check_state`, `HealthSummary::observe`,
+  `TraceRecorder::maybe_record`, and `NoLearningActor::health_check`
+  borrow immutably and import no RNG; selection is a pure function of
+  topology (`[0, 1, motor0[0], motor1[0]]`, sorted/deduped, budget 4).
+  Alternative (recorder owning RNG or mutating actor) rejected: logging
+  must not draw simulation randomness (AGENTS.md, spec 18.4). Paired
+  runs with/without observation are asserted bitwise identical.
+- **File-ready, versioned, notebook-free.** Summaries, selections, and
+  samples derive `Serialize`/`Deserialize` under `HEALTH_SCHEMA_VERSION
+  = 1`; tests round-trip them through a temp JSON file. No Python,
+  notebook, or dataframe dependency is introduced (analysis stays
+  stdlib-only). Runner wiring of watchdog enforcement stays future
+  work; M1-08 defines and proves the instrument, M1-11 uses it.
