@@ -24,20 +24,20 @@ The checklist follows the specification's **M0-M10 milestone sequence**. Scienti
 
 | Field | Initial value |
 | --- | --- |
-| Current milestone | M0 - not started |
+| Current milestone | M0 - M0-05 verified 2026-09-21 |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | None |
+| Last verified task | M0-05 |
 | Claimed task | None |
-| Next eligible task | M0-01 |
-| Current blocker | None established; repository inspection is pending |
+| Next eligible task | M0-06 |
+| Current blocker | None; M0-06 (observation boundary types) is unblocked |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | None |
+| Last evidence record | 2026-09-21 M0-01–M0-05 bootstrap (see ledger) |
 
 ### Ownership for parallel agents
 
 | Owner/session | Task IDs | Files or interfaces owned | Status / handoff |
 | --- | --- | --- | --- |
-| Unassigned | None | None | No work claimed |
+| agent 2026-09-21 | M0-01–M0-05 | src/{lib,main,config,rng,run}.rs, Cargo.toml, rust-toolchain.toml, configs/, manifests/, tests/{seed_streams,config_validation}.rs, README, docs/, analysis/ stub | Done, verified; handoff to M0-06 |
 
 Parallel work requires settled interfaces and satisfied dependencies. Do not parallelize successive scientific milestones or let two agents independently redefine feedback ordering, RNG policy, or checkpoint schema. Coordinate changes to this tracker through one integrator.
 
@@ -72,23 +72,23 @@ For an implementation task, completion means its behavior and error cases exist,
 
 Prove that observations, hidden mappings, timing, and reward accounting are correct without implementing recurrent neurons or evolution.
 
-- [ ] **M0-01 - Inspect the repository and preserve the specification**
+- [x] **M0-01 - Inspect the repository and preserve the specification**
   - Deliver: Read AGENTS.md and the supplied spec.md; inspect existing files and changes. Confirm the root filename is spec.md, not an upload suffix. Record source version and the actual initial repository state.
   - Verify: Do not mark existing implementation complete without its tests. Keep the supplied scientific specification unchanged. Set the tracker status and claim the first task.
 
-- [ ] **M0-02 - Bootstrap the minimal Rust project and reproducible toolchain**
+- [x] **M0-02 - Bootstrap the minimal Rust project and reproducible toolchain**
   - Deliver: Create a small Cargo package with a testable library and thin CLI binary. Pin the installed supported toolchain and dependency resolution; keep Cargo.lock. Establish formatting, linting, and test commands.
   - Verify: A minimal unit test and CLI help run successfully. Record actual toolchain versions. Do not create pretend implementations of future modules or introduce a deep-learning framework.
 
-- [ ] **M0-03 - Establish repository records and artifact conventions**
+- [x] **M0-03 - Establish repository records and artifact conventions**
   - Deliver: Create README.md, docs/decisions.md, docs/experiments.md, configs/, manifests/, tests/, and analysis/ as needed. Define unique run directories and a policy keeping large generated data/build output out of ordinary source commits.
   - Verify: Document that decision records, task evidence, and study-plan files are workflow additions. The README distinguishes implemented commands from planned commands; experiment records are append-only, including failures.
 
-- [ ] **M0-04 - Define deterministic seed namespaces and independent streams**
+- [x] **M0-04 - Define deterministic seed namespaces and independent streams**
   - Deliver: Document and implement a stable derivation from root seed, namespace, outer seed, lifetime index, and stream name. Reserve development, training, validation, and test namespaces; separate environment, initialization, actor noise, action ties, and evolution streams.
   - Verify: Known seed tuples produce golden stream outputs. Namespace separation is auditable. Additional draws in an agent stream do not change cue, change, noise, or timing schedules. Runtime-randomized hashes are not used.
 
-- [ ] **M0-05 - Implement versioned configuration parsing and validation**
+- [x] **M0-05 - Implement versioned configuration parsing and validation**
   - Deliver: Implement a resolved TOML schema from Section 19 and an environment-only smoke profile. Record all defaults and the seed source. Reject unknown/unsupported modes at execution rather than silently ignoring them. Add validation incrementally with each feature.
   - Verify: Table-test invalid probabilities, durations, dt != 1, pending-choice limits, schema versions, and missing seed namespaces. Include dimension, score-noise, reset-policy, and evolution validation as their modules arrive. The environment smoke profile does not pretend to run an unimplemented actor.
 
@@ -789,9 +789,176 @@ Next eligible task:
 
 For a code-only task, mark experiment-specific fields not applicable with a reason. For empirical tasks, include actual measured values and uncertainty rather than "looks good." Link fuller run records from `docs/experiments.md`; log scientific ambiguities and approved changes in `docs/decisions.md`.
 
+### Ledger entries
+
+```text
+Date / agent or session: 2026-09-21 / agent (M0 bootstrap session)
+Task IDs: M0-01
+Spec sections: 16/M0 (tracker setup); AGENTS.md workflow
+Change and affected files: None (read-only). Inspected root: AGENTS.md
+  (188 lines), spec.md v0.1 prepared 2026-09-20 (2515 lines, root filename
+  confirmed, no upload suffix), to-do.md (798 lines), Cargo.toml (stub:
+  name cra 0.1.0, edition 2024, no deps), src/main.rs (hello-world stub),
+  .gitignore (/target only). spec.md left byte-identical.
+Code revision / dirty-tree state: f261794 (initial commit) clean at inspect.
+Commands actually executed: git status/log, rustc/cargo --version,
+  ls -la, reads of AGENTS.md/to-do.md/spec.md/Cargo.toml/src.
+Outcome and checks passed: Initial state recorded; spec preserved.
+Checks not run / failures / blockers: None.
+Configuration and suite hashes: N/A (no configs yet).
+Seed namespace / outer seeds / lifetime count: N/A.
+Artifact paths and checksums where relevant: N/A.
+Interpretation and claim limits: No implementation claimed. AGENTS.md needed
+  no scientific-contract edit; it already marks its commands as targets.
+Tracker boxes updated: Status block + ownership (this entry covers M0-01).
+Next eligible task: M0-02 (completed same session; see next entry).
+```
+
+```text
+Date / agent or session: 2026-09-21 / agent (M0 bootstrap session)
+Task IDs: M0-02
+Spec sections: 18 (repo/interface), 20 (run identity); AGENTS.md toolchain rule
+Change and affected files: rust-toolchain.toml (new, channel 1.98.0);
+  Cargo.toml (lib cra + bin cra, ordinary deps only: clap/serde/serde_json/
+  toml/thiserror/rand/rand_chacha/rand_core/sha2; no DL framework);
+  Cargo.lock (new, committed); src/lib.rs + src/main.rs (thin clap CLI:
+  validate-config, scaffold simulate). No future neural/evolution modules.
+Code revision / dirty-tree state: base f261794; new files untracked at run
+  time (manifest records git_dirty=true honestly).
+Commands actually executed:
+  cargo generate-lockfile
+  cargo test (4 lib tests ok)
+  cargo run --locked -- --help (CLI help ok)
+Outcome and checks passed: Minimal unit tests pass; CLI help runs. Actual
+  versions: rustc/cargo 1.98.0, clap 4.6.7, serde 1.0.229, toml 0.8.23,
+  rand 0.9.5, rand_chacha 0.9.0, sha2 0.10.9 (per Cargo.lock).
+Checks not run / failures / blockers: clippy/fmt deferred to final pass
+  (passed there). No failures.
+Configuration and suite hashes: N/A.
+Seed namespace / outer seeds / lifetime count: N/A.
+Artifact paths and checksums where relevant: Cargo.lock (committed).
+Interpretation and claim limits: Scaffold only; no simulator behavior.
+Tracker boxes updated: M0-02 checked.
+Next eligible task: M0-03 (completed same session; see next entry).
+```
+
+```text
+Date / agent or session: 2026-09-21 / agent (M0 bootstrap session)
+Task IDs: M0-03
+Spec sections: 18.1 (layout), 20.1 (manifest), 20.7 (notebook log)
+Change and affected files: README.md (new: implemented vs planned commands,
+  pinned versions, run-dir/artifact policy); docs/decisions.md,
+  docs/experiments.md (new, append-only); configs/ empty at this step;
+  manifests/development.json, validation.json, final_test.json (disjoint
+  outer-seed ranges 1-9999 / 10001-19999 / 90001-99999);
+  analysis/README.md + requirements.txt (Python 3.14.7 pinned, no deps yet);
+  runs/.gitkeep; .gitignore extended (/target, /runs/* except .gitkeep,
+  __pycache__/, *.pyc, .venv/, *.tmp); src/run.rs (unique run dirs,
+  manifest.json + resolved_config.toml + seed_streams.json writers).
+Code revision / dirty-tree state: base f261794; scaffold untracked
+  (dirty=true in manifests).
+Commands actually executed: file creation; verified by simulate run writing
+  runs/env_smoke-root1-outer1-1789960343/ (manifest.json,
+  resolved_config.toml, seed_streams.json) and `ls runs/`.
+Outcome and checks passed: Run dirs unique per profile/seeds/time and
+  git-ignored; decision/experiment records exist; README separates
+  implemented (validate-config, scaffold simulate) from planned
+  (benchmark/evolve/evaluate/intervene/analysis scripts).
+Checks not run / failures / blockers: None.
+Configuration and suite hashes: N/A (no suites consumed).
+Seed namespace / outer seeds / lifetime count: Manifest ranges reserved, none
+  consumed.
+Artifact paths and checksums where relevant:
+  runs/env_smoke-root1-outer1-1789960343/{manifest.json,resolved_config.toml,
+  seed_streams.json} (local, git-ignored).
+Interpretation and claim limits: Conventions only; decision docs are workflow
+  additions, not scientific requirements.
+Tracker boxes updated: M0-03 checked.
+Next eligible task: M0-04 (completed same session; see next entry).
+```
+
+```text
+Date / agent or session: 2026-09-21 / agent (M0 bootstrap session)
+Task IDs: M0-04
+Spec sections: 5.8 (stream separation), 20.5 (seed derivation)
+Change and affected files: src/rng.rs (canonical
+  "cra-v1|root=|ns=|outer=|lifetime=|stream=" string, SHA-256 ->
+  ChaCha8Rng, strict namespace validation, reserved stream table, one RNG
+  per stream); tests/seed_streams.rs (4 golden vectors, disjointness,
+  10k-draw independence, rejection tests).
+Code revision / dirty-tree state: base f261794; scaffold untracked.
+Commands actually executed:
+  cargo test --all-targets --locked (5/5 seed_streams tests pass)
+  printf '%s' 'cra-v1|root=1|ns=development|outer=1|lifetime=0|stream=cue_order' | sha256sum
+    -> da2a722c... (matches implementation golden exactly; independent tool)
+Outcome and checks passed: Golden fixtures pass; dev/training/validation/
+  final_test namespaces derive pairwise-distinct seeds; all 9 reserved
+  streams distinct; 10k actor_noise draws leave cue_order RNG untouched;
+  unknown namespaces and malformed stream names rejected. No
+  runtime-randomized hashes (only SHA-256 + ChaCha8).
+Checks not run / failures / blockers: None.
+Configuration and suite hashes: N/A.
+Seed namespace / outer seeds / lifetime count: Goldens at
+  (root 1, development|training, outer 1, lifetimes 0-1); no lifetimes run.
+Artifact paths and checksums where relevant: tests/seed_streams.rs.
+Interpretation and claim limits: Derivation contract only; no schedule
+  content (cue/mapping/timing producers arrive M0-07).
+Tracker boxes updated: M0-04 checked.
+Next eligible task: M0-05 (completed same session; see next entry).
+```
+
+```text
+Date / agent or session: 2026-09-21 / agent (M0 bootstrap session)
+Task IDs: M0-05
+Spec sections: 19 (profiles), 19.4 (validation), 4.3 (dt=1)
+Change and affected files: src/config.rs (schema_version=1 schema with
+  required simulation/environment/logging/seeds + optional
+  actor/learning/modulator/evolution, deny_unknown_fields everywhere, full
+  19.4 validation plus dimension/score-noise/reset-trace/evolution checks);
+  src/run.rs + src/main.rs (validate-config, scaffold simulate with
+  --seed alias and per-field config/cli source recording);
+  configs/env_smoke.toml (env-only smoke), configs/debug_stationary.toml
+  (spec 19.2 + [seeds]); tests/config_validation.rs (19-case table).
+Code revision / dirty-tree state: base f261794; scaffold untracked.
+Commands actually executed:
+  cargo run --locked -- validate-config configs/env_smoke.toml -> OK
+  cargo run --locked -- validate-config configs/debug_stationary.toml -> OK
+  cargo run --release --locked -- validate-config configs/debug_stationary.toml -> OK
+  cargo run --locked -- simulate --config configs/env_smoke.toml --seed 1 --outer-seed 1
+    -> runs/env_smoke-root1-outer1-1789960343/
+  negative: bad schema_version/missing file -> ERROR, exit 1 (both)
+  cargo fmt --all -- --check -> clean
+  cargo clippy --all-targets --locked -- -D warnings -> clean
+  cargo test --all-targets --locked -> 11/11 pass (4 lib + 2 config + 5 seeds)
+Outcome and checks passed: All 19 invalid-config cases rejected with the
+  expected error class (dt, noise, hazard, timing, pending, schema,
+  seed-ns, parse, actor-dims, score-noise, reset-trace, evolution,
+  modulator x2, decay). Env smoke profile runs no actor code by
+  construction (no actor sections parsed; simulate writes provenance only).
+Checks not run / failures / blockers: Full gates run (fmt/clippy/test);
+  no failures. M0-06+ suites (environment_contract/event_order/leakage)
+  not yet implemented - out of scope for M0-05.
+Configuration and suite hashes: configs/env_smoke.toml + debug_stationary.toml
+  validated (resolved copies in run dir).
+Seed namespace / outer seeds / lifetime count: development, root 1, outer 1,
+  lifetime_index 0 streams only; no lifetimes simulated.
+Artifact paths and checksums where relevant:
+  runs/env_smoke-root1-outer1-1789960343/{manifest.json,resolved_config.toml,
+  seed_streams.json} (local, git-ignored).
+Interpretation and claim limits: Config/seed contracts only. No environment
+  stepping, no neural code, no learning claim.
+Tracker boxes updated: M0-01 through M0-05 checked.
+Next eligible task: M0-06.
+```
+
 ## Blockers and decision register - keep current
 
-No blockers have yet been established because repository inspection has not occurred. When blocked, record the task ID, observed failure, smallest reproducer, relevant spec contract, actions already tried, and the next permissible action. Do not erase prior negative evidence when a fix is found.
+No blockers. 2026-09-21: M0-01–M0-05 verified (fmt/clippy/test clean,
+11/11 tests, both smoke configs validate, scaffold simulate writes
+provenance). Next: M0-06 (public observation boundary + private evaluator
+types). Scientific ambiguities/decisions for this session are in
+`docs/decisions.md` (toolchain pin, SHA-256/ChaCha8 derivation, explicit
+`[seeds]` section, env-only vs full reference profiles, run provenance).
 
 ## First meaningful success
 

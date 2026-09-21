@@ -1,0 +1,6 @@
+{
+  "namespace": "final_test",
+  "purpose": "untouched final study (M10); must never inform tuning, search, or validation",
+  "outer_seed_range": [90001, 99999],
+  "note": "RESERVED. No final-test results inspected. Any inspection ends the untouched status of that suite."
+}

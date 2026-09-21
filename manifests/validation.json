@@ -1,0 +1,6 @@
+{
+  "namespace": "validation",
+  "purpose": "checkpoint selection and search validation; disjoint from development and final test",
+  "outer_seed_range": [10001, 19999],
+  "note": "Reserved range only. No validation selection runs yet (selection arrives in M7)."
+}

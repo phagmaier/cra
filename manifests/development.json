@@ -1,0 +1,6 @@
+{
+  "namespace": "development",
+  "purpose": "tuning, debugging, and development sweeps; never final confirmation",
+  "outer_seed_range": [1, 9999],
+  "note": "Reserved range only. Concrete development batches are recorded per run in run manifests and docs/experiments.md. No seeds consumed yet (M0)."
+}

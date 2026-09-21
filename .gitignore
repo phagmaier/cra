@@ -1,1 +1,7 @@
 /target
+/runs/*
+!/runs/.gitkeep
+__pycache__/
+*.pyc
+.venv/
+*.tmp
