@@ -30,19 +30,21 @@ and [continuation guide](docs/handoff.md).
 
 | Field | Current value |
 | --- | --- |
-| Current milestone | M3 in progress; M2-GATE passed; M3-05 verified 2026-09-21 UTC |
+| Current milestone | M3 in progress; M2-GATE passed; M3-07 verified 2026-09-21 UTC |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M3-05 — matched no-update and shuffled-reward controls |
+| Last verified task | M3-07 — motor-afferent acquisition (winner grid index 11) |
 | Claimed task | None |
-| Next eligible task | M3-06 |
+| Next eligible task | M3-08 |
 | Current blocker | None |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | 2026-09-21 UTC M3-05; docs/evidence/m3-05/summary.md and ledger below |
+| Last evidence record | 2026-09-21 UTC M3-07; docs/evidence/m3-07/summary.md and ledger below |
 
 ### Session ownership and handoffs
 
 | Owner/session | Task IDs | Files or interfaces owned | Status / handoff |
 | --- | --- | --- | --- |
+| opencode 2026-09-21 M3-07 | M3-07 | src/experiments/sweep.rs, src/experiments/mod.rs, tests/m3_acquisition.rs, docs/evidence/m3-07/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; sweep passes (winner index 11), 274 Rust/17 Python tests pass; next M3-08 |
+| opencode 2026-09-21 M3-06 | M3-06 | manifests/m3_development_grid.json, src/experiments/grid.rs, src/experiments/mod.rs, tests/development_grid.rs, manifests/README.md, docs/evidence/m3-06/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; 6 new tests, 271 Rust/17 Python tests pass; next M3-07 |
 | opencode 2026-09-21 M3-05 | M3-05 | src/agent/no_learning.rs, src/experiments/episodic.rs, tests/episodic_controls.rs, docs/evidence/m3-05/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; 5 new tests, 265 Rust/17 Python tests pass; next M3-06 |
 | opencode 2026-09-21 M3-04 | M3-04 | configs/episodic_stationary.toml, src/config.rs, src/agent/plasticity.rs, src/experiments/episodic.rs, src/experiments/mod.rs, src/lib.rs, tests/episodic_runner.rs, docs/evidence/m3-04/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; 10 new integration + 1 unit test, 260 Rust/17 Python tests pass; next M3-05 |
 | opencode 2026-09-21 M3 preflight | M3-PREFLIGHT | src/{rng,run,checkpoint,environment/mod}.rs, src/agent/{no_learning,topology,plasticity}.rs, tests/{seed_streams,environment_contract,plasticity,feedback_updates,golden_updates}.rs, analysis/{validate_logs,test_validate_logs}.py, analysis/fixtures/valid/seed_streams.json, docs/, README.md, to-do.md | Done; hardening plus versioned provenance, 249 Rust/17 Python tests pass; next M3-04 |
@@ -318,13 +320,15 @@ Demonstrate learning from delayed terminal rewards in a deliberately episodic di
   - Verify: Controls differ only in the declared mechanism; observed environment reward remains separately recorded where diagnostic teaching signals are modified. Check both behavior and actual P changes rather than inferring learning from reward alone.
   - Evidence: `docs/evidence/m3-05/summary.md` (2026-09-21 UTC). `sample_matched_inheritance` backs all runners; `run_episodic_no_learning` (B3, no plastic state by construction) plus `NoLearningActor::reset_state_episodic_diagnostic`; `run_episodic_shuffled` with recorded `IndependentFairCoin` protocol on the dedicated public-seed `shuffle_reward` stream and observed/applied separation; `run_episodic_conditions` paired set with `condition_id`/`learning_enabled`/`reward_protocol` as the only declared differences. 5 new tests in `tests/episodic_controls.rs`; 265 fast Rust tests pass, 3 default ignores, 2 compile-fail doc checks, 17 Python tests pass, clean fmt/Clippy. Machinery only; grid/criterion/comparison are M3-06/M3-07.
 
-- [ ] **M3-06 - Declare the development grid and acquisition criterion**
+- [x] **M3-06 - Declare the development grid and acquisition criterion**
   - Deliver: Specify a small grid over eta, input scale, recurrent gain, and sigma using development seeds only. Declare number of seeds, sample lengths, acquisition windows, and the learning-vs-control criterion before results.
   - Verify: Treat the spec's example final-200-choice median accuracy >0.8 in a 2,000-choice run as a proposed debugging target, not a guaranteed benchmark or automatically fixed final-study threshold. Log tuning budget and every outcome.
+  - Evidence: `docs/evidence/m3-06/summary.md` (2026-09-21 UTC). `manifests/m3_development_grid.json` (schema 1: 24 combinations, development root 1/outers 1-3, 2,000 outcomes, first-200/final-200 windows, matched B3/B4/B4-shuffled, margins B4-B3 >= 0.15 and B4-shuffled >= 0.10 on >= 2/3 seeds with zero-failure/<10%-clipping/P-movement guardrails, deterministic tiebreak, no-pass rule, 216-lifetime/7,344,000-tick budget, spec 0.8 recorded as debugging target); `src/experiments/grid.rs` loader/validator with validation-only `instantiate` and derived tick estimate; `manifests/README.md` suite note. 6 new tests in `tests/development_grid.rs`; 271 fast Rust tests pass, 3 default ignores, 2 compile-fail doc checks, 17 Python tests pass, clean fmt/Clippy. Plan only; nothing executed, no outcome observed.
 
-- [ ] **M3-07 - Demonstrate acquisition with motor-afferent plasticity**
+- [x] **M3-07 - Demonstrate acquisition with motor-afferent plasticity**
   - Deliver: Run the smallest diagnostic first with only incoming motor edges plastic. Save early/late exposure accuracy, reward, offset/trace norms, saturation, and seed-by-seed paired controls.
   - Verify: Several seeds show the declared learning improvement over no-update and shuffled-reward controls without widespread clipping or numerical failure. A single favorable trajectory does not pass.
+  - Evidence: `docs/evidence/m3-07/summary.md` (2026-09-21 UTC). Frozen M3-06 grid executed as written in release (24 points x outers 1-3 x B3/B4/B4-shuffled, 2,000-outcome lifetimes, ~16 s, 216/216 complete, 7,343,136 measured ticks). Winner grid index 11 (eta 0.001, input 0.2, gain 0.8, sigma 0.05): outer2 B4 0.035 early to 0.860 late vs 0.040 controls, outer3 0.795 to 0.935 vs 0.770/0.765; points 17/19 also pass 2/3. Guardrails pass sweep-wide (max clipping 0.017, max bound occupancy 0.004, every lifetime moved P, zero failures). Outer-1 birth-locked actors documented as family bound. Archived `seed_records.jsonl` (72 records) + `verdict.json`. `src/experiments/sweep.rs` analysis with unit tests; `tests/m3_acquisition.rs` fast analysis test plus ignored bounded sweep. 274 fast Rust tests pass, 3 ignores, 2 compile-fail docs, 17 Python pass, clean fmt/Clippy. Selected config for M3-08: grid index 11.
 
 - [ ] **M3-08 - Extend the verified learner to all recurrent plastic edges**
   - Deliver: Use the same verified score/update machinery with the full existing-edge plastic mask. Repeat the declared development comparisons and preserve the motor-only run as a diagnostic.
@@ -2989,6 +2993,108 @@ Tracker boxes updated: M3-05 checked after verification.
 Next eligible task: M3-06.
 ```
 
+```text
+Date / agent or session: 2026-09-21 / opencode (M3-06 development grid)
+Task IDs: M3-06
+Spec sections: 16/M3
+Change and affected files: manifests/m3_development_grid.json (new frozen
+  sweep: 24 combinations, development root 1/outers 1-3, 2,000 outcomes,
+  first-200/final-200 windows, matched B3/B4/B4-shuffled, margins with
+  guardrails, tiebreak, no-pass rule, 216-lifetime budget, spec-target
+  note); src/experiments/grid.rs (new loader/validator, validation-only
+  instantiate, derived tick estimate); src/experiments/mod.rs (module
+  wiring); tests/development_grid.rs (6 new tests);
+  manifests/README.md (suite note); docs/evidence/m3-06/summary.md,
+  README.md, docs/{decisions,handoff}.md, to-do.md (evidence/tracker).
+Code revision / dirty-tree state: base f405230 plus uncommitted M3-06
+  files and tracker/docs edits at verification (hashes in evidence
+  summary).
+Commands actually executed:
+  cargo test --locked --test development_grid
+  cargo test --locked --test episodic_runner
+  cargo test --locked --test episodic_controls
+  cargo fmt --all -- --check (after cargo fmt --all)
+  cargo clippy --all-targets --locked -- -D warnings
+  cargo test --all-targets --locked
+  cargo test --locked --doc
+  python3 analysis/test_validate_logs.py
+  git diff --check
+Outcome and checks passed: 6/6 development_grid pass; 10/10
+  episodic_runner and 5/5 episodic_controls still pass; full fast Rust
+  suite 271 passed, 0 failed, 3 intentional ignores; 2 compile-fail doc
+  checks pass; 17 Python audit tests pass; clean fmt/Clippy (one
+  doc-indentation finding fixed)/diff check. All 24 points instantiate to
+  executable configs; budget estimate equals the nominal derivation.
+Checks not run / failures / blockers: no failures. Slow M2 Monte Carlo not
+  rerun (score math unchanged). No lifetimes executed by design; no sweep
+  outcomes exist. No final-test seeds involved.
+Configuration and suite hashes: SHA-256 values recorded in
+  docs/evidence/m3-06/summary.md.
+Seed namespace / outer seeds / lifetime count: declaration only —
+  development root 1, outers 1-3, lifetime 0 reserved for M3-07; nothing
+  consumed.
+Artifact paths and checksums where relevant:
+  docs/evidence/m3-06/summary.md.
+Interpretation and claim limits: plan frozen before results. M3-07 must
+  run the declaration as written; post-outcome changes start a new
+  revision. No learning evidence exists. The 0.8 figure is a debugging
+  target, not a threshold. No continuous claim (M4), no gates/search.
+Tracker boxes updated: M3-06 checked after verification.
+Next eligible task: M3-07.
+```
+
+```text
+Date / agent or session: 2026-09-21 / opencode (M3-07 acquisition sweep)
+Task IDs: M3-07
+Spec sections: 16/M3
+Change and affected files: src/experiments/sweep.rs (new window/health/
+  margin/criterion/selection analysis with unit tests);
+  src/experiments/mod.rs (module wiring); tests/m3_acquisition.rs (fast
+  real-summary analysis test plus ignored release-only bounded sweep);
+  docs/evidence/m3-07/{summary.md,seed_records.jsonl,verdict.json};
+  README.md, docs/{decisions,handoff}.md, to-do.md (evidence/tracker).
+Code revision / dirty-tree state: base f405230 plus uncommitted M3-06/M3-07
+  files and tracker/docs edits at verification (hashes in M3-06/M3-07
+  evidence summaries).
+Commands actually executed:
+  cargo test --locked --test m3_acquisition (fast test)
+  CRA_M3_SWEEP_DIR=runs/m3-sweep-fresh cargo test --release --locked --test m3_acquisition m3_motor_afferent_sweep -- --ignored --exact [--nocapture]
+  cargo fmt --all -- --check (after cargo fmt --all)
+  cargo clippy --all-targets --locked -- -D warnings
+  cargo test --all-targets --locked
+  cargo test --locked --doc
+  python3 analysis/test_validate_logs.py
+  git diff --check
+Outcome and checks passed: sweep ran the frozen grid exactly (24 x 3 x 3,
+  2,000-outcome lifetimes, 216/216 complete, 7,343,136 measured ticks,
+  ~16 s release). Winner grid index 11 (eta 0.001, input 0.2, gain 0.8,
+  sigma 0.05): outer2 B4 0.035 early to 0.860 late vs 0.040 controls,
+  outer3 0.795 to 0.935 vs 0.770/0.765; points 17/19 also pass 2/3 seeds.
+  Guardrails pass sweep-wide (max clipped 0.017, max bound occupancy
+  0.004, P movement everywhere, zero failures/nonfinite). Re-ran after a
+  behavior-preserving MatchedConditions refactor; identical verdict.
+  Fast suite 274 passed, 0 failed, 3 intentional ignores; 2 compile-fail
+  doc checks pass; 17 Python audit tests pass; clean fmt/Clippy/diff.
+Checks not run / failures / blockers: no failures. Slow M2 Monte Carlo not
+  rerun (score math unchanged). Development namespace only; no final-test
+  seeds. Outer-1 birth-locked actors (always-0 vs all-ones mappings) fail
+  at every point and are documented as a family bound, not a harness bug.
+Configuration and suite hashes: SHA-256 recorded in M3-06/M3-07 evidence;
+  grid manifest untouched by this task.
+Seed namespace / outer seeds / lifetime count: development root 1, outers
+  1-3, lifetime 0, 2,000 outcomes each; 216 candidate-lifetimes within the
+  declared 216 budget exactly.
+Artifact paths and checksums where relevant:
+  docs/evidence/m3-07/{summary.md,seed_records.jsonl,verdict.json};
+  workspace copy runs/m3-sweep-fresh/ (git-ignored).
+Interpretation and claim limits: episodic motor-afferent acquisition
+  demonstrated on responsive actors; selected config for M3-08 is grid
+  index 11. No continuous claim (M4), no gate/search claim. Birth-locked
+  initializations bound the family claim.
+Tracker boxes updated: M3-07 checked after verification.
+Next eligible task: M3-08.
+```
+
 ## Blockers and decision register - keep current
 
 No blockers. M1-GATE re-verified after the 2026-09-21 UTC owner-requested
@@ -3027,6 +3133,19 @@ reporting, and a privilege-free recorded shuffle protocol with
 observed/applied separation. Full 265-test fast suite, 2 compile-fail
 docs, 17 Python tests pass. Machinery only; no grid/criterion/comparison.
 Next: M3-06 (development grid and acquisition criterion).
+M3-06 verified 2026-09-21 UTC: frozen 24-point grid, development seeds,
+2,000-outcome lengths, 200-choice windows, matched conditions, margins with
+guardrails, tiebreak, no-pass rule, and derived 216-lifetime budget; all
+points instantiate executable without execution. Full 271-test fast suite,
+2 compile-fail docs, 17 Python tests pass. Plan only; nothing executed.
+Next: M3-07 (motor-afferent acquisition).
+M3-07 verified 2026-09-21 UTC: frozen grid executed (216/216 lifetimes);
+winner index 11 (eta 0.001, input 0.2, gain 0.8, sigma 0.05) with outer2
+0.035 to 0.860 and outer3 0.795 to 0.935 over controls; points 17/19 also
+pass; guardrails pass sweep-wide; birth-locked outer-1 documented as family
+bound. Full 274-test fast suite, 2 compile-fail docs, 17 Python tests pass.
+Selected config for M3-08: grid index 11.
+Next: M3-08 (all-recurrent plastic edges).
 M1 findings, corrections and claim limits: `docs/m1-review.md`.
 M0 historical evidence remains in `docs/m0-review.md`.
 Scientific decisions remain in the append-only `docs/decisions.md`.

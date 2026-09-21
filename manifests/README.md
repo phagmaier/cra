@@ -12,6 +12,14 @@ and outer overrides from the CLI, and are recorded in each run directory.
 | `validation` | `validation.json`, outer seeds 10001–19999 | Reserved for later checkpoint selection; no selection runs recorded |
 | `final_test` | `final_test.json`, outer seeds 90001–99999 | Reserved; no final-test outcomes inspected |
 
+Declared suites (not reservations): `m3_development_grid.json` is the
+frozen M3-06 sweep for the episodic learner — axes, development seeds,
+lengths, windows, conditions, criterion, tiebreak order, and budget,
+declared before results. It is loaded and validated by
+`src/experiments/grid.rs` (tested in `tests/development_grid.rs`) and
+executed no earlier than M3-07. Changing it after seeing outcomes starts a
+new declared revision.
+
 Separation is derived from the full tuple
 `(root_seed, namespace, outer_seed, lifetime_index, stream_name)` in
 [`src/rng.rs`](../src/rng.rs). Distinct namespace strings separate streams

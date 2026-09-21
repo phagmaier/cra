@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "task": "M3-06",
+  "purpose": "Declared development sweep for the episodic motor-afferent learner (M3-07). Grid, seeds, windows, criterion, and budget are frozen here BEFORE any sweep results exist. No result observed while writing this file.",
+  "base_profile": "configs/episodic_stationary.toml",
+  "namespace": "development",
+  "root_seed": 1,
+  "outer_seeds": [1, 2, 3],
+  "lifetime_indices": [0],
+  "outcomes_per_lifetime": 2000,
+  "early_window_choices": 200,
+  "late_window_choices": 200,
+  "grid": {
+    "eta": [0.0003, 0.001, 0.003],
+    "input_scale": [0.2, 0.3],
+    "recurrent_gain": [0.5, 0.8],
+    "noise_sigma": [0.03, 0.05]
+  },
+  "conditions": ["B3", "B4", "B4-shuffled"],
+  "metric": "late_window_latent_accuracy",
+  "criterion": {
+    "margin_b4_minus_b3": 0.15,
+    "margin_b4_minus_shuffled": 0.1,
+    "min_outer_seeds_passing": 2,
+    "max_failed_lifetimes": 0,
+    "max_clipped_update_fraction": 0.1,
+    "require_b4_final_p_movement": true
+  },
+  "selection_tiebreak": ["larger_min_margin", "smaller_eta", "smaller_input_scale", "smaller_recurrent_gain", "smaller_noise_sigma", "smaller_grid_index"],
+  "on_no_pass": "Leave M3-GATE open and follow the M3-09 reduction path; do not expand the grid, change the criterion, or add hidden resets to manufacture a pass.",
+  "budget": {
+    "grid_points": 24,
+    "seeds_per_point": 3,
+    "conditions_per_seed": 3,
+    "total_lifetimes": 216,
+    "estimated_ticks": 7344000,
+    "note": "216 lifetimes x 2000 outcomes x ~17 ticks per choice cycle (quiet 4 + cue 8 + response 4 + feedback 1). Tick count is an estimate for planning; realized counts are recorded at execution."
+  },
+  "spec_target_note": "Spec 16/M3 suggests median accuracy above 0.8 in the final 200 choices of a 2,000-choice clean run as a debugging target. That number is a proposed debugging target, not a guaranteed benchmark and not this sweep's pass/fail threshold; the declared margins above are the threshold."
+}

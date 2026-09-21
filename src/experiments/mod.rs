@@ -12,3 +12,9 @@ pub mod baseline;
 pub mod episodic;
 /// Restricted fixed-weight score diagnostic; never a continuous agent mode.
 pub mod finite_rollout;
+/// Frozen pre-results development sweep declaration (M3-06); loads and
+/// validates but never executes.
+pub mod grid;
+/// Acquisition analysis over sweep summaries (M3-07); windows, margins,
+/// health, criterion, and selection. No simulation here.
+pub mod sweep;

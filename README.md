@@ -16,7 +16,11 @@ M3-04 implemented (explicitly episodic clean-learning diagnostic runner,
 fixed-gate learner with logged rollout resets — not the continuous result);
 M3-05 implemented (matched B3/B4/shuffled-reward controls with recorded
 corruption protocol — machinery only, no acquisition claim);
-next task M3-06.**
+M3-06 implemented (frozen pre-results development grid, criterion, and
+budget — plan only, nothing executed);
+M3-07 implemented (216-lifetime acquisition sweep passes with winner grid
+index 11 — episodic motor-afferent learning on responsive actors);
+next task M3-08.**
 The simulator core exists as
 a library
 (`src/environment/`, `src/agent/` nonplastic dynamics plus `B3`
@@ -254,7 +258,48 @@ Its [evidence record](docs/evidence/m3-05/summary.md) documents 5 new
 tests, **265 fast Rust tests passed**, three default ignores, two
 compile-fail doc checks, 17 Python audit tests, and clean fmt/Clippy.
 Control machinery only — the grid, criterion, and several-seed comparison
-are M3-06/M3-07. **M3-06 is next.**
+are M3-06/M3-07.
+
+M3-06 freezes the pre-results sweep in `manifests/m3_development_grid.json`:
+24 combinations of eta/input-scale/gain/sigma on the episodic base,
+development outers 1–3, 2,000 outcomes per lifetime with early-first-200
+and late-final-200 windows, matched B3/B4/B4-shuffled at every point,
+declared margins (B4−B3 ≥ 0.15, B4−shuffled ≥ 0.10 on ≥ 2/3 seeds) with
+failure/clipping/`P`-movement guardrails, deterministic selection, and a
+216-lifetime budget. `src/experiments/grid.rs` loads and validates the
+declaration; expansion proves each point executable without running
+anything.
+
+```bash
+cargo test --locked --test development_grid
+```
+
+Its [evidence record](docs/evidence/m3-06/summary.md) documents 6 new
+tests, **271 fast Rust tests passed**, three default ignores, two
+compile-fail doc checks, 17 Python audit tests, and clean fmt/Clippy. Plan
+only — no sweep executed, no outcome observed.
+
+M3-07 executes that grid in release (`src/experiments/sweep.rs` analysis:
+windows, margins, clipping/bound health, criterion, tiebreak selection;
+`tests/m3_acquisition.rs` fast analysis test plus the ignored bounded
+sweep). Winner: grid index 11 (eta 0.001, input 0.2, gain 0.8, sigma
+0.05) — outer-2 B4 rises 0.035 early to 0.860 late against 0.040 controls,
+outer-3 reaches 0.935 against 0.770/0.765; points 17/19 also pass 2/3
+seeds with guardrails green sweep-wide.
+
+```bash
+cargo test --locked --test m3_acquisition
+CRA_M3_SWEEP_DIR=runs/m3-sweep-fresh cargo test --release --locked --test m3_acquisition m3_motor_afferent_sweep -- --ignored --exact
+```
+
+Its [evidence record](docs/evidence/m3-07/summary.md) documents the full
+216-lifetime sweep (archived `seed_records.jsonl` + `verdict.json`),
+**274 fast Rust tests passed**, three default ignores (the sweep itself
+among the separately invoked diagnostics), two compile-fail doc checks, 17
+Python audit tests, and clean fmt/Clippy. Episodic motor-afferent
+acquisition on responsive actors; birth-locked initializations documented
+as a family bound. Selected config for M3-08: grid index 11. **M3-08 is
+next.**
 
 The owner-requested [M3 preflight hardening](docs/evidence/m3-preflight/summary.md)
 separates hidden cue-role RNG from actor initialization, replaces positional

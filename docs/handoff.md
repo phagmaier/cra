@@ -1,7 +1,6 @@
 # Agent continuation guide
 
-Updated 2026-09-21 UTC after M3-05 matched controls at base `4ad7aaa`
-(with M3-04 still uncommitted).
+Updated 2026-09-21 UTC after M3-07 acquisition sweep at base `f405230`.
 The worktree was clean at session start; check Git and the tracker
 for newer work before claiming.
 
@@ -20,9 +19,30 @@ for newer work before claiming.
 ## Current position and evidence
 
 **M0-GATE passed and was re-verified. M1-GATE and M2-GATE passed. M3-01
-through M3-05 verified 2026-09-21 UTC. Next task: M3-06.**
+through M3-07 verified 2026-09-21 UTC. Next task: M3-08.**
 There is no outstanding milestone blocker. The claim track remains `family_only`.
 No reserved final-test outcomes have been inspected.
+
+M3-07 executes the frozen grid in release and passes: 216/216 lifetimes,
+winner grid index 11 (eta 0.001, input 0.2, gain 0.8, sigma 0.05) with
+outer-2 B4 0.035 early to 0.860 late against 0.040 controls and outer-3 at
+0.935 against 0.770/0.765; points 17/19 also pass 2/3 seeds with
+guardrails green sweep-wide. Birth-locked outer-1 actors documented as a
+family bound. Full checks: **274 fast Rust tests passed** (2 unit + 1
+analysis), three default ignores, two compile-fail doc checks, 17 Python
+audit tests, clean fmt/Clippy. Archived aggregates plus verdict:
+[M3-07 evidence](evidence/m3-07/summary.md). Selected config for M3-08:
+grid index 11.
+
+M3-06 freezes the pre-results sweep (`manifests/m3_development_grid.json`,
+`experiments::grid`): 24 eta/input-scale/gain/sigma combinations on the
+episodic base, development outers 1–3, 2,000-outcome lifetimes with
+first-200/final-200 windows, matched B3/B4/B4-shuffled per point, declared
+margins with guardrails, deterministic selection, and a 216-lifetime
+budget. Full checks: **271 fast Rust tests passed** (6 new), three default
+ignores, two compile-fail doc checks, 17 Python audit tests, clean
+fmt/Clippy. Plan only — nothing executed, no outcome observed. Commands,
+hashes, and limits: [M3-06 evidence](evidence/m3-06/summary.md).
 
 M3-05 adds the matched control family (`run_episodic_no_learning`,
 `run_episodic_shuffled`, `run_episodic_conditions`): B3/B4/shuffled share
@@ -179,34 +199,33 @@ is available for a quick audit. Reproduce missing raw runs using the saved
 commands/configs into new directories; preserve historical evidence paths
 and distinguish reruns from the original execution.
 
-## Next task: M3-06
+## Next task: M3-08
 
-**Deliver:** the development grid and acquisition criterion. Specify a small
-grid over eta, input scale, recurrent gain, and sigma using development
-seeds only. Declare number of seeds, sample lengths, acquisition windows,
-and the learning-vs-control criterion before results.
+**Deliver:** the verified learner with all recurrent plastic edges. Use the
+same score/update machinery with the full existing-edge plastic mask
+(`all_recurrent_edges`) at the selected grid-index-11 hyperparameters
+(eta 0.001, input_scale 0.2, recurrent_gain 0.8, noise_sigma 0.05). Repeat
+the declared development comparisons (matched B3/B4/B4-shuffled on outers
+1–3, 2,000-outcome lifetimes, same windows/criterion) and preserve the
+motor-only run as a diagnostic.
 
-Read spec Sections 14, 16/M3, plus the
+Read spec Sections 7, 16/M3, plus the
 [M3 task queue](../to-do.md#m3---make-an-ungated-local-learner-learn-a-clean-task).
-Inspect `src/experiments/episodic.rs` (`run_episodic_conditions`: matched
-B3/B4/shuffled with shared inheritance, `condition_id`/`learning_enabled`/
-`reward_protocol` flags, observed/applied separation) and
-`tests/episodic_controls.rs` (pairing, first-action parity, `P`-movement,
-protocol fidelity).
+Inspect `src/experiments/sweep.rs` (windows, margins, health, judging,
+selection) and `docs/evidence/m3-07/summary.md` (winner detail and family
+bound). The M3-06 manifest stays frozen; M3-08 is a mask change at fixed
+hyperparameters, not a re-tune.
 
-- Treat the spec's example final-200-choice median accuracy >0.8 in a
-  2,000-choice run as a proposed debugging target, not a guaranteed
-  benchmark or automatically fixed final-study threshold. Log tuning budget
-  and every outcome.
+- Show the required learning evidence for the actor family carried into
+  M4. Do not compare different plastic masks later while attributing every
+  difference to gates.
 - Checkpoint embedding/replay with nonzero `P`/`E` is M3-10/M4-06. Keep the
   M1 checkpoint schema at 2 until then and reject incompatible state rather
   than defaulting it.
-- Main `simulate` guards still reject enabled learning. Do not enable a
-  nominal learner before the ordered implementation and empirical tasks.
 
-M2-GATE passed only the restricted score diagnostics. M3-04/M3-05 verified
-runner and control infrastructure only; acquisition and continuous learning
-remain unverified and need their own measured gates.
+M3-07 demonstrated episodic motor-afferent acquisition on responsive
+actors; continuous learning remains unverified and needs its own measured
+gates.
 
 ## Implementation map
 
@@ -233,6 +252,8 @@ remain unverified and need their own measured gates.
 | Golden update fixture (M3-03) | `tests/golden_updates.rs` (fixture only) | spec 17.3 chain at `1e-12`–`1e-15` plus separate clipped cases; no production change |
 | Episodic diagnostic runner (M3-04) | `src/experiments/episodic.rs`, `configs/episodic_stationary.toml` | `tests/episodic_runner.rs`; agent-only fixed-gate learner, `no_decay_diagnostic` traces, one terminal update per one-choice rollout, logged resets, guard separation, ordering/RNG regression |
 | Matched controls (M3-05) | `src/experiments/episodic.rs` (`run_episodic_no_learning`, `run_episodic_shuffled`, `run_episodic_conditions`), `src/agent/no_learning.rs` (diagnostic reset) | `tests/episodic_controls.rs`; shared W0/schedule/resets, first-action parity, P-movement plus behavior, re-derived shuffle protocol, observed/applied separation |
+| Development grid (M3-06) | `manifests/m3_development_grid.json`, `src/experiments/grid.rs` | `tests/development_grid.rs`; frozen axes/seeds/windows/criterion/budget, validation-only instantiation of all 24 points, derived tick estimate, invalid-mutation rejection |
+| Acquisition sweep (M3-07) | `src/experiments/sweep.rs`, `tests/m3_acquisition.rs` | fast analysis on real summaries plus ignored release sweep; windows/margins/health/judging/selection, 216/216 integrity, archived records plus verdict |
 | Effective-weight actor path (M3-01) | `src/agent/actor.rs` (`step_with_effective_weights`, `step_with_effective_and_perturbations`) | `tests/plasticity.rs`; shared `W0` core, `P = 0` bitwise parity, missing/nonfinite rejection, `B`/bias read from inherited parameters |
 | Adaptation at strength 0 (M1-05) | `src/agent/actor.rs` (verified) | `tests/adaptation.rs`; inertness, sign, persistence, config pin |
 | Motor readout (M1-06) | `src/agent/motor.rs` | `tests/motor.rs`; golden filters, new-q commitment, tie-only draws |

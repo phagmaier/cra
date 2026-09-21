@@ -888,3 +888,64 @@ make code or a result look successful.**
   runs verify machinery, not acquisition — the grid, criterion, and
   several-seed comparison are M3-06/M3-07. Verification:
   [M3-05 evidence](evidence/m3-05/summary.md).
+
+## 2026-09-21 UTC — M3-06 development grid and acquisition criterion (spec 16/M3)
+
+- **The plan is frozen before results.** `manifests/m3_development_grid.json`
+  (schema 1) declares all 24 combinations of `eta` {3e-4, 1e-3, 3e-3},
+  `input_scale` {0.2, 0.3}, `recurrent_gain` {0.5, 0.8}, `noise_sigma`
+  {0.03, 0.05} on the `episodic_stationary` base: development root 1, outer
+  seeds 1-3, lifetime 0; 2,000 outcomes per lifetime with early-first-200
+  and late-final-200 windows; matched B3/B4/B4-shuffled at every point.
+  Affected spec section: 16/M3 (small explicit grid on development seeds;
+  suggested target as debugging target, not benchmark).
+- **Margins, not the 0.8 figure, are the threshold.** A grid point passes
+  when B4 late-window latent accuracy beats B3 by >= 0.15 and shuffled by >=
+  0.10 on >= 2/3 outer seeds, with zero failed lifetimes, < 10% clipped
+  updates, and real B4 final-`P` movement. Selection among passers takes the
+  largest minimum margin with a declared deterministic tiebreak; no passer
+  means M3-09 reduction with the gate left open — never grid/criterion
+  edits after seeing outcomes. The spec's 0.8 number is recorded verbatim in
+  the manifest as a debugging target.
+- **Budget and validation are mechanical.** 24 points x 3 seeds x 3
+  conditions = 216 lifetimes; the 7,344,000-tick estimate is derived from
+  the base profile's maximum cycle length and checked exactly, so the
+  manifest cannot drift from the code. `src/experiments/grid.rs` expands
+  points into candidate configs and proves each passes
+  `validate_episodic_execution` without executing anything; combination
+  order (`eta` major, `noise_sigma` minor) is fixed and tested. M3-07 runs
+  this declaration as written. Verification:
+  [M3-06 evidence](evidence/m3-06/summary.md).
+
+## 2026-09-21 UTC — M3-07 motor-afferent acquisition (spec 16/M3)
+
+- **The frozen grid was run as written.** All 24 points x outers 1-3 x
+  B3/B4/B4-shuffled with 2,000-outcome lifetimes completed in release
+  (~16 s, 7,343,136 measured ticks, zero failures); per-seed aggregates
+  and the criterion verdict are archived with provenance. The ignored sweep
+  test asserts execution integrity only — the verdict is measured and
+  recorded, so a negative finding could never look like a harness failure.
+  Affected spec section: 16/M3 (exit over matched controls, several seeds,
+  valid numerics).
+- **Winner index 11, selected by the declared rule.** Eta 0.001,
+  input_scale 0.2, recurrent_gain 0.8, noise_sigma 0.05. Outer 2 acquires
+  0.035 early to 0.860 late against 0.040 controls; outer 3 rises 0.795 to
+  0.935 against 0.770/0.765; points 17/19 also clear 2/3 seeds. All three
+  passers tie at minimum margin 0.0 (the stuck outer-1 seed contributes
+  zero everywhere), so smaller eta selects 11 exactly as the manifest
+  orders — no post-hoc judgment entered.
+- **Guardrails pass sweep-wide.** Maximum clipped-update fraction 0.017,
+  maximum bound occupancy 0.004, every lifetime moved real `P` offsets,
+  zero nonfinite values. Clipping/bound occupancy stand in for
+  activity-saturation traces, which episodic summaries do not record; that
+  substitution is stated in the module docs, not hidden.
+- **Birth-locked actors bound the claim.** Outer-1 actors emit action 0 on
+  every rollout against all-ones mappings at all 24 points (B3 identical),
+  consistent with previous-action-latch plus motor-bias lock-in from the
+  first commitment — a property of the specified K+6 observation family,
+  investigated and ruled not-an-environment-bug (mappings vary correctly
+  across outers) and not a harness ordering bug (outer-3 learning proves
+  updates act). The acquisition claim therefore covers responsive actors
+  in the tested family. M3-08 carries index 11 to the full recurrent mask;
+  M4 must confront the same lock-in without resets. Verification:
+  [M3-07 evidence](evidence/m3-07/summary.md).
