@@ -32,17 +32,18 @@ and [continuation guide](docs/handoff.md).
 | --- | --- |
 | Current milestone | M2 open; M1-GATE passed 2026-09-21 UTC |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M1-REVIEW; M1-GATE re-verified after checkpoint and diagnostic corrections |
+| Last verified task | M2-01 — pure conditional score and deterministic contract tests |
 | Claimed task | None |
-| Next eligible task | M2-01 |
+| Next eligible task | M2-02 |
 | Current blocker | None |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | 2026-09-21 UTC M1-REVIEW; docs/m1-review.md and docs/evidence/m1-review/ |
+| Last evidence record | 2026-09-21 UTC M2-01; completion ledger below and tests/score.rs |
 
 ### Session ownership and handoffs
 
 | Owner/session | Task IDs | Files or interfaces owned | Status / handoff |
 | --- | --- | --- | --- |
+| Codex 2026-09-21 | M2-01 | src/agent/{mod,score}.rs, tests/score.rs, README.md, docs/handoff.md, to-do.md | Done; eight score tests and full Rust checks pass; next M2-02 |
 | Codex review 2026-09-21 | M1-REVIEW | M1 implementation, regression tests, review evidence, README and handoff | Done; M1-GATE re-verified; next M2-01 |
 | Codex documentation | M0-DOCS | Agent guidance, current handoff, README, tracker, manifest notes, source/config comments | Done; no behavior changes; handoff to M1-01 |
 | Codex review | M0-REVIEW | M0 Rust/Python implementation, regression tests, evidence and documentation | Done; M0-GATE re-verified, handoff to M1-01 |
@@ -239,7 +240,7 @@ Establish correct, continuously evolving actor dynamics and replay before introd
 
 Validate the conditional Gaussian score and restricted finite-rollout interpretation without relying on an apparent learning curve.
 
-- [ ] **M2-01 - Implement a pure conditional score function**
+- [x] **M2-01 - Implement a pure conditional score function**
   - Deliver: Implement S[j,i] = alpha_h[j] * r_old[i] * xi[j] / sigma[j]. Keep it independently callable by tests and reusable by the later trace implementation.
   - Verify: Tests use receiving xi, one alpha_h factor, actual sigma, and no tanh derivative. All incoming edges share their receiver perturbation; zero presynaptic activity yields zero score; active score with sigma <= 0 is rejected.
 
@@ -2374,12 +2375,52 @@ Tracker boxes updated: M1-GATE stays checked after corrective re-verification.
 Next eligible task: M2-01.
 ```
 
+```text
+Date / agent or session: 2026-09-21 UTC / Codex M2-01
+Task IDs: M2-01
+Spec sections: 7.1-7.2, 7.6, 16/M2, 17.2-17.3
+Change and affected files: src/agent/score.rs exposes conditional_score
+  with explicit receiver alpha_h/xi/sigma and old sender activity; module
+  export in src/agent/mod.rs; tests/score.rs; README, handoff and tracker.
+  Pure per-edge arithmetic, no state/RNG access, trace or learning update.
+  Finite inputs, alpha_h in (0,1], positive sigma and finite result required.
+Code revision / dirty-tree state: clean base 0755a4c (refined m1);
+  this task's changes uncommitted. spec.md unchanged.
+Commands actually executed:
+  cargo test --locked --test score (8 passed)
+  cargo fmt --all -- --check (first found two wrapping differences)
+  cargo clippy --all-targets --locked -- -D warnings (clean)
+  cargo test --all-targets --locked (193 passed, 0 failed, 1 ignored)
+  cargo fmt --all (applied the two formatting wraps)
+  cargo fmt --all -- --check (clean)
+Outcome: Golden score 0.4; heterogeneous receiver rows prove shared xi[j]
+  and receiving parameters; leak/noise scaling has exactly one alpha and
+  actual sigma, without a floor. Saturated activity retains nonzero score
+  (no tanh derivative); zero activity/noise realization gives zero score.
+  Invalid/nonfinite inputs, nonpositive sigma even with zero numerator,
+  and score overflow return explicit errors rather than clipping.
+Checks not run / failures / blockers: No blocker. Existing ignored
+  weight-printing probe not invoked. Python analysis and standalone CLI
+  smoke not repeated: no analysis, runner, dynamics or schema changes.
+  M2-02 onward derivative/Monte Carlo diagnostics remain unimplemented.
+Configuration and suite hashes: No new simulation/config/seed suite;
+  score fixtures are deterministic constants in tests/score.rs.
+Artifact paths: src/agent/score.rs and tests/score.rs; this ledger records
+  the executed verification and outcomes. Existing regression goldens intact.
+Interpretation and claim limits: M2-01 arithmetic only; M2-GATE remains
+  open. No continual-learning or unbiased online-gradient claim.
+Tracker boxes updated: M2-01 checked.
+Next eligible task: M2-02.
+```
+
 ## Blockers and decision register - keep current
 
 No blockers. M1-GATE re-verified after the 2026-09-21 UTC owner-requested
 corrective review: 185 Rust passes (1 ignored probe), 15 Python passes,
 clean fmt/Clippy, eleven corrected audited runs and two original comparisons.
-Next: M2-01. Findings, corrections and claim limits: `docs/m1-review.md`.
+M2-01 now verified: eight score tests, 193 Rust passes overall (one existing
+ignored probe), clean fmt/Clippy. Next: M2-02; M2-GATE remains open.
+M1 findings, corrections and claim limits: `docs/m1-review.md`.
 M0 historical evidence remains in `docs/m0-review.md`.
 Scientific decisions remain in the append-only `docs/decisions.md`.
 

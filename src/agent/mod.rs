@@ -8,12 +8,14 @@
 //! [`actor`]; fixed pool means, leaky filtering, and commitment live in
 //! [`motor`]; the continuously running no-learning actor (B3) lives in
 //! [`no_learning`]; read-only watchdog/summary/selected-trace observation
-//! lives in [`health`]. Plasticity and search arrive in later milestones;
+//! lives in [`health`]; the pure conditional score (M2-01) lives in
+//! [`score`]. Plasticity and search arrive in later milestones;
 //! this module must not grow that code ahead of them.
 
 pub mod actor;
 pub mod health;
 pub mod motor;
 pub mod no_learning;
+pub mod score;
 pub mod topology;
 pub mod weights;

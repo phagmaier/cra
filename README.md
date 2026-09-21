@@ -7,7 +7,7 @@ feedback?
 
 Status: **M0 complete and re-verified; M1 complete and re-verified (continuous
 nonplastic actor demo, bitwise replay on linux/x86_64 — explicitly not
-learning); next task M2-01.** The simulator core exists as a library
+learning); M2-01 pure conditional score complete; next task M2-02.** The simulator core exists as a library
 (`src/environment/`, `src/agent/` nonplastic dynamics plus `B3`
 harness, `src/checkpoint.rs`, `src/logging/`) with deterministic
 fixtures, randomized checks, baseline/actor runners, replay proofs, and
@@ -24,7 +24,7 @@ records checkpoint/diagnostic fixes and fresh measured evidence.
 
 Start with [AGENTS.md](AGENTS.md), the [current tracker](to-do.md), and
 the [agent continuation guide](docs/handoff.md). The guide maps existing
-code/tests to M2-01 and records the integration limits to preserve.
+code/tests to M2-02 and records the integration limits to preserve.
 
 | Document | Responsibility |
 | --- | --- |
@@ -67,6 +67,14 @@ Those counts describe that execution. The fresh [M1 review](docs/m1-review.md)
 recorded **185 Rust tests and 15 Python tests passing**, with one existing
 ignored weight-printing probe and clean fmt/Clippy. Rerun relevant checks after
 changes.
+
+M2-01 adds eight deterministic score-contract tests, callable with
+`cargo test --locked --test score`. Its verification recorded **193 Rust
+tests passing**, one existing ignored weight-printing probe, and clean
+fmt/Clippy. The pure function in `src/agent/score.rs` validates finite inputs
+and positive noise, then computes the per-edge conditional Gaussian score.
+Finite-difference and Monte Carlo diagnostics remain queued in M2; this is
+not a completed M2 gate or evidence of learning.
 
 To save the bounded observability tests' measured diagnostics, choose a fresh
 output directory (existing evidence files are never overwritten):
@@ -180,6 +188,7 @@ pipeline in M8. Do not treat their absence as a failure of M0.
 order, structural validation), `agent/weights.rs` (M1-02 row-scaled `W0`,
 dense `B`, zero biases, parameter validation), `agent/actor.rs` (M1-03
 double-buffered transition, `-expm1` leaks, post-integration noise),
+`agent/score.rs` (M2-01 pure per-edge conditional Gaussian score),
 `agent/motor.rs` (M1-06 pool means, leaky filter, new-q commitment),
 `agent/no_learning.rs` (M1-07 B3 continuous actor through the ordinary
 runner), `agent/health.rs` (M1-08 read-only watchdog, summaries, stable

@@ -1,7 +1,7 @@
 # Agent continuation guide
 
-Updated 2026-09-21 UTC after the owner-requested M1-REVIEW, from base
-`13a4873` (`finished m1`) with review fixes uncommitted. Check the tracker
+Updated 2026-09-21 UTC after M2-01, from clean base
+`0755a4c` (`refined m1`) with M2-01 changes uncommitted. Check the tracker
 and Git state for newer work before claiming a task.
 
 ## Start here
@@ -18,9 +18,18 @@ and Git state for newer work before claiming a task.
 
 ## Current position and evidence
 
-**M0-GATE passed and was re-verified. M1-GATE passed. Next task: M2-01.**
+**M0-GATE passed and was re-verified. M1-GATE passed. M2-01 complete.
+Next task: M2-02.**
 There is no outstanding M1 blocker. The claim track remains `family_only`.
 No reserved final-test outcomes have been inspected.
+
+M2-01 adds `agent::score::conditional_score`, a pure scalar function with
+explicit receiver leak/noise parameters and old sender activity. It rejects
+invalid inputs and nonfinite results; callers own edge selection and indexing.
+Fresh checks: eight score tests and **193 Rust tests passed overall**, one
+existing ignored weight-printing probe, clean fmt/Clippy. No actor transition,
+RNG, config, checkpoint or event schema changed. Python and CLI smoke runs
+were not repeated for this isolated arithmetic addition. M2-GATE is open.
 
 M1 implements a continuous nonplastic actor and exits as a verified dynamics
 foundation, explicitly not learning. The [M1 corrective review](m1-review.md)
@@ -54,25 +63,25 @@ is available for a quick audit. Reproduce missing raw runs using the saved
 commands/configs into new directories; preserve historical evidence paths
 and distinguish reruns from the original execution.
 
-## Next task: M2-01
+## Next task: M2-02
 
-**Deliver:** a pure conditional score function `S[j,i] =
-alpha_h[j] * r_old[i] * xi[j] / sigma[j]` — independently callable by
-tests and reusable by the later trace implementation. Do not build
-plasticity, eligibility decay, or learning updates yet.
+**Deliver:** the fixed-sample conditional log-probability derivative check.
+For saved old state and sampled `h_new`, perturb one weight by `+/- eps`,
+recompute Gaussian log probabilities and compare the central difference with
+`agent::score::conditional_score`. Keep `h_new` fixed; never resample it.
+Use several parameters and epsilon values around `1e-6` (spec 17.4).
 
-Read spec Sections 7.1–7.2 and 7.6 alongside the
+Read spec Sections 7.1–7.2, 7.6 and 17.4 alongside the
 [M2 task queue](../to-do.md#m2---verify-the-stochastic-score-independently).
-Inspect `src/agent/{actor,weights}.rs` (receiving-`xi` buffer, `alpha_h`
-helper, noise-scale contract) and `src/agent/health.rs` (read-only
-observation precedent) first. The score reads the receiving neuron's
+Inspect `src/agent/score.rs`, `tests/score.rs` and `src/agent/actor.rs`
+(receiving-`xi` buffer and `leak_alpha` helper). The score reads the receiving neuron's
 perturbation on all its incoming edges, carries exactly one `alpha_h`
 factor, divides by the actual positive `sigma`, and never multiplies a
 tanh derivative or `1 - lambda_e`.
 
-- Keep the actor transition untouched; the score is a pure function
-  beside it (later M2 tasks test it against finite differences and
-  closed-form derivatives).
+- Keep the actor transition untouched. The pure score takes standard-normal
+  `xi`, not the scaled membrane increment, and old sender activity. It has
+  no mask, decay, gate or learning behavior; callers supply the edge inputs.
 - Verify with the stated checks, then run the applicable full quality
   checks and append tracker evidence.
 
@@ -94,6 +103,7 @@ plasticity on the strength of implemented code alone.
 | Inherited weights (M1-02) | `src/agent/weights.rs` | `tests/weights.rs`; row-scale/B/bias fixtures, golden draw sequence |
 | Actor transition (M1-03) | `src/agent/actor.rs` | `tests/actor.rs`; orientation/simultaneity/leak/no-clip fixtures |
 | Perturbation schedule (M1-04) | `src/agent/actor.rs` + `weights.rs` | `tests/actor_noise.rs`; per-tick draws, moments, resume primitive |
+| Conditional score (M2-01) | `src/agent/score.rs` | `tests/score.rs`; receiver indexing, golden arithmetic, saturation, zero activity, invalid inputs and overflow |
 | Adaptation at strength 0 (M1-05) | `src/agent/actor.rs` (verified) | `tests/adaptation.rs`; inertness, sign, persistence, config pin |
 | Motor readout (M1-06) | `src/agent/motor.rs` | `tests/motor.rs`; golden filters, new-q commitment, tie-only draws |
 | Nonplastic actor (M1-07, B3) | `src/agent/no_learning.rs` | `tests/no_learning.rs`; continuity, W0 invariance, schedule parity, guard separation |
