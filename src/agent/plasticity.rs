@@ -373,6 +373,11 @@ impl PlasticState {
                         "P[{j},{i}] must stay 0.0 on nonplastic edge"
                     )));
                 }
+                if !*plastic && *ev != 0.0 {
+                    return Err(PlasticityError::Incompatible(format!(
+                        "E[{j},{i}] must stay 0.0 on nonplastic edge"
+                    )));
+                }
                 if !pv.is_finite() || !ev.is_finite() {
                     return Err(PlasticityError::NonFiniteState("P/E".to_owned()));
                 }
