@@ -301,3 +301,77 @@ make code or a result look successful.**
   `m1_unreachable`). The sampler takes no reward, hidden state, or fitness
   input, so topology cannot be selected by task performance. Exhaustion is
   an explicit error carrying the full attempt log, not a silent fallback.
+
+## 2026-09-21 UTC — M1-02 inherited weight conventions (spec 6.3, 10.2)
+
+- **Scope:** inherited `W0`, input projection `B`, zero actor biases, and
+  parameter validation. No dynamics (M1-03), no plastic offsets `P` (M3);
+  `InheritedParams` stores `W0` alone, and the effective weight `W0 + P`
+  is constructed only once plasticity arrives. Affected spec sections: 6.3
+  (starting constants), 10.2 (inherited weights), 20.5 (RNG policy).
+- **Gaussian implementation without a new dependency (spec 20.5).** Standard
+  normals come from a documented Box–Muller transform over the existing
+  pinned `rand 0.9` uniform output (`ChaCha8Rng`, see `Cargo.lock`):
+  `u1 = 1 - uniform[0,1)` so `u1` lies in `(0,1]` and `ln(u1)` is always
+  finite; `r = sqrt(-2 ln u1)`, `z0 = r cos(2 pi u2)`, `z1 = r sin(2 pi u2)`.
+  Alternative (adding `rand_distr`) rejected: a second RNG crate adds
+  version surface for one transform this module can audit directly.
+  Consequence: the transform is part of the reproducibility contract; any
+  change of implementation or uniform source needs a derivation note and
+  new golden evidence.
+- **One `init` RNG, fixed order: mask, then `W0`, then `B` (spec 10.1,
+  20.5).** Combined sampling draws the mask attempts first, then `W0` on
+  existing edges in receiver-grouped edge order, then dense `B` row-major
+  (`j` outer, `d` inner). A Box–Muller spare is cached only inside one
+  sampling call, so the normal stream is a pure function of position in
+  the draw sequence. Consequence: standalone `sample_topology` results are
+  unchanged (mask draws still come first from a fresh `init` RNG), and one
+  outer seed pairs mask and weights across gate conditions together.
+- **Row scale uses the standard deviation, not the variance (spec 10.2).**
+  `std = recurrent_gain / sqrt(in_degree)`; variance is its square.
+  Zero-in-degree rows stay exactly zero and consume no normal draws
+  (division by zero would otherwise be a silent `NaN` factory). Missing
+  edges stay exactly `0.0`. Biases are exactly `0.0` (spec 10.2).
+- **`B` width is an explicit caller argument.** The sampler takes
+  `input_dim` (the runner passes `K + 6` observable features) rather than
+  reading an environment config, keeping the agent crate boundary intact.
+  No dimension normalization is applied to `B` (spec 10.2: inspect the
+  actual input-current distribution instead).
+
+## 2026-09-21 UTC — M1-03 actor transition conventions (spec 4.1, 6.1–6.2, 18.4–18.5)
+
+- **Scope:** the double-buffered `f64` transition only (`h`, `a`, `r`).
+  Motor filters/commitment (M1-06), the noise schedule audit (M1-04), and
+  the watchdog (M1-08) are separate tasks. Affected spec sections: 4.1
+  (orientation), 6.1–6.2 (update, adaptation), 18.4–18.5 (buffers, dense
+  reference).
+- **Scalar broadcast of time constants and noise.** The `[actor]` schema
+  carries scalar `tau_h`/`tau_a`/`adaptation_strength`/`noise_sigma`, so
+  the transition broadcasts each scalar to all neurons; the per-neuron
+  `tau_h[j]`/`sigma[j]` indexing in spec 6.1 becomes a schema extension
+  only if a later milestone needs heterogeneous neurons. Consequence:
+  `leak_alpha` is computed once per step, not per neuron.
+- **Dense `N x N` recurrent accumulation as the reference.** The drive sums
+  every `(j, i)` pair over the dense `W0` storage (missing edges contribute
+  their exact `0.0`), rather than iterating the edge list. Mathematically
+  identical to edge-ordered accumulation, but unambiguously the dense
+  oracle that a later sparse kernel (M7-13) must match with parity tests.
+- **Noise after leaky integration, never clipped.** `h_new = mu + sigma *
+  xi` with `mu` the leaked mixture; no `tanh`/clamp touches `h` (that
+  would change the transition distribution behind the M2 score). A
+  nonfinite `h_new`/`a_new` is an explicit `NonFiniteState` error; the
+  M1-08 watchdog builds its health summary on this failure path rather
+  than replacing it.
+- **Two entry points, split verification.** `step_with_perturbations`
+  takes an explicit `xi` slice (the injected-noise fixture path the M1-04
+  schedule audit needs); `step` draws into a preallocated buffer through
+  the M1-02 `NormalStream` and shares one private core, so both paths
+  compute identically. `sigma = 0` is permitted at the transition level
+  for deterministic diagnostics; configured learning profiles still
+  require `sigma > 0` (M1-02 validation), and the M2 score rejects zero
+  noise where it is active.
+- **`from_state` doubles as test injection and restore path.** Besides the
+  zero `new` birth state (spec 10.4), an explicit `(h, a)` constructor
+  (with `r = tanh(h)`) serves exact fixtures now and checkpoint restore
+  in M1-09; both validate shapes and finiteness instead of trusting
+  callers.

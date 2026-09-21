@@ -181,7 +181,8 @@ pub fn non_motor_sources(neuron_count: usize, motor_per_action: usize) -> Vec<us
     }
 }
 
-fn validate_probability(p: f64) -> Result<(), TopologyError> {
+/// Valid edge-probability contract shared by mask and weight samplers.
+pub fn validate_probability(p: f64) -> Result<(), TopologyError> {
     if !p.is_finite() || !(0.0..=1.0).contains(&p) {
         return Err(TopologyError::InvalidProbability(format!(
             "edge_probability must be in [0, 1]; found {p}"
@@ -402,7 +403,7 @@ pub fn validate_topology(topology: &Topology) -> Result<(), TopologyError> {
     }
 }
 
-fn check_init_seed(seed: &SeedTuple) -> Result<String, TopologyError> {
+pub(crate) fn check_init_seed(seed: &SeedTuple) -> Result<String, TopologyError> {
     validate_tuple(seed).map_err(|e| TopologyError::BadSeed(format!("invalid seed tuple: {e}")))?;
     if seed.stream != INIT_STREAM {
         return Err(TopologyError::BadSeed(format!(
@@ -424,14 +425,29 @@ pub fn sample_topology(
     seed: &SeedTuple,
     max_attempts: u32,
 ) -> Result<SampledTopology, TopologyError> {
+    let init_seed_hex = check_init_seed(seed)?;
+    let mut rng =
+        rng_for(seed).map_err(|e| TopologyError::BadSeed(format!("cannot build RNG: {e}")))?;
+    sample_topology_with_rng(actor, &mut rng, init_seed_hex, max_attempts)
+}
+
+/// Structural-acceptance loop over one caller-owned `init` RNG.
+///
+/// The combined inherited sampler (`weights::sample_inherited`) uses this so
+/// mask attempts consume the same leading draws as a standalone call, after
+/// which weight draws continue on the same stream. Standalone results are
+/// unchanged: the mask still draws first from a fresh `init` RNG.
+pub(crate) fn sample_topology_with_rng(
+    actor: &Actor,
+    rng: &mut ChaCha8Rng,
+    init_seed_hex: String,
+    max_attempts: u32,
+) -> Result<SampledTopology, TopologyError> {
     if max_attempts < 1 {
         return Err(TopologyError::InvalidDimensions(format!(
             "max_attempts must be >= 1; found {max_attempts}"
         )));
     }
-    let init_seed_hex = check_init_seed(seed)?;
-    let mut rng =
-        rng_for(seed).map_err(|e| TopologyError::BadSeed(format!("cannot build RNG: {e}")))?;
     // Mirror config validation so direct library callers get the same
     // dimension contract without routing through TOML.
     let (motor0, motor1) = motor_pools(actor.neuron_count, actor.motor_neurons_per_action)?;
@@ -440,7 +456,7 @@ pub fn sample_topology(
     let mut rejected = Vec::new();
     for attempt in 0..max_attempts {
         let mask = sample_mask(
-            &mut rng,
+            &mut *rng,
             actor.neuron_count,
             actor.edge_probability,
             actor.self_edges,

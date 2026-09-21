@@ -139,7 +139,10 @@ pipeline in M8. Do not treat their absence as a failure of M0.
 (versioned TOML schema), `rng.rs` (seed derivation), `environment/`
 (observation boundary, hidden state, scheduling, features, rewards),
 `agent/topology.rs` (M1-01 inherited mask, fixed motor pools, stable edge
-order, structural validation), `experiments/baseline.rs` (B0/B1/O1 harness),
+order, structural validation), `agent/weights.rs` (M1-02 row-scaled `W0`,
+dense `B`, zero biases, parameter validation), `agent/actor.rs` (M1-03
+double-buffered transition, `-expm1` leaks, post-integration noise),
+`experiments/baseline.rs` (B0/B1/O1 harness),
 `logging/` (event records + validation), `run.rs` (provenance + simulation
 runner), and thin `main.rs`.
 `configs/` holds `env_smoke.toml` (M0 smoke) and `debug_stationary.toml`

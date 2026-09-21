@@ -1,7 +1,7 @@
 # Agent continuation guide
 
-Updated 2026-09-21 UTC after M1-01, from code revision `7132433`
-(`docs updated`) with M1-01 changes uncommitted. This is a working handoff.
+Updated 2026-09-21 UTC after M1-03, from code revision `891d99a`
+(`m1-0`) with M1-02/M1-03 changes uncommitted. This is a working handoff.
 Check the tracker and Git state for newer work before claiming a task.
 
 ## Start here
@@ -18,15 +18,16 @@ Check the tracker and Git state for newer work before claiming a task.
 
 ## Current position and evidence
 
-**M0-GATE passed and was re-verified. M1-01 verified. Next task: M1-02.**
-There is no outstanding M1-01 blocker. The claim track remains `family_only`.
+**M0-GATE passed and was re-verified. M1-03 verified. Next task: M1-04.**
+There is no outstanding M1-03 blocker. The claim track remains `family_only`.
 No reserved final-test outcomes have been inspected.
 
-M1-01 added `src/agent/topology.rs` (directed Bernoulli mask on the `init`
-stream, fixed last-index motor pools, receiver-grouped edge order, cycle +
-per-pool reachability checks with rejection logging) with 13 integration
-tests in `tests/topology.rs` plus 2 unit tests. Full suite is 88 Rust tests
-passing with clean fmt/clippy; see the M1-01 tracker ledger entry.
+M1-03 added `src/agent/actor.rs` (double-buffered `f64` transition:
+`-expm1` leak factors, dense old-state drive, post-integration noise, no
+clipping with explicit nonfinite errors, forced-xi plus stochastic entry
+points sharing one core) with 7 integration tests in `tests/actor.rs` plus
+2 unit tests. Full suite is 109 Rust tests passing with clean fmt/clippy;
+see the M1-03 tracker ledger entry. Topology/weights results unchanged.
 
 The [M0 review](m0-review.md) records 73 Rust tests and 14 Python tests
 passing, clean fmt/clippy, four original runs audited, and seven fresh
@@ -41,31 +42,32 @@ is available for a quick audit. Reproduce missing raw runs using the saved
 commands/configs into new directories; preserve historical evidence paths
 and distinguish reruns from the original execution.
 
-## Next task: M1-02
+## Next task: M1-04
 
-**Deliver:** inherited weights and neuron parameters — `W0` row scaling by
-in-degree, input projection `B`, zero actor biases, and the starting
-constants from spec Sections 6 and 10. Keep `W0` separate from future
-plastic offsets.
+**Deliver:** the verified perturbation generator and draw schedule — the
+deterministic injected-noise fixture path plus the pinned stochastic
+generator drawing one perturbation per actor neuron per tick, including
+quiet periods.
 
-Read spec Sections 6.3 and 10.2 alongside the
-[M1 task queue](../to-do.md#m1---build-a-continuous-actor-with-no-learning).
-Inspect `src/agent/topology.rs` (mask/edge order/motor assignment) and
-`src/rng.rs` first. Weights also derive from the `init` stream; specify the
-draw order after the mask draws (mask first, then `W0` on existing edges,
-then `B`) before adding samples, so mask pairing across gate conditions is
-preserved.
+Read the M1-04 task text alongside spec 6.1/6.3 (noise after leaky
+integration, `sigma = 0.05`) and `src/agent/actor.rs`
+(`step_with_perturbations` vs `step`, preallocated `xi_buf`) plus
+`src/agent/weights.rs` (`NormalStream`) and `src/rng.rs` first. Both entry
+points already exist; this task verifies them, it does not redesign them.
 
-- Use standard deviation `recurrent_gain / sqrt(in_degree)`, not the
-  variance as a standard deviation. Handle zero-in-degree rows explicitly.
-- Validate motor capacity, disjoint pools, time constants, finiteness, and
-  dimensions; missing edges stay zero.
-- Verify with tight fixtures (row-scale statistics, zero-bias, finiteness)
-  and keep `W0` immutable during a lifetime. Then run the applicable full
-  quality checks and append tracker evidence.
+- Prove seeded sample moments match mean 0 / variance 1 within declared
+  tolerances (justify the sigmas from the sample counts up front).
+- Prove extra logging and unused gate changes cannot shift draws: the
+  `actor_noise` stream stays independent of environment streams, and one
+  draw per neuron happens on every tick regardless of phase.
+- Record the distribution implementation and the RNG state needed for
+  resume (M1-09 checkpoint work must preserve the perturbation-stream
+  position; coordinate the schema there).
+- Verify with the stated checks, then run the applicable full quality
+  checks and append tracker evidence.
 
-Keep M1-03 dynamics and later learning/search work in their task order.
-Completing M1-02 alone does not pass M1-GATE.
+Keep M1-05 adaptation and later learning/search work in their task order.
+Completing M1-04 alone does not pass M1-GATE.
 
 ## Implementation map
 
@@ -78,6 +80,8 @@ Completing M1-02 alone does not pass M1-GATE.
 | B0/B1 and isolated O1 runner | `src/experiments/baseline.rs` | `tests/baselines.rs`, `tests/randomized_env.rs` |
 | Run ownership and provenance | `src/run.rs` | atomic allocation unit tests, `tests/event_logging.rs` |
 | Inherited topology (M1-01) | `src/agent/topology.rs` | `tests/topology.rs`; mask/motor/order fixtures, rejection logging |
+| Inherited weights (M1-02) | `src/agent/weights.rs` | `tests/weights.rs`; row-scale/B/bias fixtures, golden draw sequence |
+| Actor transition (M1-03) | `src/agent/actor.rs` | `tests/actor.rs`; orientation/simultaneity/leak/no-clip fixtures |
 | Ordinary/hidden event serialization | `src/logging/events.rs` | `tests/event_logging.rs`, `analysis/test_validate_logs.py` |
 | CLI dispatch | `src/main.rs` | `validate-config` and baseline-only `simulate` |
 

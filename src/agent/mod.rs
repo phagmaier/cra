@@ -1,8 +1,12 @@
-//! Inherited agent topology placeholder (M1-01 owns this module).
+//! Inherited agent parameters and actor dynamics (M1-01 topology, M1-02
+//! weights, M1-03 transition).
 //!
 //! The recurrent mask, motor assignment, and structural checks live in
-//! [`topology`]. Weight initialization, dynamics, and learning arrive in
-//! M1-02 and later; this module must not grow neural-state or search code
-//! ahead of its milestone.
+//! [`topology`]; inherited `W0`, sensory projection `B`, and zero biases
+//! live in [`weights`]; the double-buffered `f64` transition lives in
+//! [`actor`]. Plasticity, motor commitment, and search arrive in later
+//! milestones; this module must not grow that code ahead of them.
 
+pub mod actor;
 pub mod topology;
+pub mod weights;

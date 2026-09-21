@@ -30,14 +30,14 @@ and [continuation guide](docs/handoff.md).
 
 | Field | Current value |
 | --- | --- |
-| Current milestone | M1 open; M1-01 verified 2026-09-21 UTC, M1-GATE still open |
+| Current milestone | M1 open; M1-03 verified 2026-09-21 UTC, M1-GATE still open |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M1-01 (inherited topology); latest simulator verification remains M0-REVIEW for M0 scope |
+| Last verified task | M1-03 (actor transition); M0 scope verification remains M0-REVIEW |
 | Claimed task | None |
-| Next eligible task | M1-02 |
+| Next eligible task | M1-04 |
 | Current blocker | None |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | 2026-09-21 UTC M1-01 ledger entry (this file); M0 simulation evidence in docs/evidence/m0-review/ |
+| Last evidence record | 2026-09-21 UTC M1-03 ledger entry (this file); M0 simulation evidence in docs/evidence/m0-review/ |
 
 ### Session ownership and handoffs
 
@@ -50,6 +50,8 @@ and [continuation guide](docs/handoff.md).
 | agent 2026-09-21 | M0-09–M0-11 | src/environment/mod.rs (features), src/experiments/*, tests/{environment_contract,event_order,leakage,baselines}.rs | Done, verified; handoff to M0-12 |
 | agent 2026-09-21 | M0-12–M0-GATE | src/logging/*, src/run.rs (runner), src/main.rs (CLI), analysis/*, tests/{randomized_env,event_logging}.rs | Done, verified; M0-GATE passed, handoff to M1-01 |
 | agent 2026-09-21 | M1-01 | src/agent/{mod,topology}.rs, tests/topology.rs, docs/decisions.md | Done, verified; handoff to M1-02 |
+| agent 2026-09-21 | M1-02 | src/agent/{mod,topology,weights}.rs, tests/weights.rs, docs/decisions.md | Done, verified; handoff to M1-03 |
+| agent 2026-09-21 | M1-03 | src/agent/{mod,actor}.rs, tests/actor.rs, docs/decisions.md | Done, verified; handoff to M1-04 |
 
 Parallel work requires settled interfaces and satisfied dependencies. Do not parallelize successive scientific milestones or let two agents independently redefine feedback ordering, RNG policy, or checkpoint schema. Coordinate changes to this tracker through one integrator.
 
@@ -169,11 +171,11 @@ Establish correct, continuously evolving actor dynamics and replay before introd
   - Deliver: Sample the directed Bernoulli mask, initially with no self-edges; fix a stable edge order and motor assignment. Check cue-driven-to-motor reachability and recurrent cycles. Log rejected structural samples and reasons.
   - Verify: The same initialization reproduces the same mask. Selection is structural, never based on test performance. Missing edges stay absent. Pair masks and actor inheritance across future gate conditions.
 
-- [ ] **M1-02 - Initialize inherited weights and neuron parameters**
+- [x] **M1-02 - Initialize inherited weights and neuron parameters**
   - Deliver: Implement W0 row scaling by in-degree, input projection B, zero actor biases, and the starting constants from Sections 6 and 10. Keep W0 separate from future plastic offsets.
   - Verify: Use standard deviation recurrent_gain/sqrt(in_degree), not the variance as a standard deviation. Handle zero-in-degree rows explicitly. Validate motor capacity, disjoint pools, time constants, finiteness, and dimensions.
 
-- [ ] **M1-03 - Implement the double-buffered f64 actor transition**
+- [x] **M1-03 - Implement the double-buffered f64 actor transition**
   - Deliver: Compute alpha with -expm1(-1/tau), read only old h/r/a on right-hand sides, accumulate recurrent and sensory drive, add Gaussian noise after leaky integration, and compute new tanh activity.
   - Verify: One-edge and two-neuron fixtures prove receiver/source orientation and simultaneous updates. Forced perturbations prove the leak factor is not accidentally applied to sigma. No hidden state clipping or inner-loop allocations are introduced.
 
@@ -1561,6 +1563,133 @@ Interpretation and claim limits: Structural sampling only. No weights,
   M1-02 through M1-12 verify.
 Tracker boxes updated: M1-01 checked.
 Next eligible task: M1-02.
+```
+
+```text
+Date / agent or session: 2026-09-21 UTC / agent (M1 weights session)
+Task IDs: M1-02
+Spec sections: 6.3 (starting constants), 10.2 (inherited actor weights),
+  20.5 (seed derivation, distribution implementation)
+Change and affected files: src/agent/weights.rs (new: Box-Muller
+  NormalStream, row_std = gain/sqrt(d), sample_weights_from_mask with exact
+  missing-edge/bias zeros and nonfinite backstop, validate_inherited,
+  sample_inherited on one init RNG in mask-then-W0-then-B order,
+  InheritedParams/SampledParams/ParamsError); src/agent/topology.rs
+  (behavior-preserving split: sample_topology delegates to crate-visible
+  sample_topology_with_rng; validate_probability/check_init_seed widened
+  for reuse); src/agent/mod.rs (register weights); tests/weights.rs (new,
+  10 tests + 1 ignored probe); docs/decisions.md (M1-02 conventions entry);
+  README.md (layout line); docs/handoff.md (M1-03 continuation).
+Code revision / dirty-tree state: base 891d99a (m1-0); M1-02 files new or
+  modified and uncommitted at handoff (M docs/decisions.md,
+  src/agent/{mod,topology}.rs, to-do.md, README.md, docs/handoff.md;
+  ?? src/agent/weights.rs, tests/weights.rs).
+Commands actually executed:
+  cargo test --locked --test weights (10/10 pass, 1 ignored probe)
+  cargo test --locked --test weights probe_golden_values -- --ignored
+    --nocapture (probe only: edges=52 accepted=0 w0_sum=-3.92880663437287181
+    b_sum=-1.19270571160902339; values then hardcoded as the golden
+    tripwire, truncated to f64 precision per clippy)
+  cargo test --locked --test topology (13/13 pass; refactor unchanged)
+  cargo fmt --all -- --check (clean)
+  cargo clippy --all-targets --locked -- -D warnings (clean after removing
+    one same-type cast and truncating golden literals to f64 precision)
+  cargo test --all-targets --locked (100/100 pass, 1 ignored: 23 lib incl.
+    2 new weights units + 7 baselines + 4 config + 20 contract + 5 logging
+    + 3 order + 5 leakage + 5 randomized + 5 seeds + 13 topology + 10 new
+    weights)
+  python3 analysis/test_validate_logs.py (14/14 pass, unchanged layer)
+  cargo run --release --locked -- validate-config
+    configs/debug_stationary.toml (OK) and configs/env_smoke.toml (OK)
+Outcome and checks passed: Same seed reproduces W0/B/bias; paired resample
+  equals; outer 1 vs 2 differ; N=200 full-mask fixture gives W0 variance
+  within 5% of gain^2/d (mistake version would be ~300x off) and B variance
+  within tolerance of input_scale^2; row_std(0.8,4)=0.4 exactly and
+  row_std(*,0)=0.0; zero-degree rows exact-zero with deterministic later
+  draws; missing edges exact 0.0; biases exact 0.0; gain/scale 1e308 fails
+  as InvalidParams; validation table rejects wide motors, bad taus/sigma/
+  gains, input_dim 0, non-init stream, max_attempts 0, p=1.5;
+  debug_stationary end-to-end validates with input_dim 8; golden tripwire
+  passes.
+Checks not run / failures / blockers: One test expectation was initially
+  wrong (hand-mask edge count 5 vs actual 4; corrected in the test with no
+  source change). M0 smoke simulate not rerun (no runner change).
+  Expensive Monte Carlo suites remain in their queued milestones.
+Configuration and suite hashes: configs/debug_stationary.toml actor
+  section (N=16, m=2, p=0.25, gain 0.8, scale 0.3); seed tuples (root 1,
+  development, outer 1/2/4/7/11/21, lifetime 0, stream init); input_dim 8
+  (debug, K+6) and 14 (N=200 fixture); no suites consumed.
+Seed namespace / outer seeds / lifetime count: development only, fixture
+  seeds as above; no lifetimes simulated.
+Artifact paths and checksums where relevant: src/agent/weights.rs,
+  tests/weights.rs (committed with this entry; no run directories
+  produced).
+Interpretation and claim limits: Inherited initialization only. No
+  dynamics, plasticity, or learning claim; W0 is stored without P and the
+  effective W0+P construction waits for M3. M1-GATE remains open.
+Tracker boxes updated: M1-02 checked.
+Next eligible task: M1-03.
+```
+
+```text
+Date / agent or session: 2026-09-21 UTC / agent (M1 transition session)
+Task IDs: M1-03
+Spec sections: 4.1 (W[receiver, sender]), 6.1 (actor update), 6.2
+  (adaptation), 18.4-18.5 (preallocated buffers, dense reference)
+Change and affected files: src/agent/actor.rs (new: leak_alpha via
+  -expm1, ActorState with preallocated double buffers, from_state/new
+  constructors, step_with_perturbations fixture path plus stochastic step
+  sharing one slice core with Vec-level swaps, dense drive accumulation,
+  post-integration noise, no clipping with explicit NonFiniteState,
+  ActorError); src/agent/mod.rs + src/lib.rs (register/document actor);
+  tests/actor.rs (new, 7 tests); docs/decisions.md (M1-03 conventions
+  entry); README.md (layout line); docs/handoff.md (M1-04 continuation).
+Code revision / dirty-tree state: base 891d99a (m1-0) with the uncommitted
+  M1-02 work still pending underneath; M1-03 files new or modified and
+  uncommitted at handoff (M README.md, docs/decisions.md, docs/handoff.md,
+  src/agent/mod.rs, src/agent/topology.rs, src/lib.rs, to-do.md;
+  ?? src/agent/actor.rs, src/agent/weights.rs, tests/actor.rs,
+  tests/weights.rs).
+Commands actually executed:
+  cargo test --locked --test actor (7/7 pass)
+  cargo test --locked --lib agent:: (6/6 pass incl. 2 leak_alpha units)
+  cargo fmt --all -- --check (clean after one formatting pass)
+  cargo clippy --all-targets --locked -- -D warnings (clean after
+    slice-typed core params with Vec-level swaps)
+  cargo test --all-targets --locked (109/109 pass, 1 ignored: 25 lib + 0
+    bin + 7 actor + 7 baselines + 4 config + 20 contract + 5 logging +
+    3 order + 5 leakage + 5 randomized + 5 seeds + 13 topology + 10
+    weights)
+  python3 analysis/test_validate_logs.py (14/14 pass, unchanged layer)
+  cargo run --release --locked -- validate-config
+    configs/debug_stationary.toml (OK) and configs/env_smoke.toml (OK)
+Outcome and checks passed: One-edge fixture proves orientation (receiver
+  gains 0.6*r0 drive; sender update has no reverse term despite large
+  neighbor activity) and adaptation sign; bidirectional fixture matches
+  old-activity-only values at 1e-12 (in-place updates would mismatch);
+  forced perturbations at tau 100 and 5 match sigma*xi at 1e-12 (the
+  alpha-scaled mistake would be ~100x off at tau 100); h=+-500 leaks
+  exactly with r=+-1 (no clipping); leak_alpha agrees with 1-exp to ~1
+  ulp and holds 1e-9 at tau 1e9; stochastic step shares the core with
+  fresh tanh activity; dim/param/nonfinite violations are explicit errors.
+Checks not run / failures / blockers: Initial 1e-15 leak_alpha bound was
+  tighter than the ~1 ulp formulation difference at tau 100; loosened to
+  1e-14 with the reason recorded (no source change). M0 smoke simulate
+  not rerun (no runner change). Perturbation distribution/schedule audit
+  belongs to M1-04; watchdog summaries to M1-08.
+Configuration and suite hashes: Hand-built N=2 fixtures (edge 0.6,
+  reverse -0.4, tau_h 5/100, tau_a 100, strength 0.5/0.0, sigma 0.05);
+  no suites consumed.
+Seed namespace / outer seeds / lifetime count: development actor_noise
+  seed (root 1, outer 1, lifetime 0) for the stochastic wiring check only;
+  no lifetimes simulated.
+Artifact paths and checksums where relevant: src/agent/actor.rs,
+  tests/actor.rs (committed with this entry; no run directories produced).
+Interpretation and claim limits: Transition dynamics only. No motor
+  readout, learning, or continuity claim; W0 stays immutable and P
+  absent. M1-GATE remains open.
+Tracker boxes updated: M1-03 checked.
+Next eligible task: M1-04.
 ```
 
 ## Blockers and decision register - keep current
