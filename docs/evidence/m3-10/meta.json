@@ -1,0 +1,18 @@
+{
+  "artifacts": [
+    "boundary_r1000.json",
+    "final.json",
+    "update_summary_example.json",
+    "meta.json"
+  ],
+  "provenance": {
+    "arch": "x86_64",
+    "dirty": true,
+    "git_status": "M README.md\n M docs/decisions.md\n M docs/handoff.md\n M src/checkpoint.rs\n M src/experiments/episodic.rs\n M src/experiments/mod.rs\n M to-do.md\n?? docs/evidence/m3-08/\n?? docs/evidence/m3-09/\n?? docs/evidence/m3-10/\n?? src/experiments/reduction.rs\n?? tests/episodic_checkpoint.rs\n?? tests/m3_full_recurrent.rs\n?? tests/m3_reduction.rs",
+    "os": "linux",
+    "profile": "release",
+    "revision": "0d20d45a3aa460538eedf281f1737acdf8f59bfe"
+  },
+  "schema_version": 1,
+  "task": "M3-10"
+}

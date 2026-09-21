@@ -49,7 +49,7 @@ use crate::agent::health::{HealthError, check_state};
 use crate::agent::motor::{MotorError, MotorState, decide_action};
 use crate::agent::no_learning::{NoLearningActor, NoLearningError};
 use crate::agent::plasticity::{
-    FeedbackOutcome, FeedbackUpdateParams, PlasticState, PlasticityError,
+    FeedbackOutcome, FeedbackUpdateParams, PlasticSnapshot, PlasticState, PlasticityError,
 };
 use crate::agent::topology::{AttemptRecord, DEFAULT_MAX_STRUCTURAL_ATTEMPTS};
 use crate::agent::weights::{InheritedParams, ParamsError, sample_inherited};
@@ -57,7 +57,7 @@ use crate::config::{Actor, Config, Learning};
 use crate::environment::{
     Agent, Feedback, HiddenAnnotation, Lifetime, MotorOutput, SimError, feature_dim,
 };
-use crate::rng::{SeedTuple, rng_for};
+use crate::rng::{RngState, SeedTuple, rng_for};
 
 /// Mode label identifying this diagnostic in summaries and logs.
 /// Separate from continuous `birth_only`; never silently substituted.
@@ -191,6 +191,11 @@ pub struct EpisodicLearner {
 }
 
 impl EpisodicLearner {
+    /// Stream names owned by this learner (spec 5.8): perturbations plus
+    /// commitment ties. The environment never draws either stream.
+    const NOISE_STREAM: &'static str = "actor_noise";
+    const TIE_STREAM: &'static str = "tie_break";
+
     /// Agent-only constructor for fixtures and the episodic driver.
     ///
     /// Takes only the `[actor]` + `[learning]` sections, already-sampled
@@ -350,6 +355,53 @@ impl EpisodicLearner {
     /// transition's receiver perturbations. Never applies feedback a second
     /// time. Advances on every phase; never resets state.
     pub fn advance(&mut self, features: &[f64]) -> Result<MotorOutput, EpisodicError> {
+        self.advance_inner(features, None)
+    }
+
+    /// Diagnostic-only M3-09 hook: identical transition, motor filter, and
+    /// health check, but eligibility uses receiver-permuted perturbations:
+    /// the score on receiver `j`'s incoming edges uses `xi[perm[j]]`
+    /// instead of `xi[j]`.
+    ///
+    /// `perm` must be a bijection over `0..N` (validated); the identity
+    /// permutation reproduces [`Self::advance`] exactly (tested). Any other
+    /// permutation deliberately violates the spec 7.2 receiver-`xi`
+    /// contract to test whether learning is sensitive to the perturbation
+    /// assignment (M3-09 postsynaptic-permutation diagnostic). Ordinary
+    /// runners must never call this; it exists only for failure
+    /// isolation, and its summaries carry a distinct condition id.
+    pub fn advance_with_receiver_permutation(
+        &mut self,
+        features: &[f64],
+        perm: &[usize],
+    ) -> Result<MotorOutput, EpisodicError> {
+        let n = self.actor_cfg.neuron_count;
+        if perm.len() != n {
+            return Err(invalid(format!(
+                "permutation len {} must match {n} neurons",
+                perm.len()
+            )));
+        }
+        let mut seen = vec![false; n];
+        for &j in perm {
+            if j >= n {
+                return Err(invalid(format!(
+                    "permutation entry {j} out of range for {n} neurons"
+                )));
+            }
+            if seen[j] {
+                return Err(invalid(format!("permutation entry {j} is duplicated")));
+            }
+            seen[j] = true;
+        }
+        self.advance_inner(features, Some(perm))
+    }
+
+    fn advance_inner(
+        &mut self,
+        features: &[f64],
+        perm: Option<&[usize]>,
+    ) -> Result<MotorOutput, EpisodicError> {
         let want = feature_dim(self.cue_count);
         if features.len() != want {
             return Err(invalid(format!(
@@ -382,9 +434,13 @@ impl EpisodicLearner {
             self.motor.q(),
         )?;
         let xi = self.state.last_perturbations().to_vec();
+        let xi_used: Vec<f64> = match perm {
+            None => xi,
+            Some(p) => p.iter().map(|&j| xi[j]).collect(),
+        };
         let alpha_h = leak_alpha(self.actor_cfg.tau_h);
         self.plastic
-            .advance_eligibility(&r_old, &xi, alpha_h, self.actor_cfg.noise_sigma)?;
+            .advance_eligibility(&r_old, &xi_used, alpha_h, self.actor_cfg.noise_sigma)?;
         self.last_output = out;
         self.ticks_advanced += 1;
         Ok(out)
@@ -417,6 +473,208 @@ impl EpisodicLearner {
         };
         Ok(())
     }
+
+    /// Snapshot the dynamic learner state for a learned-offset checkpoint
+    /// (M3-10): membranes, adaptation, perturbations, motor filters,
+    /// readout, tick count, both RNG positions, the sampling record, and
+    /// the full plastic state (`P`/`E`/baseline/dedup via
+    /// [`PlasticSnapshot`]). Inherited weights travel in the checkpoint
+    /// body, not here.
+    pub(crate) fn snapshot(
+        &self,
+        root_seed: u64,
+        namespace: &str,
+        outer_seed: u64,
+        lifetime_index: u64,
+    ) -> Result<EpisodicAgentSnapshot, EpisodicError> {
+        let bad = |e: crate::rng::SeedError| EpisodicError::BadSeed(e.to_string());
+        let noise = RngState::capture(
+            &self.noise_rng,
+            &SeedTuple::new(
+                root_seed,
+                namespace,
+                outer_seed,
+                lifetime_index,
+                Self::NOISE_STREAM,
+            ),
+        )
+        .map_err(bad)?;
+        let tie = RngState::capture(
+            &self.tie_rng,
+            &SeedTuple::new(
+                root_seed,
+                namespace,
+                outer_seed,
+                lifetime_index,
+                Self::TIE_STREAM,
+            ),
+        )
+        .map_err(bad)?;
+        Ok(EpisodicAgentSnapshot {
+            h: self.state.h().to_vec(),
+            a: self.state.a().to_vec(),
+            last_perturbations: self.state.last_perturbations().to_vec(),
+            q: self.motor.q(),
+            last_output: self.last_output,
+            ticks_advanced: self.ticks_advanced,
+            noise_rng: noise,
+            tie_rng: tie,
+            initialization: self.initialization.clone(),
+            plastic: self.plastic.snapshot(),
+        })
+    }
+
+    /// Restore dynamic learner state onto already-validated inherited
+    /// parameters and the resolved `[learning]` section, validating
+    /// shapes, finiteness, RNG seed identity, and learning-section
+    /// agreement (mask/trace/`tau_e`/bound) instead of trusting stored
+    /// bytes. Missing state is an explicit error, never a silent
+    /// default.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn restore(
+        snapshot: EpisodicAgentSnapshot,
+        actor_cfg: Actor,
+        learning: Learning,
+        inherited: InheritedParams,
+        cue_count: usize,
+        root_seed: u64,
+        namespace: &str,
+        outer_seed: u64,
+        lifetime_index: u64,
+    ) -> Result<Self, EpisodicError> {
+        // Same construction contract as from_agent_parts: an enabled
+        // gaussian-score learner on the diagnostic trace policy.
+        if !learning.enabled {
+            return Err(invalid(
+                "episodic learner requires learning.enabled = true".to_owned(),
+            ));
+        }
+        if learning.rule != "gaussian_transition_score" {
+            return Err(invalid(format!(
+                "unknown learning rule '{}'; expected \"gaussian_transition_score\"",
+                learning.rule
+            )));
+        }
+        let n = actor_cfg.neuron_count;
+        inherited.validate(&actor_cfg, feature_dim(cue_count))?;
+        if inherited.topology.neuron_count != n {
+            return Err(invalid(format!(
+                "topology has {} neurons but actor config has {n}",
+                inherited.topology.neuron_count
+            )));
+        }
+        if learning.enabled
+            && learning.eta > 0.0
+            && !(actor_cfg.noise_sigma.is_finite() && actor_cfg.noise_sigma > 0.0)
+        {
+            return Err(invalid(
+                "score-noise contract: eta > 0 requires actor.noise_sigma > 0".to_owned(),
+            ));
+        }
+        // The stored learning identity must match the resolved section;
+        // a hand-swapped config cannot silently resume foreign plasticity.
+        if snapshot.plastic.plastic_mask != learning.plastic_mask {
+            return Err(invalid(format!(
+                "snapshot mask '{}' disagrees with resolved '{}'",
+                snapshot.plastic.plastic_mask, learning.plastic_mask
+            )));
+        }
+        if snapshot.plastic.trace_policy != learning.trace_policy {
+            return Err(invalid(format!(
+                "snapshot trace '{}' disagrees with resolved '{}'",
+                snapshot.plastic.trace_policy, learning.trace_policy
+            )));
+        }
+        if snapshot.plastic.tau_e != learning.tau_e {
+            return Err(invalid(format!(
+                "snapshot tau_e {} disagrees with resolved {}",
+                snapshot.plastic.tau_e, learning.tau_e
+            )));
+        }
+        if snapshot.h.len() != n || snapshot.a.len() != n || snapshot.last_perturbations.len() != n
+        {
+            return Err(invalid(format!(
+                "agent state len ({}/{}/{}) must match {n} neurons",
+                snapshot.h.len(),
+                snapshot.a.len(),
+                snapshot.last_perturbations.len()
+            )));
+        }
+        if !snapshot.h.iter().all(|v| v.is_finite())
+            || !snapshot.a.iter().all(|v| v.is_finite())
+            || !snapshot.last_perturbations.iter().all(|v| v.is_finite())
+        {
+            return Err(invalid("restored agent state must be finite".to_owned()));
+        }
+        if !snapshot.q.iter().all(|v| v.is_finite()) {
+            return Err(invalid("restored motor filters must be finite".to_owned()));
+        }
+        if !snapshot.last_output.action_0.is_finite() || !snapshot.last_output.action_1.is_finite()
+        {
+            return Err(invalid("restored motor readout must be finite".to_owned()));
+        }
+        if snapshot.q != [snapshot.last_output.action_0, snapshot.last_output.action_1] {
+            return Err(invalid("motor readout disagrees with filters".to_owned()));
+        }
+        for (name, state) in [
+            (Self::NOISE_STREAM, &snapshot.noise_rng),
+            (Self::TIE_STREAM, &snapshot.tie_rng),
+        ] {
+            let tuple = SeedTuple::new(root_seed, namespace, outer_seed, lifetime_index, name);
+            let expected = crate::rng::derive_seed_bytes(&tuple)
+                .map_err(|e| EpisodicError::BadSeed(e.to_string()))?;
+            if state.seed_bytes != expected || state.word_pos >= (1_u128 << 68) {
+                return Err(invalid(format!(
+                    "rng stream '{name}' seed does not match the checkpoint seed identity"
+                )));
+            }
+        }
+        let state = ActorState::from_snapshot(snapshot.h, snapshot.a, snapshot.last_perturbations)
+            .map_err(EpisodicError::Actor)?;
+        let motor = MotorState::from_q(snapshot.q).map_err(EpisodicError::Motor)?;
+        let plastic = PlasticState::restore(
+            snapshot.plastic,
+            &inherited.topology,
+            &inherited.weights.w0,
+            learning.plastic_bound,
+        )
+        .map_err(EpisodicError::Plastic)?;
+        let update = FeedbackUpdateParams::from_learning_config(&learning);
+        Ok(Self {
+            actor_cfg,
+            update,
+            inherited,
+            state,
+            motor,
+            plastic,
+            noise_rng: snapshot.noise_rng.restore(),
+            tie_rng: snapshot.tie_rng.restore(),
+            cue_count,
+            ticks_advanced: snapshot.ticks_advanced,
+            last_output: snapshot.last_output,
+            initialization: snapshot.initialization,
+        })
+    }
+}
+
+/// Serializable dynamic learner snapshot for learned-offset checkpoints
+/// (M3-10). Live membranes/adaptation/perturbations/filters plus RNG
+/// positions, the sampling record, and the versioned plastic state;
+/// inherited weights travel in the checkpoint body.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct EpisodicAgentSnapshot {
+    pub h: Vec<f64>,
+    pub a: Vec<f64>,
+    pub last_perturbations: Vec<f64>,
+    pub q: [f64; 2],
+    pub last_output: MotorOutput,
+    pub ticks_advanced: u64,
+    pub noise_rng: RngState,
+    pub tie_rng: RngState,
+    #[serde(deserialize_with = "crate::checkpoint::required_option")]
+    pub initialization: Option<EpisodicInitRecord>,
+    pub plastic: PlasticSnapshot,
 }
 
 /// One evaluated choice with its terminal update, joining ordinary and
@@ -549,8 +807,9 @@ pub fn sample_matched_inheritance(
 
 /// Derive one lifetime's dedicated agent RNGs. The environment never draws
 /// either stream, so agent stepping cannot shift cue/change/noise/timing
-/// schedules (spec 5.8).
-fn lifetime_agent_rngs(
+/// schedules (spec 5.8). `pub(crate)` so the M3-09 reduction diagnostics
+/// pair their streams exactly like the verified runners.
+pub(crate) fn lifetime_agent_rngs(
     root_seed: u64,
     namespace: &str,
     outer_seed: u64,
@@ -561,7 +820,7 @@ fn lifetime_agent_rngs(
         namespace,
         outer_seed,
         lifetime_index,
-        "actor_noise",
+        EpisodicLearner::NOISE_STREAM,
     ))
     .map_err(|e| EpisodicError::BadSeed(e.to_string()))?;
     let tie_rng = rng_for(&SeedTuple::new(
@@ -569,7 +828,7 @@ fn lifetime_agent_rngs(
         namespace,
         outer_seed,
         lifetime_index,
-        "tie_break",
+        EpisodicLearner::TIE_STREAM,
     ))
     .map_err(|e| EpisodicError::BadSeed(e.to_string()))?;
     Ok((noise_rng, tie_rng))

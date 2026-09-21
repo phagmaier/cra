@@ -949,3 +949,121 @@ make code or a result look successful.**
   in the tested family. M3-08 carries index 11 to the full recurrent mask;
   M4 must confront the same lock-in without resets. Verification:
   [M3-07 evidence](evidence/m3-07/summary.md).
+
+## 2026-09-21 UTC — M3-08 all-recurrent acquisition (spec 7, 16/M3)
+
+- **Mask extension at fixed hyperparameters, not a re-tune.** The frozen
+  M3-06 manifest is untouched and the M3-07 motor-only sweep is preserved
+  as a diagnostic; this task runs the declared comparisons (matched
+  B3/B4/B4-shuffled, development root 1, outers 1-3, 2,000 outcomes,
+  first-200/final-200 windows, same margins and guardrails) at the single
+  winner point (grid index 11: eta 0.001, input_scale 0.2,
+  recurrent_gain 0.8, noise_sigma 0.05) with `plastic_mask` changed to
+  `all_recurrent_edges`. Affected spec sections: 7 (same score/update
+  machinery), 16/M3 (several-seed learning over controls). No production
+  code changed, so no new learning equation entered.
+- **Full mask passes 2/3 seeds with stronger responsive acquisition.**
+  Outer 2 reaches 0.975 late (vs 0.860 motor-only) against 0.040/0.030
+  controls; outer 3 reaches 0.955 (vs 0.935) against 0.770/0.775; outer 1
+  stays 0.0 under both masks (birth-locked, documented family bound).
+  Larger offset norms (4.70/3.67 vs 2.45/2.51 L1) follow from ~4x the
+  plastic parameters at the same eta; clipping stays tiny (max 0.0007)
+  with zero bound occupancy. The shuffled control moves real offsets
+  without systematic accuracy gain, so the finding is contingency-driven.
+- **Mask difference is measured, not attributed to gates.** The fast test
+  proves the structural superset on shared inheritance plus behavioral
+  non-motor offset movement with W0/effective/bound compliance. Later
+  gate comparisons must stay mask-matched; this record must not be cited
+  as a gate effect. Continuous acquisition remains M4 work; checkpoint
+  schema stays 2. Verification:
+  [M3-08 evidence](evidence/m3-08/summary.md).
+
+## 2026-09-21 UTC — M3-09 failure-isolation path (spec M3 "If it fails", 21.1–21.2)
+
+- **Instruments, not a rescue.** The learner acquired successfully, so no
+  rule was changed to manufacture learning. `src/experiments/reduction.rs`
+  holds two diagnostic-only runners: a synthetic single-motor closed loop
+  (constant features, known preferred action — a mechanism check, never a
+  task result or a comparison against environment-driven runners) and a
+  receiver-permuted episodic runner that mirrors the verified driver tick
+  for tick except for the perturbation assignment. Affected sections: the
+  M3 failure recipe plus 21.1 (smallest-system order) and 21.2 (learning
+  vs representation failure).
+- **One narrow hook with a bitwise identity control.** `advance` now
+  delegates to a shared private core; `advance_with_receiver_permutation`
+  validates the bijection and is reachable only from `reduction.rs` and
+  its tests (proven by source search). The identity permutation
+  reproduces the verified runner's final `P`/`E`/baseline/action sequence
+  exactly, so the refactor carries no transition-path artifact.
+- **Outer-1 diagnosed independently.** Hand-set sign/order checks plus the
+  closed-loop drift direction (preferred rate 0.400 → 0.700, single
+  offset +0.0766, every update trace-identical) all verify, while outer-1
+  moves real offsets with locked behavior — a representation failure by
+  ladder step 4, consistent with the M3-07/M3-08 bound through new
+  mechanics rather than repeated assertion.
+- **Permutation sensitivity without a demanded magnitude.** Reversed
+  perturbations complete on the identical schedule with finite values but
+  different updates; no behavioral failure size is asserted (correct
+  0.050 vs reversed 0.000 late accuracy at the 600-outcome horizon, both
+  pre-acquisition). Fixed seeds throughout; diagnostic constants, not
+  seeds, are the tuning surface. Verification:
+  [M3-09 evidence](evidence/m3-09/summary.md).
+
+## 2026-09-21 UTC — M3-10 learned-offset checkpoints (spec 7, 10.7, 16/M3)
+
+- **A separate schema-3 envelope, not a migrated schema 2.** The M1
+  nonplastic `Checkpoint` is byte-identical to before; `LearningCheckpoint`
+  carries the episodic snapshot (`h`/`a`/`xi`/`q`, readout, ticks, RNG
+  positions, sampling record, versioned `PlasticSnapshot` with
+  `P`/`E`/baseline/dedup) with mirrored envelope rules (atomic write,
+  checksum, seed identity, config hash, tick/ledger agreement,
+  `Committed` rejection, hidden-assignment and init-seed binding).
+  Neither loader reads the other's files — cross-schema resume is a
+  parse failure, never a misread lifetime. Learner restore re-checks
+  learning-section agreement (mask/trace/`tau_e`/bound), not just
+  shapes. Affected sections: 10.7 (checkpoint contents), 16/M3 (exit
+  evidence).
+- **Pending delivery is not checkpointable state.** A
+  delivered-but-unconsumed reward lives in driver-held memory (the
+  environment's pending slot is already taken), so compat deliberately
+  demands `confirmed == consumed` plus dedup agreement. The
+  just-before-feedback split is therefore the last fully-processed
+  tick, and deterministic re-delivery is an explicit assertion — a
+  drafted tick-rule relaxation for pending captures was reverted once
+  this gap was understood, rather than weakened to pass.
+- **Replay proves continuation, archives pin the trajectory.** Three
+  splits (boundary with nonzero `P`, just-before-feedback with full
+  `E`, post-feedback with fresh `P` plus post-scores and no
+  double-apply) resume bit-identically against uninterrupted
+  references, after a faithful-driver equality proof makes the manual
+  driver the same scientific object. The pinned working config,
+  verbatim failure case, real boundary/final files, and first/last
+  update digests cross-match the M3-08 outer-2 record exactly through
+  an independent driver. Checkpoints pin the reference platform by
+  design. Verification: [M3-10 evidence](evidence/m3-10/summary.md).
+
+## 2026-09-21 UTC — M3-GATE milestone exit (spec 16/M3)
+
+- **The gate re-ran the evidence.** Fresh release executions reproduce
+  the archived M3-07 verdict (winner index 11; all 72 seed records
+  identical) and the M3-08 verdict (passes 2/3) exactly — provenance
+  alone differs, as it must in a dirty worktree. The gate therefore
+  rests on this session's executions, not on cited files. Full battery
+  alongside: 289 fast Rust tests (every M2 derivative/finite-difference/
+  golden check included), 2 compile-fail doc checks, 17 Python audits,
+  fixture audit OK, clean fmt/Clippy/diff. Six ignores are exactly the
+  two Monte Carlo diagnostics, the weight probe, and the three bounded
+  captures, each invoked separately per its record.
+- **Exit conditions (a)–(d)** (ledger): several-seed learning over
+  matched B3/shuffled controls at two masks; still-valid score/golden
+  arithmetic; interpretable numerics (clipping/bound/`P`-movement
+  guardrails plus separated update norms); no lucky trajectory (2/3-seed
+  rule with per-seed matched controls; the outer-1 bound diagnosed, not
+  tuned away). No evolution, search, gate, or M4 work started.
+- **What M3 proves, and what it does not.** Proven: an ungated local
+  learner acquires clean episodic associations from delayed terminal
+  rewards on responsive actors, with exact pause/resume through
+  learning events. Not proven: continuous acquisition without
+  within-lifetime resets — that is M4's explicitly open gate, and no
+  M3 artifact substitutes for it. Claim track stays `family_only`;
+  B3 is still not B7. Next: M4-01 (authoritative main tick order).

@@ -1,0 +1,69 @@
+{
+  "note": "M3-10 archived failure case: winner full-mask config (grid index 11) on outer seed 1. Birth-locked actor (always action 0 vs all-ones mapping): offsets move through the verified update path while behavior and both controls stay at 0.0. Representation/birth-lock failure, not plasticity (M3-09 ladder step 4). Source: docs/evidence/m3-08/seed_records.jsonl.",
+  "record": {
+    "b3": {
+      "early_accuracy": 0.0,
+      "early_reward": 0.0,
+      "full_accuracy": 0.0,
+      "full_reward": 0.0,
+      "late_accuracy": 0.0,
+      "late_reward": 0.0
+    },
+    "b4": {
+      "early_accuracy": 0.0,
+      "early_reward": 0.0,
+      "full_accuracy": 0.0,
+      "full_reward": 0.0,
+      "late_accuracy": 0.0,
+      "late_reward": 0.0
+    },
+    "b4_health": {
+      "bound_occupancy": 0.0,
+      "clipped_events": 0,
+      "clipped_update_fraction": 0.0,
+      "final_baseline": 1.416189562727229e-18,
+      "final_e_l1": 106.56663809955673,
+      "final_e_l2": 20.68427605744971,
+      "final_p_l1": 0.3795861327732345,
+      "final_p_l2": 0.07134978498658817,
+      "nonzero_update_events": 104000
+    },
+    "eta": 0.001,
+    "grid_index": 11,
+    "input_scale": 0.2,
+    "lifetime_index": 0,
+    "margin_b4_minus_b3": 0.0,
+    "margin_b4_minus_shuffled": 0.0,
+    "namespace": "development",
+    "noise_sigma": 0.05,
+    "outcomes": 2000,
+    "outer_seed": 1,
+    "plastic_mask": "all_recurrent_edges",
+    "recurrent_gain": 0.8,
+    "root_seed": 1,
+    "shuffled": {
+      "early_accuracy": 0.0,
+      "early_reward": 0.0,
+      "full_accuracy": 0.0,
+      "full_reward": 0.0,
+      "late_accuracy": 0.0,
+      "late_reward": 0.0
+    },
+    "shuffled_health": {
+      "bound_occupancy": 0.0,
+      "clipped_events": 26,
+      "clipped_update_fraction": 0.00025,
+      "final_baseline": 0.5845580272994337,
+      "final_e_l1": 99.12150002033096,
+      "final_e_l2": 19.095940744899128,
+      "final_p_l1": 2.8074615330016246,
+      "final_p_l2": 0.5415446777935284,
+      "nonzero_update_events": 104000
+    },
+    "ticks": {
+      "b3": 33996,
+      "b4": 33996,
+      "shuffled": 33996
+    }
+  }
+}

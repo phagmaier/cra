@@ -1,0 +1,63 @@
+{
+  "base_profile": "configs/episodic_stationary.toml",
+  "conditions": [
+    "B3",
+    "B4",
+    "B4-shuffled"
+  ],
+  "criterion": {
+    "margin_b4_minus_b3": 0.15,
+    "margin_b4_minus_shuffled": 0.1,
+    "max_clipped_update_fraction": 0.1,
+    "max_failed_lifetimes": 0,
+    "min_outer_seeds_passing": 2,
+    "require_b4_final_p_movement": true
+  },
+  "eta": 0.001,
+  "grid_index": 11,
+  "grid_manifest": "manifests/m3_development_grid.json",
+  "input_scale": 0.2,
+  "measured_budget": {
+    "total_lifetimes": 9,
+    "total_ticks": 305964
+  },
+  "metric": "late_window_latent_accuracy",
+  "motor_only_reference": "docs/evidence/m3-07/verdict.json (preserved diagnostic, not overwritten)",
+  "noise_sigma": 0.05,
+  "passes": true,
+  "plastic_mask": "all_recurrent_edges",
+  "provenance": {
+    "arch": "x86_64",
+    "dirty": true,
+    "git_status": "M README.md\n M docs/decisions.md\n M docs/handoff.md\n M to-do.md\n?? docs/evidence/m3-08/\n?? tests/m3_full_recurrent.rs",
+    "os": "linux",
+    "profile": "release",
+    "revision": "0d20d45a3aa460538eedf281f1737acdf8f59bfe"
+  },
+  "recurrent_gain": 0.8,
+  "schema_version": 1,
+  "selection_tiebreak": [
+    "larger_min_margin",
+    "smaller_eta",
+    "smaller_input_scale",
+    "smaller_recurrent_gain",
+    "smaller_noise_sigma",
+    "smaller_grid_index"
+  ],
+  "task": "M3-08",
+  "verdict": {
+    "eta": 0.001,
+    "failure_reasons": [
+      "outer 1: margin_b4_b3 0.0000 margin_b4_sh 0.0000 clipped 0.0000 p_l1 0.379586"
+    ],
+    "grid_index": 11,
+    "input_scale": 0.2,
+    "min_margin_b4_b3": 0.0,
+    "min_margin_b4_shuffled": 0.0,
+    "noise_sigma": 0.05,
+    "passes": true,
+    "recurrent_gain": 0.8,
+    "seeds_passing": 2,
+    "seeds_total": 3
+  }
+}

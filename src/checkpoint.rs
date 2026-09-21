@@ -7,10 +7,13 @@
 //! (no silent clipping; failures are explicit), 20 (deterministic streams
 //! resume exactly).
 //!
-//! Scope: the nonplastic M1 actor plus the continuous environment. Plastic
-//! offsets, eligibility, modulator state, and gates do not exist yet;
-//! [`Checkpoint`] rejects files that claim them (unknown fields) instead
-//! of silently defaulting them. Health summaries and traces (M1-08) are
+//! Scope: the nonplastic M1 actor plus the continuous environment for
+//! [`Checkpoint`] (schema 2); M3-10 adds [`LearningCheckpoint`] (schema
+//! 3) for the episodic plastic learner below, carrying `P`/`E`/baseline/
+//! dedup inside the versioned [`PlasticSnapshot`](crate::agent::plasticity::PlasticSnapshot).
+//! [`Checkpoint`] rejects files that claim plasticity (unknown fields)
+//! instead of silently defaulting them, and neither loader reads the
+//! other's schema. Health summaries and traces (M1-08) are
 //! diagnostics, not lifetime state, and are intentionally absent: resume
 //! reproduces the trajectory, and observers re-derive identical summaries.
 //!
@@ -39,6 +42,7 @@ use crate::agent::no_learning::{NoLearningActor, NoLearningError};
 use crate::agent::weights::InheritedParams;
 use crate::config::{Config, resolved_toml};
 use crate::environment::{Lifetime, SimError};
+use crate::experiments::episodic::{EpisodicError, EpisodicLearner};
 
 /// Schema version for M1 checkpoint files. Bumped only with a documented
 /// format change; older files are rejected, never silently migrated.
@@ -123,6 +127,17 @@ impl From<NoLearningError> for CheckpointError {
     fn from(error: NoLearningError) -> Self {
         match error {
             NoLearningError::InvalidConfig(reason) | NoLearningError::BadSeed(reason) => {
+                Self::Incompatible(reason)
+            }
+            other => Self::Corrupt(other.to_string()),
+        }
+    }
+}
+
+impl From<EpisodicError> for CheckpointError {
+    fn from(error: EpisodicError) -> Self {
+        match error {
+            EpisodicError::InvalidConfig(reason) | EpisodicError::BadSeed(reason) => {
                 Self::Incompatible(reason)
             }
             other => Self::Corrupt(other.to_string()),
@@ -491,6 +506,430 @@ impl Checkpoint {
     }
 }
 
+/// Schema version for learned-offset (plastic-learner) checkpoint files
+/// (M3-10). Distinct from the M1 nonplastic schema 2: neither loader
+/// reads the other's files (unknown fields fail to parse), so a
+/// schema-2 file can never resume as a learning lifetime or vice versa.
+pub const LEARNING_CHECKPOINT_SCHEMA_VERSION: u32 = 3;
+
+/// Versioned learned-offset checkpoint payload (everything the checksum
+/// covers): the M1 envelope shape with the episodic plastic-learner
+/// snapshot (live `h`/`a`/`xi`/`q`, RNG positions, sampling record, and
+/// the versioned `PlasticSnapshot` carrying `P`/`E`/baseline/dedup) in
+/// place of the nonplastic agent snapshot.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct LearningCheckpointPayload {
+    schema_version: u32,
+    code_version: String,
+    reference_os: String,
+    reference_arch: String,
+    config: Config,
+    config_hash_sha256: String,
+    seeds: SeedIdentity,
+    env: crate::environment::LifetimeSnapshot,
+    agent: crate::experiments::episodic::EpisodicAgentSnapshot,
+    inherited: InheritedParams,
+}
+
+/// Learned-offset checkpoint file: payload plus integrity checksum.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct LearningCheckpointFile {
+    payload: LearningCheckpointPayload,
+    checksum_sha256: String,
+}
+
+/// A captured learning-lifetime checkpoint: payload plus its integrity
+/// checksum.
+///
+/// Build with [`LearningCheckpoint::capture`], persist with
+/// [`save_to_path`](LearningCheckpoint::save_to_path), read back with
+/// [`load_from_path`](LearningCheckpoint::load_from_path), and resume
+/// with [`restore_env`](LearningCheckpoint::restore_env) plus
+/// [`restore_learner`](LearningCheckpoint::restore_learner). Split runs
+/// with nonzero `P`/`E` reproduce uninterrupted learning on the
+/// recorded reference platform (M3-10); the M1 [`Checkpoint`] still
+/// rejects these files instead of misreading them.
+#[derive(Clone, Debug, PartialEq)]
+pub struct LearningCheckpoint {
+    payload: LearningCheckpointPayload,
+    checksum_sha256: String,
+}
+
+impl LearningCheckpoint {
+    /// Capture the full pause state at a tick boundary: environment
+    /// driver, plastic learner dynamics plus offsets/traces/baseline/
+    /// dedup, inherited parameters, resolved config plus its hash, and
+    /// the seed identity every RNG position is bound to. Capture only
+    /// at points the driver has fully processed (after any due commit);
+    /// a mid-tick capture with an unfinished commitment is rejected.
+    pub fn capture(
+        lifetime: &Lifetime,
+        learner: &EpisodicLearner,
+        cfg: &Config,
+        seeds: SeedIdentity,
+    ) -> Result<Self, CheckpointError> {
+        crate::config::validate_episodic_execution(cfg).map_err(|e| {
+            CheckpointError::Incompatible(format!("checkpoint config not executable: {e}"))
+        })?;
+        if cfg.actor.as_ref() != Some(learner.actor_config()) {
+            return Err(CheckpointError::Incompatible(
+                "live actor configuration differs from capture configuration".to_owned(),
+            ));
+        }
+        let learning = cfg.learning.clone().ok_or_else(|| {
+            CheckpointError::Incompatible("checkpoint config has no [learning] section".to_owned())
+        })?;
+        // The stored learning identity must match the live plastic state;
+        // a hand-swapped config cannot silently capture foreign plasticity.
+        let bad = |s: &str| CheckpointError::Incompatible(s.to_owned());
+        if learner.plastic().mask_kind().name() != learning.plastic_mask {
+            return Err(bad("live plastic mask differs from capture configuration"));
+        }
+        if learner.plastic().trace_policy().name() != learning.trace_policy {
+            return Err(bad("live trace policy differs from capture configuration"));
+        }
+        if learner.plastic().tau_e_config() != learning.tau_e {
+            return Err(bad("live tau_e differs from capture configuration"));
+        }
+        if learner.plastic().plastic_bound() != learning.plastic_bound {
+            return Err(bad("live plastic bound differs from capture configuration"));
+        }
+        let resolved = resolved_toml(cfg).map_err(|e| {
+            CheckpointError::Corrupt(format!("cannot resolve checkpoint config: {e}"))
+        })?;
+        let payload = LearningCheckpointPayload {
+            schema_version: LEARNING_CHECKPOINT_SCHEMA_VERSION,
+            code_version: env!("CARGO_PKG_VERSION").to_owned(),
+            reference_os: std::env::consts::OS.to_owned(),
+            reference_arch: std::env::consts::ARCH.to_owned(),
+            config: cfg.clone(),
+            config_hash_sha256: sha256_hex(resolved.as_bytes()),
+            env: lifetime.snapshot(
+                seeds.root_seed,
+                &seeds.namespace,
+                seeds.outer_seed,
+                seeds.lifetime_index,
+            )?,
+            agent: learner.snapshot(
+                seeds.root_seed,
+                &seeds.namespace,
+                seeds.outer_seed,
+                seeds.lifetime_index,
+            )?,
+            inherited: learner.inherited().clone(),
+            seeds,
+        };
+        let checksum_sha256 = sha256_hex(
+            &serde_json::to_vec(&payload)
+                .map_err(|e| CheckpointError::Corrupt(format!("cannot encode payload: {e}")))?,
+        );
+        let checkpoint = Self {
+            payload,
+            checksum_sha256,
+        };
+        checkpoint.check_compatibility()?;
+        Ok(checkpoint)
+    }
+
+    /// Seed identity recorded in the file.
+    pub fn seeds(&self) -> &SeedIdentity {
+        &self.payload.seeds
+    }
+
+    /// Resolved configuration recorded in the file.
+    pub fn config(&self) -> &Config {
+        &self.payload.config
+    }
+
+    /// Environment tick recorded in the file.
+    pub fn tick(&self) -> u64 {
+        self.payload.env.tick
+    }
+
+    /// Atomically persist the checkpoint: serialize, checksum, write a
+    /// unique temp file in the destination directory, then rename over the
+    /// target. A crash leaves the target untouched (or fully replaced),
+    /// never half-written.
+    pub fn save_to_path(&self, path: &Path) -> Result<(), CheckpointError> {
+        let io = |message: String| CheckpointError::Io {
+            path: path.display().to_string(),
+            message,
+        };
+        let parent = path
+            .parent()
+            .ok_or_else(|| io("no parent directory".to_owned()))?;
+        let file_name = path
+            .file_name()
+            .ok_or_else(|| io("no file name".to_owned()))?
+            .to_string_lossy()
+            .into_owned();
+        let file = LearningCheckpointFile {
+            payload: self.payload.clone(),
+            checksum_sha256: self.checksum_sha256.clone(),
+        };
+        let bytes = serde_json::to_vec_pretty(&file)
+            .map_err(|e| CheckpointError::Corrupt(format!("cannot encode file: {e}")))?;
+        static NEXT_TEMP: AtomicU64 = AtomicU64::new(0);
+        let (tmp, mut output) = loop {
+            let nonce = NEXT_TEMP.fetch_add(1, Ordering::Relaxed);
+            let tmp = parent.join(format!(".{file_name}.tmp.{}.{nonce}", std::process::id()));
+            match std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&tmp)
+            {
+                Ok(file) => break (tmp, file),
+                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
+                Err(e) => return Err(io(e.to_string())),
+            }
+        };
+        if let Err(e) = output.write_all(&bytes).and_then(|_| output.sync_all()) {
+            let _ = std::fs::remove_file(&tmp);
+            return Err(io(e.to_string()));
+        }
+        drop(output);
+        std::fs::rename(&tmp, path).map_err(|e| {
+            let _ = std::fs::remove_file(&tmp);
+            io(e.to_string())
+        })?;
+        Ok(())
+    }
+
+    /// Read back a learned-offset checkpoint file, rejecting unknown
+    /// fields, schema mismatches, and checksum failures before any state
+    /// is trusted. M1 schema-2 files fail here (missing plastic state),
+    /// exactly as these files fail the M1 loader.
+    pub fn load_from_path(path: &Path) -> Result<Self, CheckpointError> {
+        let io = |message: String| CheckpointError::Io {
+            path: path.display().to_string(),
+            message,
+        };
+        let parse = |message: String| CheckpointError::Parse {
+            path: path.display().to_string(),
+            message,
+        };
+        let bytes = std::fs::read(path).map_err(|e| io(e.to_string()))?;
+        let file: LearningCheckpointFile =
+            serde_json::from_slice(&bytes).map_err(|e| parse(e.to_string()))?;
+        if file.payload.schema_version != LEARNING_CHECKPOINT_SCHEMA_VERSION {
+            return Err(CheckpointError::SchemaVersion {
+                found: file.payload.schema_version,
+            });
+        }
+        let recomputed = sha256_hex(
+            &serde_json::to_vec(&file.payload)
+                .map_err(|e| CheckpointError::Corrupt(format!("cannot re-encode payload: {e}")))?,
+        );
+        if recomputed != file.checksum_sha256 {
+            return Err(CheckpointError::ChecksumMismatch);
+        }
+        let checkpoint = Self {
+            payload: file.payload,
+            checksum_sha256: file.checksum_sha256,
+        };
+        checkpoint.check_compatibility()?;
+        Ok(checkpoint)
+    }
+
+    /// Compatibility rules shared by both resume halves: executable
+    /// config, matching config hash, matching inherited parameters, and
+    /// agent/environment tick agreement (both advance once per tick, so a
+    /// tick-boundary capture always agrees).
+    fn check_seed_identity(&self, expected: &SeedIdentity) -> Result<(), CheckpointError> {
+        if self.payload.seeds != *expected {
+            return Err(CheckpointError::Incompatible(format!(
+                "checkpoint recorded for lifetime {:?} but resume expects {:?}",
+                self.payload.seeds, expected
+            )));
+        }
+        Ok(())
+    }
+
+    fn check_compatibility(&self) -> Result<(), CheckpointError> {
+        if self.payload.code_version != env!("CARGO_PKG_VERSION")
+            || self.payload.reference_os != std::env::consts::OS
+            || self.payload.reference_arch != std::env::consts::ARCH
+        {
+            return Err(CheckpointError::Incompatible(
+                "checkpoint code version or reference platform differs".to_owned(),
+            ));
+        }
+        crate::config::validate_episodic_execution(&self.payload.config).map_err(|e| {
+            CheckpointError::Incompatible(format!("checkpoint config not executable: {e}"))
+        })?;
+        let resolved = resolved_toml(&self.payload.config).map_err(|e| {
+            CheckpointError::Corrupt(format!("cannot resolve checkpoint config: {e}"))
+        })?;
+        if sha256_hex(resolved.as_bytes()) != self.payload.config_hash_sha256 {
+            return Err(CheckpointError::Corrupt(
+                "config hash does not match the stored configuration".to_owned(),
+            ));
+        }
+        if self.payload.agent.ticks_advanced != self.payload.env.tick {
+            return Err(CheckpointError::Incompatible(format!(
+                "agent ticks {} disagree with environment tick {}",
+                self.payload.agent.ticks_advanced, self.payload.env.tick
+            )));
+        }
+        let p = &self.payload;
+        let cfg = &p.config;
+        let e = &p.env;
+        let bad = |s: &str| CheckpointError::Incompatible(s.to_owned());
+        let actor_cfg = cfg
+            .actor
+            .as_ref()
+            .ok_or_else(|| bad("missing actor config"))?;
+        let learning = cfg
+            .learning
+            .as_ref()
+            .ok_or_else(|| bad("missing learning config"))?;
+        p.inherited
+            .validate(
+                actor_cfg,
+                crate::environment::feature_dim(cfg.environment.cue_count),
+            )
+            .map_err(|err| bad(&err.to_string()))?;
+        if e.cue_count != cfg.environment.cue_count
+            || e.cue_ticks != cfg.environment.cue_ticks
+            || e.response_ticks != cfg.environment.response_ticks
+            || e.quiet_range != cfg.environment.quiet_ticks
+            || e.gap_range != cfg.environment.memory_gap_ticks
+            || e.delay_range != cfg.environment.reward_delay_ticks
+            || e.outcomes_target != cfg.simulation.outcomes_per_lifetime
+            || e.warmup_ticks != cfg.simulation.warmup_ticks
+        {
+            return Err(bad(
+                "stored environment differs from resolved configuration",
+            ));
+        }
+        let id = &p.seeds;
+        // Validate both halves even when the caller asks to restore only one.
+        let env = Lifetime::restore(
+            e.clone(),
+            id.root_seed,
+            &id.namespace,
+            id.outer_seed,
+            id.lifetime_index,
+        )?;
+        let learner = EpisodicLearner::restore(
+            p.agent.clone(),
+            actor_cfg.clone(),
+            learning.clone(),
+            p.inherited.clone(),
+            e.cue_count,
+            id.root_seed,
+            &id.namespace,
+            id.outer_seed,
+            id.lifetime_index,
+        )?;
+        // The resumed offsets must still satisfy the resolved bound; the
+        // restore above already enforces mask/trace/bound agreement.
+        if learner.plastic().plastic_bound() != learning.plastic_bound {
+            return Err(bad("restored plastic bound disagrees with configuration"));
+        }
+        if e.confirmed != e.consumed || p.agent.plastic.last_feedback != e.consumed.last().copied()
+        {
+            return Err(bad(
+                "learner feedback bookkeeping disagrees with delivered/confirmed events",
+            ));
+        }
+        if matches!(e.phase, crate::environment::schedule::PhaseState::Committed) {
+            return Err(bad("commitment must finish before capture"));
+        }
+        // Bind hidden static assignments to the recorded config/seed. Birth
+        // draws are local here and never touch the live simulation streams.
+        let birth = Lifetime::new(
+            cfg,
+            id.root_seed,
+            &id.namespace,
+            id.outer_seed,
+            id.lifetime_index,
+        )?;
+        for cue in 0..e.cue_count {
+            if env.hidden().epsilon(cue) != birth.hidden().epsilon(cue)
+                || env.hidden().hazard(cue) != birth.hidden().hazard(cue)
+                || env.hidden().role(cue) != birth.hidden().role(cue)
+            {
+                return Err(bad(
+                    "hidden noise/hazard assignment differs from config and seed",
+                ));
+            }
+        }
+        let init = crate::rng::SeedTuple::new(
+            id.root_seed,
+            &id.namespace,
+            id.outer_seed,
+            0,
+            crate::rng::ACTOR_INIT_STREAM,
+        );
+        let init_hex = crate::rng::derive_seed_hex(&init).map_err(|err| bad(&err.to_string()))?;
+        if p.inherited.topology.init_seed_hex != init_hex {
+            return Err(bad(
+                "inherited initialization seed differs from checkpoint identity",
+            ));
+        }
+        Ok(())
+    }
+
+    /// Resume the environment driver. The caller declares which lifetime
+    /// it is resuming via `expected`: a file recorded for another
+    /// lifetime is rejected instead of silently continuing a foreign
+    /// trajectory. Corrupt/incompatible state is rejected; missing state
+    /// is never filled with silent defaults.
+    pub fn restore_env(&self, expected: &SeedIdentity) -> Result<Lifetime, CheckpointError> {
+        self.check_seed_identity(expected)?;
+        self.check_compatibility()?;
+        let seeds = &self.payload.seeds;
+        let lifetime = Lifetime::restore(
+            self.payload.env.clone(),
+            seeds.root_seed,
+            &seeds.namespace,
+            seeds.outer_seed,
+            seeds.lifetime_index,
+        )?;
+        Ok(lifetime)
+    }
+
+    /// Resume the plastic learner. The actor/learning config and cue
+    /// count come from the checkpoint's own resolved config so a
+    /// hand-swapped file cannot mix mismatched halves; `expected` must
+    /// match the recorded seed identity.
+    pub fn restore_learner(
+        &self,
+        expected: &SeedIdentity,
+    ) -> Result<EpisodicLearner, CheckpointError> {
+        self.check_seed_identity(expected)?;
+        self.check_compatibility()?;
+        let seeds = &self.payload.seeds;
+        let actor_cfg = self.payload.config.actor.clone().ok_or_else(|| {
+            CheckpointError::Incompatible("checkpoint config has no [actor] section".to_owned())
+        })?;
+        let learning = self.payload.config.learning.clone().ok_or_else(|| {
+            CheckpointError::Incompatible("checkpoint config has no [learning] section".to_owned())
+        })?;
+        let cue_count = self.payload.config.environment.cue_count;
+        if self.payload.inherited.topology.neuron_count != actor_cfg.neuron_count {
+            return Err(CheckpointError::Incompatible(
+                "inherited topology does not match the checkpoint actor config".to_owned(),
+            ));
+        }
+        let learner = EpisodicLearner::restore(
+            self.payload.agent.clone(),
+            actor_cfg,
+            learning,
+            self.payload.inherited.clone(),
+            cue_count,
+            seeds.root_seed,
+            &seeds.namespace,
+            seeds.outer_seed,
+            seeds.lifetime_index,
+        )?;
+        Ok(learner)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -498,6 +937,13 @@ mod tests {
     #[test]
     fn schema_version_is_pinned() {
         assert_eq!(CHECKPOINT_SCHEMA_VERSION, 2);
+    }
+
+    #[test]
+    fn learning_schema_version_is_pinned() {
+        // The plastic-learner envelope is a separate version line: M1
+        // schema 2 files never gain plastic fields by migration.
+        assert_eq!(LEARNING_CHECKPOINT_SCHEMA_VERSION, 3);
     }
 
     fn test_capture() -> (Checkpoint, SeedIdentity) {

@@ -1,0 +1,48 @@
+{
+  "clipped_outcomes": 57,
+  "final_accuracy": 0.528,
+  "final_baseline": 0.9385005855860952,
+  "final_p_l1": 4.697157004558481,
+  "first_update": {
+    "actual_l1": 0.08163242482877167,
+    "baseline_new": 0.49,
+    "baseline_old": 0.5,
+    "clipped": false,
+    "delta": -0.5,
+    "event_id": 0,
+    "limited_l1": 0.08163242482877167,
+    "p_l1_after": 0.08163242482877167,
+    "raw_l1": 0.08163242482877167,
+    "reward": 0.0
+  },
+  "hyperparameters": {
+    "eta": 0.001,
+    "input_scale": 0.2,
+    "noise_sigma": 0.05,
+    "recurrent_gain": 0.8
+  },
+  "last_update": {
+    "actual_l1": 0.15583106843104255,
+    "baseline_new": 0.9385005855860952,
+    "baseline_old": 0.9576536587613216,
+    "clipped": false,
+    "delta": -0.9576536587613216,
+    "event_id": 1999,
+    "limited_l1": 0.15583106843104255,
+    "p_l1_after": 4.697157004558481,
+    "raw_l1": 0.15583106843104255,
+    "reward": 0.0
+  },
+  "outcomes": 2000,
+  "plastic_mask": "all_recurrent_edges",
+  "profile": "episodic_stationary",
+  "schema_version": 1,
+  "seeds": {
+    "lifetime_index": 0,
+    "namespace": "development",
+    "outer_seed": 2,
+    "root_seed": 1
+  },
+  "task": "M3-10",
+  "ticks": 33996
+}

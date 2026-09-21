@@ -20,7 +20,18 @@ M3-06 implemented (frozen pre-results development grid, criterion, and
 budget — plan only, nothing executed);
 M3-07 implemented (216-lifetime acquisition sweep passes with winner grid
 index 11 — episodic motor-afferent learning on responsive actors);
-next task M3-08.**
+M3-08 implemented (9-lifetime full-recurrent comparison at grid index 11
+passes 2/3 seeds — episodic all-recurrent learning on responsive actors,
+motor-only run preserved);
+M3-09 implemented (diagnostic-only failure-isolation path: single-motor
+sign/order/drift, outer-1 representation separation, permutation
+sensitivity with bitwise identity control — 5 new tests);
+M3-10 implemented (learned-offset checkpoints: schema-3 replay exact
+through learning events with nonzero P/E, pinned archives — 9 new tests);
+**M3-GATE passed** (fresh release re-runs reproduce the M3-07/M3-08
+verdicts exactly; full battery green — clean episodic acquisition
+proven, continuous acquisition explicitly still open);
+next task M4-01 (authoritative main tick order).**
 The simulator core exists as
 a library
 (`src/environment/`, `src/agent/` nonplastic dynamics plus `B3`
@@ -301,6 +312,90 @@ acquisition on responsive actors; birth-locked initializations documented
 as a family bound. Selected config for M3-08: grid index 11. **M3-08 is
 next.**
 
+M3-08 extends that learner to `all_recurrent_edges` at the frozen winner
+point (grid index 11) with no production change and the M3-06 manifest
+untouched (`tests/m3_full_recurrent.rs` fast analysis test plus the
+ignored bounded comparison; the M3-07 motor-only run stays preserved as
+a diagnostic). The 9-lifetime release comparison passes 2/3 seeds under
+the same criterion — outer-2 B4 rises 0.045 early to 0.975 late against
+0.040/0.030 controls, outer-3 reaches 0.955 against 0.770/0.775 —
+with guardrails green sweep-wide.
+
+```bash
+cargo test --locked --test m3_full_recurrent
+CRA_M3_FULL_SWEEP_DIR=runs/m3-full-fresh cargo test --release --locked --test m3_full_recurrent m3_full_recurrent_comparison -- --ignored --exact
+```
+
+Its [evidence record](docs/evidence/m3-08/summary.md) documents the
+9/9-lifetime comparison (archived `seed_records.jsonl` + `verdict.json`),
+**275 fast Rust tests passed**, five ignores (both Monte Carlo checks,
+the weight-printing probe, both M3 sweeps — the comparisons among the
+separately invoked diagnostics), two compile-fail doc checks, 17 Python
+audit tests, and clean fmt/Clippy. Episodic all-recurrent acquisition
+on responsive actors; birth-locked initializations documented as a
+family bound under both masks. Actor family for M4: the full-recurrent
+episodic learner at grid index 11. **M3-09 is
+next.**
+
+M3-09 adds `src/experiments/reduction.rs` (diagnostic-only): the
+spec-M3 "if it fails" instruments — a single-motor closed-loop check
+(one plastic edge, constant input, known preferred action, synthetic
+reward) and a receiver-permutation sensitivity probe over the episodic
+driver — plus a diagnostic-only learner hook on a shared transition
+core (ordinary runners still call `advance` only; the identity
+permutation reproduces the verified runner bitwise).
+
+```bash
+cargo test --locked --test m3_reduction
+```
+
+Its [evidence record](docs/evidence/m3-09/summary.md) documents the
+reduction ladder, 5 new tests (**280 fast Rust tests passed**, five
+ignores, two compile-fail doc checks, 17 Python audit tests, clean
+fmt/Clippy), and the findings: the path was not needed to rescue
+acquisition; outer-1 is independently confirmed a representation
+failure (offsets move, behavior locked); permuted perturbations change
+the updates with no behavioral magnitude demanded. Diagnostic tooling
+only — synthetic rewards are never a task result. **M3-10 is next.**
+
+M3-10 adds learned-offset checkpoints (`LearningCheckpoint`, schema 3
+in `src/checkpoint.rs`; the M1 schema 2 is untouched and neither
+loader reads the other's files) with learner snapshot/restore in
+`src/experiments/episodic.rs`. A faithful manual driver is proven
+bit-identical to the verified runner, then splits at the rollout
+boundary, just before feedback, and post-feedback pre-reset resume
+exactly with nonzero `P`/`E` and explicit rejections.
+
+```bash
+cargo test --locked --test episodic_checkpoint
+CRA_M3_10_DIR=runs/m3-10-fresh cargo test --release --locked --test episodic_checkpoint m3_learning_evidence_capture -- --ignored --exact
+```
+
+Its [evidence record](docs/evidence/m3-10/summary.md) documents 8 new
+tests plus the ignored bounded capture (**289 fast Rust tests
+passed**, six ignores, two compile-fail doc checks, 17 Python audit
+tests, clean fmt/Clippy) and the pinned archives: winner working
+config, verbatim outer-1 failure case, real boundary/final checkpoint
+files (final reloads with `P` L1 4.6972), and first/last update
+digests cross-matching the M3-08 record exactly. Arithmetic, episodic
+acquisition, and replay are distinguished; continuous acquisition
+remains unverified M4 work. **M3-GATE is next.**
+
+M3-GATE re-ran the evidence rather than citing it: the frozen 216-
+lifetime grid sweep reproduces the archived M3-07 verdict (winner
+index 11, 72/72 seed records identical, ~16 s) and the 9-lifetime
+comparison reproduces the M3-08 verdict (passes 2/3, ~0.7 s) —
+both in release into fresh directories. Full battery: **289 fast
+Rust tests passed**, six ignores (both Monte Carlo checks, the
+weight-printing probe, three bounded captures — each invoked
+separately per its evidence record), two compile-fail doc checks, 17
+Python audit tests, fixture audit OK, clean fmt/Clippy. The gate
+rests on exit conditions (a)–(d) in the [tracker ledger](to-do.md):
+several-seed learning over matched controls, valid score/golden
+tests, interpretable numerics, no lucky trajectory. **M3 COMPLETE —
+M4-01 (authoritative main tick order) is next.** Continuous
+acquisition without within-lifetime resets is explicitly unverified;
+no modulation, evolution, or broader-track claim follows.
 The owner-requested [M3 preflight hardening](docs/evidence/m3-preflight/summary.md)
 separates hidden cue-role RNG from actor initialization, replaces positional
 feedback hyperparameters with `FeedbackUpdateParams`, and makes

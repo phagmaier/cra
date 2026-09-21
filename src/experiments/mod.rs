@@ -5,7 +5,8 @@
 //! B3; M2-04 adds the restricted fixed-weight finite-rollout diagnostic;
 //! M3-04 adds the explicitly episodic clean-learning diagnostic runner
 //! (fixed-gate plastic learner with logged rollout resets, not the main
-//! continuous condition).
+//! continuous condition); M3-09 adds failure-isolation diagnostics
+//! (single-motor sign/order checks, receiver-permutation sensitivity).
 
 pub mod baseline;
 /// Explicitly episodic clean-learning diagnostic (M3-04); not continuous.
@@ -15,6 +16,10 @@ pub mod finite_rollout;
 /// Frozen pre-results development sweep declaration (M3-06); loads and
 /// validates but never executes.
 pub mod grid;
+/// Failure-isolation diagnostics for the episodic learner (M3-09):
+/// single-motor sign/order checks and the receiver-permutation
+/// sensitivity probe. Diagnostic-only; never a task result.
+pub mod reduction;
 /// Acquisition analysis over sweep summaries (M3-07); windows, margins,
 /// health, criterion, and selection. No simulation here.
 pub mod sweep;

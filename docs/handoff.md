@@ -1,6 +1,6 @@
 # Agent continuation guide
 
-Updated 2026-09-21 UTC after M3-07 acquisition sweep at base `f405230`.
+Updated 2026-09-21 UTC after M3-08 all-recurrent comparison at base `0d20d45`.
 The worktree was clean at session start; check Git and the tracker
 for newer work before claiming.
 
@@ -18,8 +18,8 @@ for newer work before claiming.
 
 ## Current position and evidence
 
-**M0-GATE passed and was re-verified. M1-GATE and M2-GATE passed. M3-01
-through M3-07 verified 2026-09-21 UTC. Next task: M3-08.**
+**M0-GATE, M1-GATE, M2-GATE passed (re-verified where noted). M3-01
+through M3-GATE verified 2026-09-21 UTC — M3 COMPLETE. Next task: M4-01.**
 There is no outstanding milestone blocker. The claim track remains `family_only`.
 No reserved final-test outcomes have been inspected.
 
@@ -199,33 +199,87 @@ is available for a quick audit. Reproduce missing raw runs using the saved
 commands/configs into new directories; preserve historical evidence paths
 and distinguish reruns from the original execution.
 
-## Next task: M3-08
+## Next task: M4-01
 
-**Deliver:** the verified learner with all recurrent plastic edges. Use the
-same score/update machinery with the full existing-edge plastic mask
-(`all_recurrent_edges`) at the selected grid-index-11 hyperparameters
-(eta 0.001, input_scale 0.2, recurrent_gain 0.8, noise_sigma 0.05). Repeat
-the declared development comparisons (matched B3/B4/B4-shuffled on outers
-1–3, 2,000-outcome lifetimes, same windows/criterion) and preserve the
-motor-only run as a diagnostic.
+**Deliver:** the authoritative main tick order (spec Section 9): apply
+any due feedback using pre-tick `E`/gates/baseline before advancing
+the actor; then advance actor, optional modulator, eligibility, motor
+filter, and future gates; commit from the new motor output and finish
+the tick. Until M6, the gate is fixed at 1.
 
-Read spec Sections 7, 16/M3, plus the
-[M3 task queue](../to-do.md#m3---make-an-ungated-local-learner-learn-a-clean-task).
-Inspect `src/experiments/sweep.rs` (windows, margins, health, judging,
-selection) and `docs/evidence/m3-07/summary.md` (winner detail and family
-bound). The M3-06 manifest stays frozen; M3-08 is a mask change at fixed
-hyperparameters, not a re-tune.
+Read spec Sections 5, 8, 9, 10, 17 plus the
+[M4 task queue](../to-do.md#m4---remove-artificial-trial-resets)
+before touching the runner. Section 9 owns scientific tick ordering;
+the current `Lifetime::advance` + episodic apply-before-advance
+dispatch is explicitly not the literal finish-last API (see carry-
+forward constraints below). M4-01 owns the observe/apply/advance/
+commit/log/finish split and the exact learning-sensitive tick-20/
+delay-3 fixture. There is exactly one feedback-application path —
+keep it that way.
 
-- Show the required learning evidence for the actor family carried into
-  M4. Do not compare different plastic masks later while attributing every
-  difference to gates.
-- Checkpoint embedding/replay with nonzero `P`/`E` is M3-10/M4-06. Keep the
-  M1 checkpoint schema at 2 until then and reject incompatible state rather
-  than defaulting it.
+- The M3 family (full-recurrent episodic learner at grid-index-11
+  hyperparameters) is the starting point; M4 removes its diagnostic
+  resets (`episodic_diagnostic` → `birth_only`,
+  `no_decay_diagnostic` → `persistent`) step by step with the three
+  continuity conditions kept honestly distinct (M4-04).
 
-M3-07 demonstrated episodic motor-afferent acquisition on responsive
-actors; continuous learning remains unverified and needs its own measured
-gates.
+M3-GATE passed 2026-09-21 UTC on executed evidence, not stored
+claims: fresh release re-runs reproduce the archived M3-07 verdict
+(winner index 11, all 72 seed records identical) and the M3-08
+verdict (passes 2/3) exactly; full battery green (**289 fast Rust
+tests**, two compile-fail doc checks, 17 Python audit tests, fixture
+audit OK, clean fmt/Clippy). Exit conditions (a)–(d) in the
+[tracker ledger](../to-do.md#completion-evidence-ledger---append-do-not-fabricate).
+M3 is complete: clean episodic acquisition with exact learning
+replay. Continuous acquisition is explicitly unverified — that is
+M4's gate. Claim track stays `family_only`.
+
+M3-10 adds learned-offset checkpoints (`LearningCheckpoint`,
+schema 3; M1 schema 2 untouched, neither loader reads the other) and
+exact replay through learning events (`tests/episodic_checkpoint.rs`):
+a faithful manual driver proven bit-identical to the verified runner,
+then splits at the rollout boundary (nonzero `P`), just before
+feedback (full `E`, deterministic re-delivery asserted), and
+post-feedback pre-reset (fresh `P` plus post-scores, no double-apply)
+— all resuming identically with explicit rejections. Archives are
+pinned by tests: winner working config, verbatim outer-1 failure
+case, real boundary/final checkpoint files (final reloads with `P`
+L1 4.6972), and first/last update digests cross-matching the M3-08
+record exactly. Full checks: **289 fast Rust tests passed** (9 new),
+six ignores, two compile-fail doc checks, 17 Python audit tests,
+clean fmt/Clippy. [M3-10 evidence](evidence/m3-10/summary.md)
+distinguishes arithmetic, episodic acquisition, and still-unproven
+continuous acquisition.
+
+M3-09 adds failure-isolation tooling (`experiments::reduction`,
+`tests/m3_reduction.rs`): the troubleshooting path was not needed to
+rescue acquisition, but all five instruments pass — hand-set
+single-edge sign/order, closed-loop preferred drift (0.400 to 0.700
+with per-outcome trace-identity proof), outer-1 representation
+separation, permutation-argument rejection, and permutation
+sensitivity with a bitwise identity control. The diagnostic-only
+learner hook provably cannot affect ordinary runners. Full checks:
+**280 fast Rust tests passed** (5 new), five ignores, two
+compile-fail doc checks, 17 Python audit tests, clean fmt/Clippy.
+[M3-09 evidence](evidence/m3-09/summary.md) records the ladder,
+commands, and findings.
+
+M3-08 extends that learner to `all_recurrent_edges` at the frozen
+winner point (grid index 11: eta 0.001, input 0.2, gain 0.8, sigma
+0.05) with no production change and the M3-06 manifest untouched. The
+bounded release comparison (1 point x outers 1–3 x B3/B4/B4-shuffled,
+2,000-outcome lifetimes, ~0.7 s, 9/9 complete, 305,964 measured ticks)
+passes 2/3 seeds under the same criterion: outer-2 B4 0.045 early to
+0.975 late against 0.040/0.030 controls, outer-3 0.790 to 0.955
+against 0.770/0.775; birth-locked outer-1 scores 0.0 under both masks.
+Guardrails green (max clipping 0.0007, bound occupancy 0.0, non-motor
+`P` movement proven, zero failures). Full checks: **275 fast Rust
+tests passed** (1 new), five ignores (both Monte Carlo, weight probe,
+both M3 sweeps), two compile-fail doc checks, 17 Python audit tests,
+clean fmt/Clippy. Archived records plus verdict:
+[M3-08 evidence](evidence/m3-08/summary.md). The M3-07 motor-only run
+is preserved as a diagnostic. Actor family for M4: the full-recurrent
+episodic learner at grid index 11.
 
 ## Implementation map
 
@@ -254,6 +308,9 @@ gates.
 | Matched controls (M3-05) | `src/experiments/episodic.rs` (`run_episodic_no_learning`, `run_episodic_shuffled`, `run_episodic_conditions`), `src/agent/no_learning.rs` (diagnostic reset) | `tests/episodic_controls.rs`; shared W0/schedule/resets, first-action parity, P-movement plus behavior, re-derived shuffle protocol, observed/applied separation |
 | Development grid (M3-06) | `manifests/m3_development_grid.json`, `src/experiments/grid.rs` | `tests/development_grid.rs`; frozen axes/seeds/windows/criterion/budget, validation-only instantiation of all 24 points, derived tick estimate, invalid-mutation rejection |
 | Acquisition sweep (M3-07) | `src/experiments/sweep.rs`, `tests/m3_acquisition.rs` | fast analysis on real summaries plus ignored release sweep; windows/margins/health/judging/selection, 216/216 integrity, archived records plus verdict |
+| Full-recurrent comparison (M3-08) | `tests/m3_full_recurrent.rs` (no production change) | fast full-mask analysis (mask superset, non-motor P, W0/effective/bounds) plus ignored release comparison at frozen index 11 (9/9 integrity, archived records plus verdict); motor-only run preserved |
+| Failure isolation (M3-09) | `src/experiments/reduction.rs`, `tests/m3_reduction.rs` + diagnostic hook in `src/experiments/episodic.rs` | single-motor sign/order/drift, outer-1 representation separation, permutation sensitivity + bitwise identity control; hook unreachable from ordinary runners |
+| Learning checkpoints (M3-10) | `src/checkpoint.rs` (`LearningCheckpoint` schema 3), learner snapshot/restore in `src/experiments/episodic.rs`, `tests/episodic_checkpoint.rs`, `docs/evidence/m3-10/` | faithful driver + 3 split replays with nonzero P/E, explicit rejections, pinned archives (working config, failure case, real checkpoint files, update digests); M1 schema 2 untouched |
 | Effective-weight actor path (M3-01) | `src/agent/actor.rs` (`step_with_effective_weights`, `step_with_effective_and_perturbations`) | `tests/plasticity.rs`; shared `W0` core, `P = 0` bitwise parity, missing/nonfinite rejection, `B`/bias read from inherited parameters |
 | Adaptation at strength 0 (M1-05) | `src/agent/actor.rs` (verified) | `tests/adaptation.rs`; inertness, sign, persistence, config pin |
 | Motor readout (M1-06) | `src/agent/motor.rs` | `tests/motor.rs`; golden filters, new-q commitment, tie-only draws |

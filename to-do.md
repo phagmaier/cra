@@ -30,19 +30,23 @@ and [continuation guide](docs/handoff.md).
 
 | Field | Current value |
 | --- | --- |
-| Current milestone | M3 in progress; M2-GATE passed; M3-07 verified 2026-09-21 UTC |
+| Current milestone | M3 complete (M3-GATE passed 2026-09-21 UTC); M4 next |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M3-07 — motor-afferent acquisition (winner grid index 11) |
+| Last verified task | M3-GATE — clean episodic learner exit |
 | Claimed task | None |
-| Next eligible task | M3-08 |
+| Next eligible task | M4-01 |
 | Current blocker | None |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | 2026-09-21 UTC M3-07; docs/evidence/m3-07/summary.md and ledger below |
+| Last evidence record | 2026-09-21 UTC M3-GATE; ledger below (re-runs reproduce M3-07/M3-08 archives) |
 
 ### Session ownership and handoffs
 
 | Owner/session | Task IDs | Files or interfaces owned | Status / handoff |
 | --- | --- | --- | --- |
+| opencode 2026-09-21 M3-09 | M3-09 | src/experiments/reduction.rs, src/experiments/episodic.rs, src/experiments/mod.rs, tests/m3_reduction.rs, docs/evidence/m3-09/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; 5 isolation tests pass, path validated (not needed for rescue); next M3-10 |
+| opencode 2026-09-21 M3-GATE | M3-GATE | to-do.md, README.md, docs/{decisions,handoff}.md (evidence/record only; no behavior change) | Done; fresh re-runs reproduce archives, full battery green; M3 complete, next M4-01 |
+| opencode 2026-09-21 M3-10 | M3-10 | src/checkpoint.rs, src/experiments/episodic.rs, tests/episodic_checkpoint.rs, docs/evidence/m3-10/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; schema-3 replay exact through learning, archives pinned, 289 Rust/17 Python pass; next M3-GATE |
+| opencode 2026-09-21 M3-08 | M3-08 | tests/m3_full_recurrent.rs, docs/evidence/m3-08/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; full-mask passes 2/3 at index 11, 275 Rust/17 Python tests pass; next M3-09 |
 | opencode 2026-09-21 M3-07 | M3-07 | src/experiments/sweep.rs, src/experiments/mod.rs, tests/m3_acquisition.rs, docs/evidence/m3-07/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; sweep passes (winner index 11), 274 Rust/17 Python tests pass; next M3-08 |
 | opencode 2026-09-21 M3-06 | M3-06 | manifests/m3_development_grid.json, src/experiments/grid.rs, src/experiments/mod.rs, tests/development_grid.rs, manifests/README.md, docs/evidence/m3-06/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; 6 new tests, 271 Rust/17 Python tests pass; next M3-07 |
 | opencode 2026-09-21 M3-05 | M3-05 | src/agent/no_learning.rs, src/experiments/episodic.rs, tests/episodic_controls.rs, docs/evidence/m3-05/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; 5 new tests, 265 Rust/17 Python tests pass; next M3-06 |
@@ -330,21 +334,24 @@ Demonstrate learning from delayed terminal rewards in a deliberately episodic di
   - Verify: Several seeds show the declared learning improvement over no-update and shuffled-reward controls without widespread clipping or numerical failure. A single favorable trajectory does not pass.
   - Evidence: `docs/evidence/m3-07/summary.md` (2026-09-21 UTC). Frozen M3-06 grid executed as written in release (24 points x outers 1-3 x B3/B4/B4-shuffled, 2,000-outcome lifetimes, ~16 s, 216/216 complete, 7,343,136 measured ticks). Winner grid index 11 (eta 0.001, input 0.2, gain 0.8, sigma 0.05): outer2 B4 0.035 early to 0.860 late vs 0.040 controls, outer3 0.795 to 0.935 vs 0.770/0.765; points 17/19 also pass 2/3. Guardrails pass sweep-wide (max clipping 0.017, max bound occupancy 0.004, every lifetime moved P, zero failures). Outer-1 birth-locked actors documented as family bound. Archived `seed_records.jsonl` (72 records) + `verdict.json`. `src/experiments/sweep.rs` analysis with unit tests; `tests/m3_acquisition.rs` fast analysis test plus ignored bounded sweep. 274 fast Rust tests pass, 3 ignores, 2 compile-fail docs, 17 Python pass, clean fmt/Clippy. Selected config for M3-08: grid index 11.
 
-- [ ] **M3-08 - Extend the verified learner to all recurrent plastic edges**
+- [x] **M3-08 - Extend the verified learner to all recurrent plastic edges**
   - Deliver: Use the same verified score/update machinery with the full existing-edge plastic mask. Repeat the declared development comparisons and preserve the motor-only run as a diagnostic.
   - Verify: Show the required learning evidence for the actor family carried into M4. Do not compare different plastic masks later while attributing every difference to gates.
+  - Evidence: `docs/evidence/m3-08/summary.md` (2026-09-21 UTC). Fixed-hyperparameter mask extension at frozen winner grid index 11 (eta 0.001, input 0.2, gain 0.8, sigma 0.05) with `all_recurrent_edges`, M3-06 manifest untouched, M3-07 motor-only run preserved as diagnostic. Bounded release comparison (1 point x outers 1-3 x B3/B4/B4-shuffled, 2,000-outcome lifetimes, ~0.7 s, 9/9 complete, 305,964 measured ticks): outer2 B4 0.045 early to 0.975 late vs 0.040/0.030 controls, outer3 0.790 to 0.955 vs 0.770/0.775; 2/3 seeds pass both margins. Guardrails pass (max clipping 0.0007, bound occupancy 0.0, every lifetime moved P with non-motor offsets proven, zero failures). Outer-1 birth-locked actors documented as family bound under both masks. Archived `seed_records.jsonl` (3 records) + `verdict.json`. `tests/m3_full_recurrent.rs` fast analysis test plus ignored bounded comparison (no production change). 275 fast Rust tests pass, 5 ignores, 2 compile-fail docs, 17 Python pass, clean fmt/Clippy. Actor family for M4: full-recurrent episodic learner at grid index 11.
 
-- [ ] **M3-09 - Add the smallest failure-isolation path and negative checks**
+- [x] **M3-09 - Add the smallest failure-isolation path and negative checks**
   - Deliver: Provide a one-weight/noisy-motor diagnostic and a documented reduction path for failed acquisition. Add the postsynaptic-perturbation permutation diagnostic and investigate unexpected equivalence without demanding a particular failure magnitude.
   - Verify: A failing learner is reduced to a sign/order/representation test rather than rescued by evolution. Record whether this troubleshooting path was needed and what was found; do not change the scientific rule invisibly.
+  - Evidence: `docs/evidence/m3-09/summary.md` (2026-09-21 UTC). `src/experiments/reduction.rs` (diagnostic-only single-motor runner with per-outcome pre-feedback-trace identity proof + receiver-permuted episodic runner); `EpisodicLearner::advance_with_receiver_permutation` hook on a shared transition core (ordinary runners still call `advance` only; identity perm reproduces the verified runner bitwise). 5 new tests in `tests/m3_reduction.rs`: hand-set single-edge sign/order (E 0.25, raw +/-0.00125, dup rejected), closed-loop drift (preferred rate 0.400 to 0.700, P +0.0766, 0/30 clipped, identity error <1e-12 every outcome),   outer-1 representation separation (P moves, B4/B3 late 0.0), perm-argument rejection, permutation sensitivity (reversed P differs on identical schedule; 600-outcome report correct 0.050 vs reversed 0.000 with no demanded magnitude). Path was not needed to rescue acquisition (M3-07/08 pass); validated as tooling. 280 fast Rust tests pass, 5 ignores, 2 compile-fail docs, 17 Python pass, clean fmt/Clippy.
 
-- [ ] **M3-10 - Save reproducible learning evidence and updated checkpoints**
+- [x] **M3-10 - Save reproducible learning evidence and updated checkpoints**
   - Deliver: Archive working and failure configurations, all development grid results, paired controls, actual update summaries, and learned-offset checkpoints. Extend exact replay tests through learning events.
   - Verify: Checkpoint splitting with nonzero P/E reproduces uninterrupted learning. The evidence distinguishes correct arithmetic, episodic acquisition, and still-unproven continuous acquisition.
+  - Evidence: `docs/evidence/m3-10/summary.md` (2026-09-21 UTC). `LearningCheckpoint` (schema 3; M1 schema 2 untouched, neither loader reads the other) with `EpisodicAgentSnapshot` (h/a/xi/q/readout/ticks/RNGs/sampling record + versioned `PlasticSnapshot`) and mirrored compat rules; faithful manual driver proven bit-identical to `run_episodic_lifetime`; splits at rollout boundary (P nonzero), just before feedback (full E, deterministic re-delivery asserted), and post-feedback pre-reset (fresh P plus post-scores, no double-apply) all resume identically with explicit rejections (checksum/identity/parse/IO/cross-schema). Archives: `working_config.toml` (pinned winner), `failure_case.json` (outer-1 verbatim, pinned), `checkpoints/{boundary_r1000,final}.json` (real captures; final reloads with P L1 4.6972, dedup 1999), `update_summary_example.json` (first/last events with separated norms) + `meta.json`; archival run cross-matches the M3-08 outer-2 record exactly. 8 fast tests + 1 ignored bounded capture; 289 fast Rust tests pass, 6 ignores, 2 compile-fail docs, 17 Python pass, clean fmt/Clippy.
 
-- [ ] **M3-GATE - Verify and record milestone exit**
+- [x] **M3-GATE - Verify and record milestone exit**
   - The clean episodic learner demonstrably improves over matched no-update and shuffled-reward controls across several development seeds; score/golden-update tests remain valid and numerical behavior is interpretable. If it does not learn, leave this gate open and debug. Do not start M4 or evolution on the strength of implemented code alone.
-  - Evidence: add a ledger entry with the executed commands, results, configuration/seed identifiers, and saved artifact paths. Update the current status before beginning the next milestone.
+  - Evidence: ledger entry M3-GATE 2026-09-21 UTC below (fresh re-runs reproduce the archived M3-07/M3-08 verdicts exactly; full battery green). Gate passes; M4-01 next.
 
 ---
 
@@ -3095,6 +3102,277 @@ Tracker boxes updated: M3-07 checked after verification.
 Next eligible task: M3-08.
 ```
 
+```text
+Date / agent or session: 2026-09-21 / opencode (M3-08 full-recurrent extension)
+Task IDs: M3-08
+Spec sections: 7 (local plasticity machinery), 16/M3 (clean-task acquisition
+  over matched controls)
+Change and affected files: tests/m3_full_recurrent.rs (new: fast
+  real-summary analysis test proving the full mask strictly contains the
+  motor-afferent subset on shared inheritance, non-motor P movement,
+  W0 invariance, effective == W0 + P, bound/mask compliance, plus the
+  ignored release-only bounded comparison at frozen grid index 11);
+  docs/evidence/m3-08/{summary.md,seed_records.jsonl,verdict.json};
+  README.md, docs/{decisions,handoff}.md, to-do.md (evidence/tracker).
+  No production change (runner/score/update/analysis reused unchanged);
+  M3-06 manifest untouched; M3-07 motor-only records preserved.
+Code revision / dirty-tree state: base 0d20d45 plus M3-08 worktree files
+  and tracker/docs edits at verification (hashes in evidence summary).
+Commands actually executed:
+  cargo test --locked --test m3_full_recurrent (fast test)
+  CRA_M3_FULL_SWEEP_DIR=runs/m3-full-final cargo test --release --locked --test m3_full_recurrent m3_full_recurrent_comparison -- --ignored --exact [--nocapture]
+  (plus an identical pilot run into runs/m3-full-fresh before a
+  behavior-preserving test cleanup; archived records are the final re-run)
+  cargo fmt --all -- --check (after cargo fmt --all)
+  cargo clippy --all-targets --locked -- -D warnings
+  cargo test --all-targets --locked
+  cargo test --locked --doc
+  python3 analysis/test_validate_logs.py
+  git diff --check
+Outcome and checks passed: comparison ran the declared subset exactly
+  (1 point x 3 outers x B3/B4/B4-shuffled, 2,000-outcome lifetimes, 9/9
+  complete, 305,964 measured ticks, ~0.7 s release). Grid index 11
+  (eta 0.001, input 0.2, gain 0.8, sigma 0.05) with all_recurrent_edges:
+  outer2 B4 0.045 early to 0.975 late vs B3 0.040/shuffled 0.030,
+  outer3 B4 0.790 to 0.955 vs 0.770/0.775; 2/3 seeds pass both margins.
+  Guardrails pass (max clipped 0.0007, bound occupancy 0.0, P movement
+  everywhere including non-motor receivers, zero failures/nonfinite).
+  Fast suite 275 passed, 0 failed, 5 ignored (M2-03 + M2-05 Monte Carlo,
+  weight-printing probe, both M3 sweeps — the M3-08 comparison among the
+  separately invoked diagnostics); 2 compile-fail doc checks pass;
+  17 Python audit tests pass; clean fmt/Clippy/diff.
+Checks not run / failures / blockers: no failures. Slow M2 Monte Carlo not
+  rerun (score math unchanged). Development namespace only; no final-test
+  seeds. Outer-1 birth-locked actors (always-0 vs all-ones mappings) score
+  0.0 under both masks and are documented as a family bound, not a harness
+  bug.
+Configuration and suite hashes: SHA-256 recorded in evidence summary;
+  grid manifest and episodic base profile untouched by this task.
+Seed namespace / outer seeds / lifetime count: development root 1, outers
+  1-3, lifetime 0, 2,000 outcomes each; 9 candidate-lifetimes within a new
+  9-lifetime budget (the frozen 216-lifetime M3-07 budget is not reopened).
+Artifact paths and checksums where relevant:
+  docs/evidence/m3-08/{summary.md,seed_records.jsonl,verdict.json};
+  workspace copy runs/m3-full-final/ (git-ignored; pilot runs/m3-full-fresh/
+  identical except provenance).
+Interpretation and claim limits: episodic all-recurrent acquisition
+  demonstrated on responsive actors; this is the actor family carried into
+  M4. No continuous claim (M4), no gate/search claim. Later gate
+  comparisons must stay mask-matched. Checkpoint schema stays 2.
+Tracker boxes updated: M3-08 checked after verification.
+Next eligible task: M3-09.
+```
+
+```text
+Date / agent or session: 2026-09-21 / opencode (M3-09 failure isolation)
+Task IDs: M3-09
+Spec sections: M3 "If it fails" (single noisy motor unit, constant input,
+  known preferred action, inspect update sign), 21.1 (smallest-system
+  reduction order), 21.2 (learning vs representation failure)
+Change and affected files: src/experiments/reduction.rs (new,
+  diagnostic-only: run_single_motor_diagnostic with per-outcome
+  pre-feedback-trace identity proof; run_episodic_permuted_lifetime
+  mirroring the verified driver with permuted xi; CONDITION_PERMUTED_XI);
+  src/experiments/episodic.rs (advance refactored through a shared
+  private core; new diagnostic-only advance_with_receiver_permutation
+  with bijection validation; lifetime_agent_rngs now pub(crate));
+  src/experiments/mod.rs (module wiring/docs);
+  tests/m3_reduction.rs (new, 5 tests);
+  docs/evidence/m3-09/summary.md, README.md,
+  docs/{decisions,handoff}.md, to-do.md (evidence/tracker).
+Code revision / dirty-tree state: base 0d20d45 plus uncommitted
+  M3-08/M3-09 files and tracker/docs edits at verification (hashes in
+  evidence summary).
+Commands actually executed:
+  cargo test --locked --test m3_reduction (5 passed)
+  cargo test --locked --test m3_reduction -- --nocapture (measured prints)
+  cargo fmt --all -- --check (after cargo fmt --all)
+  cargo clippy --all-targets --locked -- -D warnings
+  cargo test --all-targets --locked
+  cargo test --locked --doc
+  python3 analysis/test_validate_logs.py
+  git diff --check
+Outcome and checks passed: 5/5 m3_reduction pass (hand-set single-edge
+  sign/order with E 0.25 and raw +/-0.00125 plus dup rejection;
+  closed-loop preferred rate 0.400 to 0.700 with final P +0.0766,
+  0/30 clipped, identity error <1e-12 every outcome; outer-1 P moves
+  while B4/B3 late accuracy stays 0.0; bad perms rejected; reversed-xi
+  P differs on identical schedules while identity perm reproduces the
+  verified runner bitwise). Full fast Rust suite 280 passed, 0 failed,
+  5 ignored (both Monte Carlo, weight probe, both M3 sweeps); 2
+  compile-fail doc checks pass; 17 Python audit tests pass; clean
+  fmt/Clippy/diff. Source search proves ordinary runners still call
+  advance() only.
+Checks not run / failures / blockers: no failures. Slow M2 Monte Carlo
+  not rerun (score math unchanged). Development namespace only; no
+  final-test seeds. Fixed seeds throughout; diagnostic constants (not
+  seeds) are the documented tuning surface.
+Configuration and suite hashes: SHA-256 recorded in evidence summary;
+  grid manifest and profiles untouched.
+Seed namespace / outer seeds / lifetime count: development root 1;
+  outer 1 (60-outcome separation demo) and outer 2 (600-outcome
+  permutation); 30-outcome synthetic single-motor run on fixed
+  dev/1/0 streams; deterministic rerun parity by construction.
+Artifact paths and checksums where relevant:
+  docs/evidence/m3-09/summary.md.
+Interpretation and claim limits: diagnostic tooling only — synthetic
+  rewards are a mechanism check, never a task result. The path was not
+  needed to rescue acquisition; outer-1 is independently confirmed a
+  representation failure. No behavioral magnitude claimed for the
+  permutation. Checkpoint schema stays 2; replay with nonzero P/E is
+  M3-10.
+Tracker boxes updated: M3-09 checked after verification.
+Next eligible task: M3-10.
+```
+
+```text
+Date / agent or session: 2026-09-21 / opencode (M3-10 learning evidence)
+Task IDs: M3-10
+Spec sections: 7 (offsets/traces/baseline), 10.7 (checkpoint contents),
+  16/M3 (exit evidence), 17.2/17.3 (update arithmetic still valid)
+Change and affected files: src/experiments/episodic.rs
+  (EpisodicAgentSnapshot plus snapshot()/restore() with
+  shape/finiteness/RNG-identity/learning-section agreement checks;
+  single-spelled agent stream constants, values unchanged);
+  src/checkpoint.rs (LearningCheckpoint schema 3 with mirrored
+  envelope rules plus From<EpisodicError>; M1 schema 2 unchanged;
+  version-pin unit test); tests/episodic_checkpoint.rs (new: faithful
+  manual driver, 3 split replays, rejection paths, 3 archive pins, 1
+  ignored bounded archival capture);
+  docs/evidence/m3-10/{summary.md,working_config.toml,
+  failure_case.json,update_summary_example.json,meta.json,
+  checkpoints/boundary_r1000.json,checkpoints/final.json};
+  README.md, docs/{decisions,handoff}.md, to-do.md
+  (evidence/tracker).
+Code revision / dirty-tree state: base 0d20d45 plus uncommitted
+  M3-08/M3-09/M3-10 files and tracker/docs edits at verification
+  (hashes in evidence summary).
+Commands actually executed:
+  cargo test --locked --test episodic_checkpoint (8 passed)
+  CRA_M3_10_DIR=runs/m3-10-capture cargo test --release --locked --test episodic_checkpoint m3_learning_evidence_capture -- --ignored --exact [--nocapture]
+  cargo fmt --all -- --check (after cargo fmt --all)
+  cargo clippy --all-targets --locked -- -D warnings
+  cargo test --all-targets --locked
+  cargo test --locked --doc
+  python3 analysis/test_validate_logs.py
+  git diff --check
+Outcome and checks passed: 8/8 episodic_checkpoint pass (faithful
+  driver bit-identical to the verified runner; boundary / just-before-
+  feedback / post-feedback splits resume identically with dedup ending
+  at 59; tamper/identity/parse/IO/cross-schema rejections; working,
+  failure, and final-checkpoint archive pins); ignored capture ran the
+  2,000-outcome outer-2 winner run (~0.2 s release, 33,996 ticks) and
+  saved boundary/final checkpoints plus first/last update digests.
+  Full fast Rust suite 289 passed, 0 failed, 6 ignored (both Monte
+  Carlo, weight probe, three bounded captures); 2 compile-fail doc
+  checks pass; 17 Python audit tests pass; clean fmt/Clippy/diff. The
+  archival run cross-matches the M3-08 outer-2 seed record exactly
+  (final P L1 4.697157004558481, baseline 0.9385005855860952, full
+  accuracy 0.528). A drafted tick-rule relaxation for pending-delivery
+  captures was reverted once analysis showed delivered-but-unconsumed
+  rewards are driver-held state a checkpoint must not claim; the
+  re-delivery equality is an explicit assertion instead.
+Checks not run / failures / blockers: no failures. Slow M2 Monte Carlo
+  not rerun (score math unchanged). Development namespace only; no
+  final-test seeds. Archived checkpoints pin the reference platform
+  (linux/x86_64) by design.
+Configuration and suite hashes: SHA-256 recorded in evidence summary;
+  grid manifest and base profiles untouched (working config is an
+  archive copy with its derivation recorded).
+Seed namespace / outer seeds / lifetime count: development root 1,
+  outer 2, lifetime 0 for replay/capture runs (60-outcome splits,
+  2,000-outcome archival); outer 1 failure record reused verbatim
+  from M3-08.
+Artifact paths and checksums where relevant:
+  docs/evidence/m3-10/{summary.md,working_config.toml,
+  failure_case.json,update_summary_example.json,meta.json,
+  checkpoints/boundary_r1000.json,checkpoints/final.json};
+  workspace copy runs/m3-10-capture/ (git-ignored).
+Interpretation and claim limits: arithmetic (M3-01-M3-03), episodic
+  acquisition (M3-07/M3-08), and exact learning replay (here) are
+  distinguished, not conflated. Continuous acquisition remains
+  unverified M4 work; no gate/search/evolution claim follows.
+Tracker boxes updated: M3-10 checked after verification.
+Next eligible task: M3-GATE.
+```
+
+```text
+Date / agent or session: 2026-09-21 / opencode (M3-GATE milestone exit)
+Task IDs: M3-GATE
+Spec sections: 16/M3 (exit: learning over matched controls, valid
+  numerics, several seeds — not one lucky trajectory)
+Change and affected files: to-do.md, README.md,
+  docs/{decisions,handoff}.md (evidence/record only; no behavior
+  change). All implementation and evidence landed in M3-01 through
+  M3-10; this entry verifies the gate.
+Code revision / dirty-tree state: base 0d20d45 plus uncommitted
+  M3-08/M3-09/M3-10 work and tracker/docs edits (hashes in the
+  M3-08/M3-09/M3-10 evidence summaries).
+Commands actually executed (fresh this session, pinned toolchains):
+  CRA_M3_SWEEP_DIR=runs/m3-gate-sweep cargo test --release --locked --test m3_acquisition m3_motor_afferent_sweep -- --ignored --exact
+    -> ok (15.60 s); verdict identical to docs/evidence/m3-07/verdict.json
+       except provenance (winner grid index 11); all 72 seed records
+       identical to the archive.
+  CRA_M3_FULL_SWEEP_DIR=runs/m3-gate-full cargo test --release --locked --test m3_full_recurrent m3_full_recurrent_comparison -- --ignored --exact
+    -> ok (0.72 s); verdict identical to
+       docs/evidence/m3-08/verdict.json except provenance (passes, 2/3).
+  CRA_M3_10_DIR=runs/m3-10-capture cargo test --release --locked --test episodic_checkpoint m3_learning_evidence_capture -- --ignored --exact
+    -> ok (0.18 s; run earlier this session; artifacts archived in
+       docs/evidence/m3-10/).
+  cargo fmt --all -- --check (clean)
+  cargo clippy --all-targets --locked -- -D warnings (clean)
+  cargo test --all-targets --locked (289 passed, 0 failed, 6 ignored:
+    both Monte Carlo diagnostics, weight-printing probe, three bounded
+    captures — each invoked separately per its evidence record)
+  cargo test --locked --doc (2 compile-fail checks pass)
+  python3 analysis/test_validate_logs.py (17 passed)
+  python3 analysis/validate_logs.py analysis/fixtures/valid
+    (OK events + provenance)
+  git diff --check (clean)
+Outcome and checks passed, per exit condition:
+  (a) Learning over matched controls, several seeds: M3-07 winner
+      index 11 (outer-2 B4 0.035 to 0.860, outer-3 0.795 to 0.935;
+      points 17/19 also pass 2/3) and M3-08 full-mask extension
+      (outer-2 0.045 to 0.975, outer-3 0.790 to 0.955; 2/3) — both
+      reproduced exactly by fresh release re-runs this session, so
+      the gate rests on executed evidence, not stored claims.
+  (b) Score/golden-update tests remain valid: the full fast suite
+      includes every M2 derivative/finite-difference/golden check
+      (score, score_log_probability, score_learning_direction fast
+      checks, score_recurrent fast checks, finite_rollout,
+      golden_updates) — all pass; Monte Carlo diagnostics were
+      passed separately at M2-GATE and their mathematics is
+      unchanged since.
+  (c) Numerical behavior interpretable: guardrails green in both
+      sweeps (M3-07 max clipping 0.017, bound occupancy 0.004;
+      M3-08 max clipping 0.0007, occupancy 0.0; every lifetime
+      moved P; zero failures/nonfinite) plus first/last update
+      digests with separated raw/limited/actual norms (M3-10).
+  (d) No lucky trajectory: every pass requires >= 2/3 outer seeds
+      with B3 and shuffled controls matched per seed; the outer-1
+      birth-locked family bound is documented with independent
+      mechanics (M3-09 ladder), not tuned away.
+Checks not run / failures / blockers: no failures. No evolution,
+  search, gate, or M4 work started — M4-01 is next. Development
+  namespace only; no final-test seeds inspected at any M3 step.
+Seed namespace / outer seeds / lifetime count: development root 1,
+  outers 1-3, lifetime 0; gate re-runs consumed exactly the declared
+  budgets again (216 + 9 lifetimes; the M3-10 capture 1 run) with
+  identical outcomes.
+Artifact paths and checksums where relevant:
+  docs/evidence/m3-{01,02,03,04,05,06,07,08,09,10}/ (summaries,
+  records, verdicts, checkpoints, digests; hashes inside);
+  fresh workspace copies runs/m3-gate-sweep/, runs/m3-gate-full/,
+  runs/m3-10-capture/ (git-ignored).
+Interpretation and claim limits: the CLEAN EPISODIC learner (explicit
+  rollout resets, no-decay traces, fixed gates) is proven. Continuous
+  acquisition without within-lifetime resets is explicitly unverified
+  and remains the M4 gate; no modulation, evolution, or broader-track
+  (B7) claim follows. family_only track.
+Tracker boxes updated: M3-GATE checked after verification.
+  M3 COMPLETE. Next eligible task: M4-01.
+```
+
 ## Blockers and decision register - keep current
 
 No blockers. M1-GATE re-verified after the 2026-09-21 UTC owner-requested
@@ -3146,6 +3424,36 @@ pass; guardrails pass sweep-wide; birth-locked outer-1 documented as family
 bound. Full 274-test fast suite, 2 compile-fail docs, 17 Python tests pass.
 Selected config for M3-08: grid index 11.
 Next: M3-08 (all-recurrent plastic edges).
+M3-08 verified 2026-09-21 UTC: fixed-hyperparameter full-mask extension
+at grid index 11 passes 2/3 seeds (outer2 0.045 to 0.975, outer3 0.790
+to 0.955 over controls; birth-locked outer-1 at 0.0 under both masks);
+guardrails pass; motor-only run preserved as diagnostic. Full 275-test
+fast suite, 2 compile-fail docs, 17 Python tests pass. Actor family for
+M4: full-recurrent episodic learner at grid index 11.
+Next: M3-09 (failure-isolation path and negative checks).
+M3-09 verified 2026-09-21 UTC: diagnostic-only reduction module with
+5 new tests (hand-set single-edge sign/order, closed-loop preferred
+drift 0.400 to 0.700 with per-outcome trace-identity proof, outer-1
+representation separation, perm-argument rejection, permutation
+sensitivity with bitwise identity control). Path not needed for rescue;
+outer-1 independently confirmed representation failure. Full 280-test
+fast suite, 2 compile-fail docs, 17 Python tests pass.
+Next: M3-10 (reproducible learning evidence and updated checkpoints).
+M3-10 verified 2026-09-21 UTC: schema-3 LearningCheckpoint with exact
+split replay through learning events (boundary/just-before/post-
+feedback, explicit rejections) plus pinned archives (working config,
+verbatim failure case, real boundary/final checkpoint files, first/
+last update digests cross-matched to the M3-08 record). Full 289-test
+fast suite, 2 compile-fail docs, 17 Python tests pass. Arithmetic,
+episodic acquisition, and replay distinguished; continuous learning
+still unverified.
+Next: M3-GATE.
+M3-GATE passed 2026-09-21 UTC: fresh release re-runs reproduce the
+M3-07 verdict (winner 11, 72/72 records identical) and the M3-08
+verdict (passes 2/3) exactly; full battery green (289 fast Rust, 2
+compile-fail docs, 17 Python, fixture audit OK, clean fmt/Clippy).
+Exit conditions (a)-(d) verified in the ledger entry. M3 COMPLETE.
+Next: M4-01 (authoritative main tick order).
 M1 findings, corrections and claim limits: `docs/m1-review.md`.
 M0 historical evidence remains in `docs/m0-review.md`.
 Scientific decisions remain in the append-only `docs/decisions.md`.
