@@ -423,8 +423,13 @@ impl Checkpoint {
                 ));
             }
         }
-        let init =
-            crate::rng::SeedTuple::new(id.root_seed, &id.namespace, id.outer_seed, 0, "init");
+        let init = crate::rng::SeedTuple::new(
+            id.root_seed,
+            &id.namespace,
+            id.outer_seed,
+            0,
+            crate::rng::ACTOR_INIT_STREAM,
+        );
         let init_hex = crate::rng::derive_seed_hex(&init).map_err(|err| bad(&err.to_string()))?;
         if p.inherited.topology.init_seed_hex != init_hex {
             return Err(bad(

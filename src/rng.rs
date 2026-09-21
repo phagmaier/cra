@@ -10,8 +10,9 @@
 //! - Namespaces `development`, `training`, `validation`, `final_test` are
 //!   reserved and disjoint; final-test seeds must never enter tuning, search,
 //!   or validation.
-//! - Environment streams (cue selection, mapping init/change, reward noise,
-//!   timing) are independent of agent streams (actor noise, tie breaks):
+//! - Environment streams (cue selection/membership, mapping init/change,
+//!   reward noise, timing) are independent of agent streams (actor noise,
+//!   tie breaks):
 //!   each producer owns a separately seeded RNG instance, so extra draws in
 //!   one stream cannot alter another stream's schedule.
 //!
@@ -26,8 +27,9 @@
 //! perturbation pairing is per-tick-local (M1-04: one fresh `NormalStream`
 //! per tick, no spare crosses a tick boundary), seed bytes plus word
 //! position at a tick boundary reproduce the next tick exactly. The
-//! `init`/`mapping_init` streams are consumed at birth (membership shuffle
-//! plus birth mappings) and leave no further draws, so only the six live
+//! `cue_membership`/`mapping_init`/`init` streams are consumed at birth
+//! (hidden roles, birth mappings, inherited actor parameters) and leave no
+//! further draws, so only the six live
 //! streams (`cue_order`, `mapping_change`, `timing`, `reward_noise`,
 //! `actor_noise`, `tie_break`) are checkpointed; their effects survive in
 //! the stored weights, hidden state, and positions.
@@ -49,6 +51,7 @@ pub const SUPPORTED_NAMESPACES: &[&str] = &["development", "training", "validati
 /// draws in one stream never perturb another stream's schedule.
 pub const SUPPORTED_STREAMS: &[&str] = &[
     "cue_order",
+    "cue_membership",
     "mapping_init",
     "mapping_change",
     "reward_noise",
@@ -58,6 +61,12 @@ pub const SUPPORTED_STREAMS: &[&str] = &[
     "init",
     "evolution",
 ];
+
+/// Inherited actor topology and parameter initialization.
+pub const ACTOR_INIT_STREAM: &str = "init";
+
+/// Hidden stable/volatile cue-role assignment at environment birth.
+pub const CUE_MEMBERSHIP_STREAM: &str = "cue_membership";
 
 /// A single deterministic stream identity.
 #[derive(Clone, Debug, PartialEq, Eq)]

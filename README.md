@@ -11,7 +11,8 @@ learning); M2-GATE passed (restricted score diagnostics); M3-01 implemented
 (plastic offsets, eligibility, masks, effective-weight refresh); M3-02
 implemented (exactly-once gated `P` updates, running baseline, separated
 raw/limited/actual reports — unit level, no runner yet); M3-03 implemented
-(Section 17.3 golden fixture, fixture-only); next task M3-04.**
+(Section 17.3 golden fixture, fixture-only); M3 preflight hardening verified;
+next task M3-04.**
 The simulator core exists as
 a library
 (`src/environment/`, `src/agent/` nonplastic dynamics plus `B3`
@@ -211,6 +212,17 @@ Its [evidence record](docs/evidence/m3-03/summary.md) documents 4 new
 tests, **247 fast Rust tests passed**, three default ignores, two
 compile-fail doc checks, and clean fmt/Clippy. **M3-04 is next.** This
 fixture proves arithmetic, not acquisition.
+
+The owner-requested [M3 preflight hardening](docs/evidence/m3-preflight/summary.md)
+separates hidden cue-role RNG from actor initialization, replaces positional
+feedback hyperparameters with `FeedbackUpdateParams`, and makes
+`plastic_bound` a validated lifetime/snapshot invariant. Plastic snapshots
+are now schema 3; the top-level nonplastic checkpoint remains schema 2.
+The full fast suite passes with **249 tests**, three intentional ignores,
+17 Python audit tests pass, and a fresh release-mode smoke run audits clean.
+M3-03 golden values are unchanged. Mixed stable/volatile cue-role assignment
+has an explicitly recorded deterministic stream migration; no acquisition
+result exists yet.
 
 To save the bounded observability tests' measured diagnostics, choose a fresh
 output directory (existing evidence files are never overwritten):

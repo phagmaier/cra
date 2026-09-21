@@ -14,8 +14,10 @@ from pathlib import Path
 
 EVENT_SCHEMA_VERSION = 1
 NAMESPACES = ("development", "training", "validation", "final_test")
-STREAMS = ("cue_order", "mapping_init", "mapping_change", "reward_noise", "timing",
-           "actor_noise", "tie_break", "init", "evolution")
+LEGACY_STREAMS = ("cue_order", "mapping_init", "mapping_change", "reward_noise",
+                  "timing", "actor_noise", "tie_break", "init", "evolution")
+STREAMS = ("cue_order", "cue_membership", "mapping_init", "mapping_change",
+           "reward_noise", "timing", "actor_noise", "tie_break", "init", "evolution")
 EVENT_INTS = ("schema_version", "outer_seed", "lifetime_index", "choice_index",
               "event_id", "cue_index", "commit_tick", "outcome_tick", "action")
 HIDDEN_INTS = ("event_id", "choice_index", "cue_id", "target_at_commit",
@@ -144,8 +146,19 @@ def audit_run(run_dir):
             errors.append(f"seed mismatch for {key}")
     if streams.get("lifetime_index") != 0:
         errors.append("seed_streams.json: expected lifetime_index 0")
+    stream_schema = streams.get("schema_version", 1)
+    if type(stream_schema) is not int:
+        errors.append(f"seed_streams.json: invalid schema_version {stream_schema!r}")
+        stream_names = STREAMS
+    elif stream_schema == 1:
+        stream_names = LEGACY_STREAMS
+    elif stream_schema == 2:
+        stream_names = STREAMS
+    else:
+        errors.append(f"seed_streams.json: unsupported schema_version {stream_schema!r}")
+        stream_names = STREAMS
     expected_streams = []
-    for stream in STREAMS:
+    for stream in stream_names:
         canonical = (f"cra-v1|root={seeds['root_seed']}|ns={seeds['namespace']}"
                      f"|outer={seeds['outer_seed']}|lifetime=0|stream={stream}")
         expected_streams.append({"stream": stream, "seed_hex": hashlib.sha256(canonical.encode()).hexdigest()})

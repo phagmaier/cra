@@ -38,7 +38,7 @@ use crate::config::Actor;
 use crate::rng::{SeedTuple, derive_seed_hex, rng_for, validate_tuple};
 
 /// The only RNG stream permitted for inherited topology sampling.
-pub const INIT_STREAM: &str = "init";
+pub use crate::rng::ACTOR_INIT_STREAM as INIT_STREAM;
 
 /// Default cap on structural resampling attempts.
 pub const DEFAULT_MAX_STRUCTURAL_ATTEMPTS: u32 = 100;

@@ -18,7 +18,7 @@
 //! `delta`; the baseline updates once after. Clipped and unclipped cases
 //! are tested separately.
 
-use cra::agent::plasticity::PlasticState;
+use cra::agent::plasticity::{FeedbackUpdateParams, PlasticState};
 use cra::agent::score::conditional_score;
 use cra::agent::topology::topology_from_mask;
 
@@ -59,6 +59,14 @@ fn tau_for_lambda_09() -> f64 {
     -1.0 / 0.9_f64.ln()
 }
 
+fn update(max_update: f64) -> FeedbackUpdateParams {
+    FeedbackUpdateParams {
+        eta: 0.01,
+        max_update,
+        baseline_beta: 0.1,
+    }
+}
+
 #[test]
 fn golden_score_is_0_4() {
     let score = conditional_score(0.5, 0.2, 0.4, 0.1).unwrap();
@@ -70,13 +78,20 @@ fn golden_eligibility_is_0_67() {
     let topology = small_topology();
     let w0 = small_w0(&topology);
     let tau_09 = tau_for_lambda_09();
-    let mut state =
-        PlasticState::new(&topology, &w0, "all_recurrent_edges", "persistent", tau_09).unwrap();
+    let mut state = PlasticState::new(
+        &topology,
+        &w0,
+        "all_recurrent_edges",
+        "persistent",
+        tau_09,
+        0.5,
+    )
+    .unwrap();
     assert!((state.trace_policy().decay_factor() - 0.9).abs() < 1e-12);
     // Seed old E[2,0] = 0.3 through validated restore.
     let mut snap = state.snapshot();
     snap.e[2][0] = 0.3;
-    state = PlasticState::restore(snap, &topology, &w0).unwrap();
+    state = PlasticState::restore(snap, &topology, &w0, 0.5).unwrap();
     // Only edge (2 <- 0) scores: r_old[0] = 0.2, xi[2] = 0.4.
     state
         .advance_eligibility(&[0.2, 0.0, 0.0, 0.0], &[0.0, 0.0, 0.4, 0.0], 0.5, 0.1)
@@ -90,14 +105,21 @@ fn golden_feedback_update_unclipped() {
     let w0 = small_w0(&topology);
     let frozen = w0.clone();
     let tau_09 = tau_for_lambda_09();
-    let mut state =
-        PlasticState::new(&topology, &w0, "all_recurrent_edges", "persistent", tau_09).unwrap();
+    let mut state = PlasticState::new(
+        &topology,
+        &w0,
+        "all_recurrent_edges",
+        "persistent",
+        tau_09,
+        10.0,
+    )
+    .unwrap();
     // Seed old E = 0.3, old P = 0.1, old baseline = 0.6.
     let mut snap = state.snapshot();
     snap.e[2][0] = 0.3;
     snap.p[2][0] = 0.1;
     snap.reward_baseline = 0.6;
-    state = PlasticState::restore(snap, &topology, &w0).unwrap();
+    state = PlasticState::restore(snap, &topology, &w0, 10.0).unwrap();
     // Eligibility half of the golden.
     state
         .advance_eligibility(&[0.2, 0.0, 0.0, 0.0], &[0.0, 0.0, 0.4, 0.0], 0.5, 0.1)
@@ -106,7 +128,7 @@ fn golden_feedback_update_unclipped() {
     // Feedback half: bounds wide enough not to clip.
     let gates = vec![0.25; 4];
     let out = state
-        .apply_feedback_once(0, 1.0, &gates, 0.01, 1.0, 10.0, 0.1, &w0)
+        .apply_feedback_once(0, 1.0, &gates, update(1.0), &w0)
         .unwrap();
     // The old baseline produces delta; the new baseline follows after.
     assert_eq!(out.baseline_old, 0.6);
@@ -145,20 +167,27 @@ fn golden_clipped_cases_stay_distinct() {
     let topology = small_topology();
     let w0 = small_w0(&topology);
     let tau_09 = tau_for_lambda_09();
-    let seed = |p: f64| {
-        let base =
-            PlasticState::new(&topology, &w0, "all_recurrent_edges", "persistent", tau_09).unwrap();
+    let seed = |p: f64, plastic_bound: f64| {
+        let base = PlasticState::new(
+            &topology,
+            &w0,
+            "all_recurrent_edges",
+            "persistent",
+            tau_09,
+            plastic_bound,
+        )
+        .unwrap();
         let mut snap = base.snapshot();
         snap.e[2][0] = 0.67;
         snap.p[2][0] = p;
         snap.reward_baseline = 0.6;
-        PlasticState::restore(snap, &topology, &w0).unwrap()
+        PlasticState::restore(snap, &topology, &w0, plastic_bound).unwrap()
     };
     let gates = vec![0.25; 4];
     // Per-edge clamp: raw 0.00067 exceeds max_update 0.0001.
-    let mut state = seed(0.1);
+    let mut state = seed(0.1, 10.0);
     let out = state
-        .apply_feedback_once(0, 1.0, &gates, 0.01, 0.0001, 10.0, 0.1, &w0)
+        .apply_feedback_once(0, 1.0, &gates, update(0.0001), &w0)
         .unwrap();
     close(out.raw_updates[2][0], 0.00067, 1e-15, "raw");
     close(out.limited_updates[2][0], 0.0001, 1e-15, "limited");
@@ -172,9 +201,9 @@ fn golden_clipped_cases_stay_distinct() {
         "baseline still updates",
     );
     // Bound clamp: P_old + limited would exceed the bound.
-    let mut state = seed(0.1);
+    let mut state = seed(0.1, 0.1005);
     let out = state
-        .apply_feedback_once(0, 1.0, &gates, 0.01, 1.0, 0.1005, 0.1, &w0)
+        .apply_feedback_once(0, 1.0, &gates, update(1.0), &w0)
         .unwrap();
     assert_eq!(out.limited_updates[2][0], out.raw_updates[2][0]);
     close(out.actual_updates[2][0], 0.0005, 1e-12, "actual");

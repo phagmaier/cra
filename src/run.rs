@@ -270,6 +270,7 @@ pub fn create_run_dir_with_note(
         .map(|(stream, seed_hex)| serde_json::json!({"stream": stream, "seed_hex": seed_hex}))
         .collect();
     let streams_json = serde_json::to_string_pretty(&serde_json::json!({
+        "schema_version": 2,
         "namespace": seeds.namespace,
         "root_seed": seeds.root_seed,
         "outer_seed": seeds.outer_seed,
@@ -921,6 +922,28 @@ outer_seed = 1
         )
         .expect("manifest json");
         assert_eq!(manifest["condition_id"], "B3");
+        let streams: serde_json::Value = serde_json::from_str(
+            &std::fs::read_to_string(report.dir.join("seed_streams.json")).expect("seed streams"),
+        )
+        .expect("seed stream json");
+        assert_eq!(streams["schema_version"], 2);
+        let recorded: Vec<_> = streams["streams"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|entry| {
+                (
+                    entry["stream"].as_str().unwrap().to_owned(),
+                    entry["seed_hex"].as_str().unwrap().to_owned(),
+                )
+            })
+            .collect();
+        assert_eq!(recorded, seed_stream_table(&seeds));
+        assert!(
+            recorded
+                .iter()
+                .any(|(stream, _)| stream == "cue_membership")
+        );
         let _ = std::fs::remove_dir_all(&base);
     }
     #[test]

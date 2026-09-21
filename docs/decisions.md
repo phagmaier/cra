@@ -790,3 +790,34 @@ make code or a result look successful.**
   `3.8e-18` difference). All golden values otherwise compare at
   `1e-12`–`1e-15`. Verification and hashes:
   [M3-03 evidence](evidence/m3-03/summary.md).
+
+## 2026-09-21 UTC — M3 pre-integration hardening (spec 5.3, 5.8, 7.5, 10.6, 17.2)
+
+- **Cue-role assignment has its own stream.** Hidden stable/volatile
+  membership now uses `cue_membership`; inherited actor topology/weights keep
+  the existing `init` tuple. This supersedes the M0-era statement that both
+  owners use `init`. It intentionally migrates only hidden cue-role assignment
+  for mixed stable/volatile births. Historical artifacts remain tied to their
+  recorded revisions; all other stream identities are unchanged.
+- **Seed provenance is versioned without abandoning old runs.** New
+  `seed_streams.json` files use schema 2 and include `cue_membership`. The
+  Python auditor treats the historical missing-schema shape as schema 1 with
+  the old nine streams, while rejecting unknown or non-integer versions. The
+  current committed fixture exercises schema 2 and a separate test downgrades
+  it to prove legacy acceptance.
+- **The plastic bound is lifetime state, not an event argument.** Production
+  construction reads it from the resolved `Learning` section. Snapshot schema
+  3 records it; restore also receives the expected resolved bound, rejects a
+  mismatch, and rejects any finite `P` outside the bound. This supersedes the
+  M3-02 per-call-bound decision and prevents a resumed state from being
+  silently clamped by its next nominally zero update.
+- **Feedback parameters are named.** `FeedbackUpdateParams` carries `eta`,
+  `max_update`, and baseline `beta`; `apply_feedback_once` validates it before
+  mutation. This removes interchangeable positional `f64` arguments without
+  changing the update arithmetic. `FeedbackUpdateParams::from_learning_config`
+  is the intended M3-04 runner path.
+- **Scope and compatibility.** The top-level nonplastic checkpoint remains
+  schema 2 and still does not embed plastic state. Plastic schema 2 snapshots
+  were never top-level runnable checkpoints and are now explicitly
+  incompatible. Golden update values, actor dynamics, and environment tick
+  ordering are unchanged. Verification: [M3 preflight evidence](evidence/m3-preflight/summary.md).

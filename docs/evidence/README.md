@@ -105,3 +105,12 @@ hand-calculated chain (`0.4` / `0.67` / `0.4` / `0.00067` / `0.10067` /
 `0.64`) through the public score/eligibility/update entry points, plus
 separate clipped cases. Fixture-only task with no production change and
 no acquisition claim.
+
+## M3 pre-integration hardening
+
+The [M3 preflight summary](m3-preflight/summary.md) records the corrective
+stream/API/state-invariant work before M3-04: dedicated hidden cue-membership
+RNG, named feedback-update parameters, and plastic snapshot v3 with enforced
+bound compatibility. It records the intentional hidden-role seed migration,
+full verification, and remaining runner-order/boundary work. No learner run or
+acquisition claim was added.

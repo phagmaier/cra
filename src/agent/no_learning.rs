@@ -144,7 +144,13 @@ impl NoLearningActor {
         let actor_cfg = cfg.actor.clone().ok_or(NoLearningError::MissingActor)?;
         let cue_count = cfg.environment.cue_count;
         let input_dim = feature_dim(cue_count);
-        let init_tuple = SeedTuple::new(root_seed, namespace, outer_seed, 0, "init");
+        let init_tuple = SeedTuple::new(
+            root_seed,
+            namespace,
+            outer_seed,
+            0,
+            crate::rng::ACTOR_INIT_STREAM,
+        );
         let sampled = sample_inherited(
             &actor_cfg,
             input_dim,

@@ -28,6 +28,8 @@ use cra::agent::weights::{InheritedParams, Weights};
 use cra::config::{Actor, Learning};
 use cra::rng::{SeedTuple, rng_for};
 
+const PLASTIC_BOUND: f64 = 0.5;
+
 fn small_topology() -> Topology {
     // N = 4, m = 1: M0 = [2], M1 = [3], non-motor [0, 1].
     let mask = vec![
@@ -91,7 +93,8 @@ fn birth_zero_with_effective_equal_to_w0() {
     let w0 = small_w0(&topology);
     for mask in ["all_recurrent_edges", "motor_afferent_only"] {
         for trace in ["persistent", "no_decay_diagnostic"] {
-            let state = PlasticState::new(&topology, &w0, mask, trace, 32.0).expect("birth");
+            let state =
+                PlasticState::new(&topology, &w0, mask, trace, 32.0, PLASTIC_BOUND).expect("birth");
             assert!(state.p().iter().flatten().all(|&v| v == 0.0));
             assert!(state.e().iter().flatten().all(|&v| v == 0.0));
             assert_eq!(state.effective_weights(), &w0);
@@ -109,6 +112,7 @@ fn masks_are_subsets_with_motor_restriction() {
         "all_recurrent_edges",
         "persistent",
         32.0,
+        PLASTIC_BOUND,
     )
     .expect("all")
     .plastic_mask()
@@ -120,6 +124,7 @@ fn masks_are_subsets_with_motor_restriction() {
         "motor_afferent_only",
         "persistent",
         32.0,
+        PLASTIC_BOUND,
     )
     .expect("motor")
     .plastic_mask()
@@ -142,6 +147,7 @@ fn masks_are_subsets_with_motor_restriction() {
         "motor_afferent_only",
         "persistent",
         32.0,
+        PLASTIC_BOUND,
     )
     .unwrap();
     let mut sorted = state.plastic_edges().to_vec();
@@ -154,16 +160,31 @@ fn unknown_names_and_bad_tau_are_rejected() {
     let topology = small_topology();
     let w0 = small_w0(&topology);
     assert!(matches!(
-        PlasticState::new(&topology, &w0, "dense", "persistent", 32.0),
+        PlasticState::new(&topology, &w0, "dense", "persistent", 32.0, PLASTIC_BOUND),
         Err(PlasticityError::UnknownMask(_))
     ));
     assert!(matches!(
-        PlasticState::new(&topology, &w0, "all_recurrent_edges", "fancy", 32.0),
+        PlasticState::new(
+            &topology,
+            &w0,
+            "all_recurrent_edges",
+            "fancy",
+            32.0,
+            PLASTIC_BOUND,
+        ),
         Err(PlasticityError::UnknownTracePolicy(_))
     ));
     for bad in [0.0, -1.0, f64::NAN, f64::INFINITY] {
         assert!(
-            PlasticState::new(&topology, &w0, "all_recurrent_edges", "persistent", bad).is_err(),
+            PlasticState::new(
+                &topology,
+                &w0,
+                "all_recurrent_edges",
+                "persistent",
+                bad,
+                PLASTIC_BOUND,
+            )
+            .is_err(),
             "tau_e {bad}"
         );
         assert!(
@@ -172,10 +193,25 @@ fn unknown_names_and_bad_tau_are_rejected() {
                 &w0,
                 "all_recurrent_edges",
                 "no_decay_diagnostic",
-                bad
+                bad,
+                PLASTIC_BOUND,
             )
             .is_err(),
             "diagnostic tau_e {bad}"
+        );
+    }
+    for bad_bound in [0.0, -0.5, f64::NAN, f64::INFINITY] {
+        assert!(
+            PlasticState::new(
+                &topology,
+                &w0,
+                "all_recurrent_edges",
+                "persistent",
+                32.0,
+                bad_bound,
+            )
+            .is_err(),
+            "plastic_bound {bad_bound}"
         );
     }
     // w0 nonzero on a missing edge is a dimension error, never silent.
@@ -188,7 +224,8 @@ fn unknown_names_and_bad_tau_are_rejected() {
             &bad_w0,
             "all_recurrent_edges",
             "persistent",
-            32.0
+            32.0,
+            PLASTIC_BOUND,
         ),
         Err(PlasticityError::DimensionMismatch(_))
     ));
@@ -206,6 +243,7 @@ fn eligibility_shares_receiver_perturbation() {
         "all_recurrent_edges",
         "no_decay_diagnostic",
         32.0,
+        PLASTIC_BOUND,
     )
     .unwrap();
     let alpha = leak_alpha(5.0);
@@ -243,8 +281,15 @@ fn zero_presynaptic_gives_zero_score_with_decay() {
     // r_old = 0 so new scores are zero and only decay remains.
     let tau = 16.0;
     let lambda = (-1.0_f64 / tau).exp();
-    let mut state =
-        PlasticState::new(&topology, &w0, "all_recurrent_edges", "persistent", tau).unwrap();
+    let mut state = PlasticState::new(
+        &topology,
+        &w0,
+        "all_recurrent_edges",
+        "persistent",
+        tau,
+        PLASTIC_BOUND,
+    )
+    .unwrap();
     let alpha = leak_alpha(5.0);
     state
         .advance_eligibility(&[1.0, 1.0, 1.0, 1.0], &[0.3, -0.2, 0.5, 0.1], alpha, 0.05)
@@ -264,8 +309,15 @@ fn zero_presynaptic_gives_zero_score_with_decay() {
 fn invalid_score_inputs_are_rejected() {
     let topology = small_topology();
     let w0 = small_w0(&topology);
-    let mut state =
-        PlasticState::new(&topology, &w0, "all_recurrent_edges", "persistent", 32.0).unwrap();
+    let mut state = PlasticState::new(
+        &topology,
+        &w0,
+        "all_recurrent_edges",
+        "persistent",
+        32.0,
+        PLASTIC_BOUND,
+    )
+    .unwrap();
     let zeros = vec![0.0; 4];
     // Zero noise is rejected even when activity and perturbation are zero
     // (the score contract is active).
@@ -304,8 +356,15 @@ fn invalid_score_inputs_are_rejected() {
 fn missing_and_nonplastic_edges_never_accrue() {
     let topology = small_topology();
     let w0 = small_w0(&topology);
-    let mut state =
-        PlasticState::new(&topology, &w0, "motor_afferent_only", "persistent", 32.0).unwrap();
+    let mut state = PlasticState::new(
+        &topology,
+        &w0,
+        "motor_afferent_only",
+        "persistent",
+        32.0,
+        PLASTIC_BOUND,
+    )
+    .unwrap();
     let alpha = leak_alpha(5.0);
     for _ in 0..8 {
         state
@@ -355,14 +414,22 @@ fn persistent_and_no_decay_are_distinct_policies() {
     // sigma 0.1; old E 0.3. Persistent with lambda 0.9 gives 0.67;
     // no-decay gives 0.70. Lambda 0.9 is exp(-1/tau) for tau = -1/ln(0.9).
     let tau_09 = -1.0 / 0.9_f64.ln();
-    let mut persistent =
-        PlasticState::new(&topology, &w0, "all_recurrent_edges", "persistent", tau_09).unwrap();
+    let mut persistent = PlasticState::new(
+        &topology,
+        &w0,
+        "all_recurrent_edges",
+        "persistent",
+        tau_09,
+        PLASTIC_BOUND,
+    )
+    .unwrap();
     let mut diagnostic = PlasticState::new(
         &topology,
         &w0,
         "all_recurrent_edges",
         "no_decay_diagnostic",
         tau_09,
+        PLASTIC_BOUND,
     )
     .unwrap();
     assert!((persistent.trace_policy().decay_factor() - 0.9).abs() < 1e-12);
@@ -372,7 +439,7 @@ fn persistent_and_no_decay_are_distinct_policies() {
         let mut snap = state.snapshot();
         snap.p[2][0] = 0.0;
         snap.e[2][0] = 0.3;
-        *state = PlasticState::restore(snap, &topology, &w0).unwrap();
+        *state = PlasticState::restore(snap, &topology, &w0, 0.5).unwrap();
     }
     // Advance one transition that scores 0.4 exactly on (2 <- 0):
     // r_old[0] = 0.2, xi[2] = 0.4, alpha 0.5, sigma 0.1. Other receivers
@@ -396,8 +463,15 @@ fn w0_is_never_mutated_by_advance_or_refresh() {
     let topology = small_topology();
     let w0 = small_w0(&topology);
     let frozen = w0.clone();
-    let mut state =
-        PlasticState::new(&topology, &w0, "all_recurrent_edges", "persistent", 32.0).unwrap();
+    let mut state = PlasticState::new(
+        &topology,
+        &w0,
+        "all_recurrent_edges",
+        "persistent",
+        32.0,
+        PLASTIC_BOUND,
+    )
+    .unwrap();
     state
         .advance_eligibility(&[0.5; 4], &[0.5; 4], leak_alpha(5.0), 0.05)
         .unwrap();
@@ -414,26 +488,40 @@ fn w0_is_never_mutated_by_advance_or_refresh() {
 fn refresh_is_the_single_cache_location_with_plastic_offsets() {
     let topology = small_topology();
     let w0 = small_w0(&topology);
-    let mut state =
-        PlasticState::new(&topology, &w0, "all_recurrent_edges", "persistent", 32.0).unwrap();
+    let mut state = PlasticState::new(
+        &topology,
+        &w0,
+        "all_recurrent_edges",
+        "persistent",
+        32.0,
+        PLASTIC_BOUND,
+    )
+    .unwrap();
     // Install nonzero P on plastic edges only via validated restore.
     let mut snap = state.snapshot();
     snap.p[2][0] = 0.05;
     snap.p[3][2] = -0.03;
     snap.e[2][0] = 0.1;
-    state = PlasticState::restore(snap, &topology, &w0).unwrap();
+    state = PlasticState::restore(snap, &topology, &w0, 0.5).unwrap();
     assert_eq!(state.effective_weights()[2][0], w0[2][0] + 0.05);
     assert_eq!(state.effective_weights()[3][2], w0[3][2] - 0.03);
     assert_eq!(state.effective_weights()[0][1], w0[0][1]);
     // Missing entries stay exactly zero.
     assert_eq!(state.effective_weights()[0][0], 0.0);
     // Nonzero P on a nonplastic edge is rejected (motor-only view).
-    let mut motor =
-        PlasticState::new(&topology, &w0, "motor_afferent_only", "persistent", 32.0).unwrap();
+    let mut motor = PlasticState::new(
+        &topology,
+        &w0,
+        "motor_afferent_only",
+        "persistent",
+        32.0,
+        PLASTIC_BOUND,
+    )
+    .unwrap();
     let mut bad = motor.snapshot();
     bad.p[0][1] = 0.01;
     assert!(!motor.plastic_mask()[0][1]);
-    assert!(PlasticState::restore(bad, &topology, &w0).is_err());
+    assert!(PlasticState::restore(bad, &topology, &w0, 0.5).is_err());
     let _ = &mut motor;
 }
 
@@ -441,8 +529,15 @@ fn refresh_is_the_single_cache_location_with_plastic_offsets() {
 fn snapshot_round_trips_through_a_file() {
     let topology = small_topology();
     let w0 = small_w0(&topology);
-    let mut state =
-        PlasticState::new(&topology, &w0, "motor_afferent_only", "persistent", 24.0).unwrap();
+    let mut state = PlasticState::new(
+        &topology,
+        &w0,
+        "motor_afferent_only",
+        "persistent",
+        24.0,
+        PLASTIC_BOUND,
+    )
+    .unwrap();
     state
         .advance_eligibility(
             &[0.4, 0.1, -0.2, 0.3],
@@ -458,7 +553,7 @@ fn snapshot_round_trips_through_a_file() {
     let bytes = std::fs::read(&path).unwrap();
     let loaded: cra::agent::plasticity::PlasticSnapshot = serde_json::from_slice(&bytes).unwrap();
     assert_eq!(loaded, snapshot);
-    let restored = PlasticState::restore(loaded, &topology, &w0).unwrap();
+    let restored = PlasticState::restore(loaded, &topology, &w0, 0.5).unwrap();
     assert_eq!(restored, state);
     let _ = std::fs::remove_file(&path);
 }
@@ -467,35 +562,42 @@ fn snapshot_round_trips_through_a_file() {
 fn snapshot_rejections_are_explicit() {
     let topology = small_topology();
     let w0 = small_w0(&topology);
-    let state =
-        PlasticState::new(&topology, &w0, "all_recurrent_edges", "persistent", 32.0).unwrap();
+    let state = PlasticState::new(
+        &topology,
+        &w0,
+        "all_recurrent_edges",
+        "persistent",
+        32.0,
+        PLASTIC_BOUND,
+    )
+    .unwrap();
     let good = state.snapshot();
 
     // Wrong schema version.
     let mut bad = good.clone();
     bad.schema_version = 999;
     assert!(matches!(
-        PlasticState::restore(bad, &topology, &w0),
+        PlasticState::restore(bad, &topology, &w0, 0.5),
         Err(PlasticityError::Incompatible(_))
     ));
     // Dimension mismatch.
     let mut bad = good.clone();
     bad.p.pop();
-    assert!(PlasticState::restore(bad, &topology, &w0).is_err());
+    assert!(PlasticState::restore(bad, &topology, &w0, 0.5).is_err());
     // Mask-name mismatch: snapshot claims motor-only but carries P on a
     // non-motor edge valid under all-recurrent.
     let mut bad = good.clone();
     bad.p[0][1] = 0.02;
     bad.plastic_mask = "motor_afferent_only".to_owned();
     assert!(!topology.mask[0][1] || bad.p[0][1] != 0.0);
-    assert!(PlasticState::restore(bad, &topology, &w0).is_err());
+    assert!(PlasticState::restore(bad, &topology, &w0, 0.5).is_err());
     // Unknown trace policy and bad tau.
     let mut bad = good.clone();
     bad.trace_policy = "fancy".to_owned();
-    assert!(PlasticState::restore(bad, &topology, &w0).is_err());
+    assert!(PlasticState::restore(bad, &topology, &w0, 0.5).is_err());
     let mut bad = good.clone();
     bad.tau_e = 0.0;
-    assert!(PlasticState::restore(bad, &topology, &w0).is_err());
+    assert!(PlasticState::restore(bad, &topology, &w0, 0.5).is_err());
     // Unknown JSON fields are rejected, never defaulted.
     let mut value = serde_json::to_value(&good).unwrap();
     value["future_gates"] = serde_json::json!([1.0]);
@@ -504,11 +606,31 @@ fn snapshot_rejections_are_explicit() {
     let mut value = serde_json::to_value(&good).unwrap();
     value.as_object_mut().unwrap().remove("p");
     assert!(serde_json::from_value::<cra::agent::plasticity::PlasticSnapshot>(value).is_err());
+    // A wire-format schema-2 snapshot lacks the schema-3 bound and cannot be
+    // silently upgraded with a default.
+    let mut value = serde_json::to_value(&good).unwrap();
+    value["schema_version"] = serde_json::json!(2);
+    value.as_object_mut().unwrap().remove("plastic_bound");
+    assert!(serde_json::from_value::<cra::agent::plasticity::PlasticSnapshot>(value).is_err());
     // Nonfinite P/E is corrupt, not a successful snapshot.
     let mut bad = good.clone();
     bad.e[2][0] = f64::NAN;
     assert!(matches!(
-        PlasticState::restore(bad, &topology, &w0),
+        PlasticState::restore(bad, &topology, &w0, 0.5),
+        Err(PlasticityError::Corrupt(_))
+    ));
+    // The snapshot's declared bound must match the resolved configuration,
+    // and every restored offset must already satisfy it.
+    let mut bad = good.clone();
+    bad.plastic_bound = 1.0;
+    assert!(matches!(
+        PlasticState::restore(bad, &topology, &w0, 0.5),
+        Err(PlasticityError::Incompatible(_))
+    ));
+    let mut bad = good;
+    bad.p[2][0] = 0.500_000_000_1;
+    assert!(matches!(
+        PlasticState::restore(bad, &topology, &w0, 0.5),
         Err(PlasticityError::Corrupt(_))
     ));
 }
@@ -519,8 +641,15 @@ fn effective_path_matches_w0_path_when_p_is_zero() {
     let w0 = small_w0(&topology);
     let params = inherited(topology.clone(), w0.clone());
     let actor = actor_cfg();
-    let plastic =
-        PlasticState::new(&topology, &w0, "all_recurrent_edges", "persistent", 32.0).unwrap();
+    let plastic = PlasticState::new(
+        &topology,
+        &w0,
+        "all_recurrent_edges",
+        "persistent",
+        32.0,
+        PLASTIC_BOUND,
+    )
+    .unwrap();
     let seed = SeedTuple::new(1, "development", 7, 0, "actor_noise");
     let mut rng_a = rng_for(&seed).unwrap();
     let mut rng_b = rng_for(&seed).unwrap();
@@ -581,11 +710,18 @@ fn effective_path_applies_validated_offsets_without_touching_inputs() {
         noise_sigma: 0.05,
         motor_filter_tau: 3.0,
     };
-    let mut plastic =
-        PlasticState::new(&topology, &w0, "all_recurrent_edges", "persistent", 32.0).unwrap();
+    let mut plastic = PlasticState::new(
+        &topology,
+        &w0,
+        "all_recurrent_edges",
+        "persistent",
+        32.0,
+        PLASTIC_BOUND,
+    )
+    .unwrap();
     let mut snap = plastic.snapshot();
     snap.p[1][0] = 0.1;
-    plastic = PlasticState::restore(snap, &topology, &w0).unwrap();
+    plastic = PlasticState::restore(snap, &topology, &w0, 0.5).unwrap();
     let mut base = ActorState::from_state(vec![0.5, -0.3], vec![0.0, 0.0]).unwrap();
     let mut shifted = ActorState::from_state(vec![0.5, -0.3], vec![0.0, 0.0]).unwrap();
     let input = vec![1.0];
@@ -668,8 +804,15 @@ reward_baseline_beta = 0.02
     )
     .unwrap();
     let via_config = PlasticState::from_learning_config(&topology, &w0, &learning).unwrap();
-    let direct =
-        PlasticState::new(&topology, &w0, "motor_afferent_only", "persistent", 24.0).unwrap();
+    let direct = PlasticState::new(
+        &topology,
+        &w0,
+        "motor_afferent_only",
+        "persistent",
+        24.0,
+        PLASTIC_BOUND,
+    )
+    .unwrap();
     assert_eq!(via_config, direct);
     // The shipped debug profile carries the main mask/trace pair.
     let debug: cra::config::Config =

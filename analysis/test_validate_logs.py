@@ -112,6 +112,25 @@ class TestAudit(unittest.TestCase):
     def test_valid_run_is_clean(self):
         self.assertEqual(validate_logs.audit_run(FIXTURES / "valid"), [])
 
+    def test_legacy_seed_stream_schema_is_still_clean(self):
+        def downgrade(run):
+            def update(value):
+                value.pop("schema_version")
+                value["streams"] = [
+                    item for item in value["streams"]
+                    if item["stream"] != "cue_membership"
+                ]
+            self.change_json(run, "seed_streams.json", update)
+        self.assertEqual(self.mutated_run(downgrade), [])
+
+    def test_seed_stream_schema_rejects_noninteger_versions(self):
+        for value in (True, 1.0, "2"):
+            with self.subTest(value=value):
+                self.assertTrue(self.mutated_run(
+                    lambda p: self.change_json(
+                        p, "seed_streams.json",
+                        lambda streams: streams.update(schema_version=value))))
+
     def test_b3_actor_policy_is_audited(self):
         # Unknown policies are rejected ...
         self.assertTrue(self.mutated_run(

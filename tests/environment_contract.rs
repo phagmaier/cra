@@ -15,11 +15,38 @@
 #[path = "support/mod.rs"]
 mod support;
 
-use cra::environment::Phase;
 use cra::environment::observation::SimError;
-use cra::rng::{SeedTuple, rng_for};
+use cra::environment::{CueRole, Lifetime, Phase};
+use cra::rng::{ACTOR_INIT_STREAM, CUE_MEMBERSHIP_STREAM, SeedTuple, rng_for};
+use rand::seq::SliceRandom;
 use rand_core::RngCore;
 use support::{advance_until_commitment, advance_until_feedback, base_config, birth, run_cycle};
+
+#[test]
+fn hidden_cue_roles_use_the_dedicated_membership_stream() {
+    let mut cfg = base_config();
+    cfg.environment.cue_count = 8;
+    cfg.environment.stable_fraction = 0.5;
+    let lifetime = Lifetime::new(&cfg, 1, "development", 1, 0).unwrap();
+
+    let roles_for = |stream| {
+        let mut ids: Vec<usize> = (0..cfg.environment.cue_count).collect();
+        let seed = SeedTuple::new(1, "development", 1, 0, stream);
+        ids.shuffle(&mut rng_for(&seed).unwrap());
+        let mut roles = vec![CueRole::Volatile; cfg.environment.cue_count];
+        for cue in ids.into_iter().take(4) {
+            roles[cue] = CueRole::Stable;
+        }
+        roles
+    };
+
+    let actual: Vec<_> = (0..cfg.environment.cue_count)
+        .map(|cue| lifetime.hidden().role(cue))
+        .collect();
+    let expected = roles_for(CUE_MEMBERSHIP_STREAM);
+    assert_eq!(actual, expected);
+    assert_ne!(expected, roles_for(ACTOR_INIT_STREAM));
+}
 
 #[test]
 fn exact_cycle_counts_with_zero_gap_and_delay_one() {

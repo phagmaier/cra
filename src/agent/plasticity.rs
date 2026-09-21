@@ -40,7 +40,7 @@
 //! never mutated (tested).
 //!
 //! Checkpoint note: [`PlasticSnapshot`] is versioned (`deny_unknown_fields`,
-//! currently schema 2 with baseline and exactly-once bookkeeping) and
+//! currently schema 3 with the configured plastic bound) and
 //! validated on restore (dimensions, finiteness, mask agreement, zero on
 //! nonplastic/missing, `tau_e`, finite baseline). The top-level
 //! [`crate::checkpoint`] schema stays 2 for the nonplastic M1 actor;
@@ -56,9 +56,10 @@ use crate::config::{Learning, SUPPORTED_PLASTIC_MASKS, SUPPORTED_TRACE_POLICIES}
 
 /// Version for [`PlasticSnapshot`]. Bumped only with a documented format
 /// change; older snapshots are rejected, never silently migrated.
-/// v2 adds the running reward baseline and exactly-once feedback bookkeeping
-/// (M3-02); v1 files lack those lifetime states and are incompatible.
-pub const PLASTIC_SNAPSHOT_SCHEMA_VERSION: u32 = 2;
+/// v3 adds the configured plastic bound so restore can reject offsets outside
+/// the resolved invariant. v2 added baseline and feedback bookkeeping; older
+/// files are incompatible rather than silently acquiring a bound.
+pub const PLASTIC_SNAPSHOT_SCHEMA_VERSION: u32 = 3;
 
 /// Plastic-state construction, advance, feedback-update, and snapshot
 /// failures. Every variant is an explicit error, never a silent default or
@@ -233,6 +234,7 @@ pub struct PlasticState {
     plastic_edges: Vec<(usize, usize)>,
     trace_policy: TracePolicy,
     tau_e_config: f64,
+    plastic_bound: f64,
     p: Vec<Vec<f64>>,
     e: Vec<Vec<f64>>,
     w_effective: Vec<Vec<f64>>,
@@ -259,6 +261,50 @@ pub struct FeedbackOutcome {
     pub actual_updates: Vec<Vec<f64>>,
 }
 
+/// Named, per-feedback update parameters. The lifetime's `plastic_bound` is
+/// stored in [`PlasticState`] because it is a state invariant, not a value
+/// that may vary from one feedback event to the next.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct FeedbackUpdateParams {
+    pub eta: f64,
+    pub max_update: f64,
+    pub baseline_beta: f64,
+}
+
+impl FeedbackUpdateParams {
+    /// Read the event-level parameters from the resolved learning config.
+    #[must_use]
+    pub fn from_learning_config(learning: &Learning) -> Self {
+        Self {
+            eta: learning.eta,
+            max_update: learning.max_update,
+            baseline_beta: learning.reward_baseline_beta,
+        }
+    }
+
+    fn validate(self) -> Result<(), PlasticityError> {
+        if !(self.eta.is_finite() && self.eta >= 0.0) {
+            return Err(PlasticityError::InvalidParams(format!(
+                "eta must be finite and >= 0; found {}",
+                self.eta
+            )));
+        }
+        if !(self.max_update.is_finite() && self.max_update > 0.0) {
+            return Err(PlasticityError::InvalidParams(format!(
+                "max_update must be finite and > 0; found {}",
+                self.max_update
+            )));
+        }
+        if !(self.baseline_beta.is_finite() && (0.0..=1.0).contains(&self.baseline_beta)) {
+            return Err(PlasticityError::InvalidParams(format!(
+                "baseline_beta must be finite in [0, 1]; found {}",
+                self.baseline_beta
+            )));
+        }
+        Ok(())
+    }
+}
+
 impl PlasticState {
     /// Birth state (spec 10.4): `P = E = 0`, `W_effective = W0`,
     /// `reward_baseline = 0.5`, no feedback consumed yet.
@@ -266,10 +312,9 @@ impl PlasticState {
     /// Validates topology/`w0` agreement (square, finite, zero on missing),
     /// the mask and trace-policy names, and `tau_e`. The cache is written
     /// once through the single refresh location before returning.
-    /// Per-feedback hyperparameters (`eta`, `max_update`, `plastic_bound`,
-    /// baseline `beta`) are supplied to [`Self::apply_feedback_once`], not
-    /// stored, so one state can be exercised with explicit values in tests
-    /// while the runner passes its resolved configuration consistently.
+    /// The lifetime-invariant `plastic_bound` is stored and snapshotted.
+    /// Event-level parameters (`eta`, `max_update`, baseline `beta`) are
+    /// supplied as a named [`FeedbackUpdateParams`] value.
     /// [`Self::from_learning_config`] sets the baseline from the validated
     /// TOML `reward_baseline_initial`.
     pub fn new(
@@ -278,9 +323,11 @@ impl PlasticState {
         plastic_mask_name: &str,
         trace_policy_name: &str,
         tau_e: f64,
+        plastic_bound: f64,
     ) -> Result<Self, PlasticityError> {
         let mask_kind = PlasticMaskKind::from_name(plastic_mask_name)?;
         let trace_policy = TracePolicy::from_name(trace_policy_name, tau_e)?;
+        validate_plastic_bound(plastic_bound)?;
         check_w0(topology, w0)?;
         let n = topology.neuron_count;
         let plastic_mask = mask_kind.build_mask(topology);
@@ -293,6 +340,7 @@ impl PlasticState {
             plastic_edges,
             trace_policy,
             tau_e_config: tau_e,
+            plastic_bound,
             p: vec![vec![0.0; n]; n],
             e: vec![vec![0.0; n]; n],
             w_effective: vec![vec![0.0; n]; n],
@@ -305,8 +353,7 @@ impl PlasticState {
 
     /// Build from a validated [`Learning`] section, keeping TOML strings as
     /// the source of truth for mask/trace/`tau_e` and the baseline initial
-    /// value. Update hyperparameters (`eta`, `max_update`, `plastic_bound`,
-    /// `beta`) remain per-call arguments to [`Self::apply_feedback_once`].
+    /// value and binds the configured plastic bound to the lifetime state.
     pub fn from_learning_config(
         topology: &Topology,
         w0: &[Vec<f64>],
@@ -326,6 +373,7 @@ impl PlasticState {
             &learning.plastic_mask,
             &learning.trace_policy,
             learning.tau_e,
+            learning.plastic_bound,
         )?;
         state.reward_baseline = learning.reward_baseline_initial;
         Ok(state)
@@ -335,6 +383,12 @@ impl PlasticState {
     #[must_use]
     pub fn neuron_count(&self) -> usize {
         self.n
+    }
+
+    /// Symmetric bound enforced for every plastic offset in this lifetime.
+    #[must_use]
+    pub fn plastic_bound(&self) -> f64 {
+        self.plastic_bound
     }
 
     /// Plastic-mask kind.
@@ -490,7 +544,7 @@ impl PlasticState {
     /// `xi` read from that transition. Only plastic edges are written;
     /// missing/nonplastic entries stay exactly `0.0`. New scores never
     /// explain feedback already consumed this tick (ordering owned by the
-    /// future runner, M3-02/M4-01).
+    /// future runner, M3-04/M4-01).
     pub fn advance_eligibility(
         &mut self,
         r_old: &[f64],
@@ -576,16 +630,12 @@ impl PlasticState {
     /// rejected call also leaves `P`/baseline/cache/dedup unchanged.
     /// `eta = 0`, all-zero gates, or `delta = 0` yield zero task-dependent
     /// `P` changes (the baseline still updates once when `delta != 0`).
-    #[allow(clippy::too_many_arguments)]
     pub fn apply_feedback_once(
         &mut self,
         event_id: u64,
         reward: f64,
         gates: &[f64],
-        eta: f64,
-        max_update: f64,
-        plastic_bound: f64,
-        baseline_beta: f64,
+        update: FeedbackUpdateParams,
         w0: &[Vec<f64>],
     ) -> Result<FeedbackOutcome, PlasticityError> {
         if self.last_feedback.is_some_and(|last| event_id <= last) {
@@ -611,26 +661,7 @@ impl PlasticState {
                 "gates must be finite in [0, 1]".to_owned(),
             ));
         }
-        if !(eta.is_finite() && eta >= 0.0) {
-            return Err(PlasticityError::InvalidParams(format!(
-                "eta must be finite and >= 0; found {eta}"
-            )));
-        }
-        if !(max_update.is_finite() && max_update > 0.0) {
-            return Err(PlasticityError::InvalidParams(format!(
-                "max_update must be finite and > 0; found {max_update}"
-            )));
-        }
-        if !(plastic_bound.is_finite() && plastic_bound > 0.0) {
-            return Err(PlasticityError::InvalidParams(format!(
-                "plastic_bound must be finite and > 0; found {plastic_bound}"
-            )));
-        }
-        if !(baseline_beta.is_finite() && (0.0..=1.0).contains(&baseline_beta)) {
-            return Err(PlasticityError::InvalidParams(format!(
-                "baseline_beta must be finite in [0, 1]; found {baseline_beta}"
-            )));
-        }
+        update.validate()?;
         if !self.reward_baseline.is_finite() {
             return Err(PlasticityError::NonFiniteState("baseline".to_owned()));
         }
@@ -664,22 +695,22 @@ impl PlasticState {
         let mut actual = vec![vec![0.0; n]; n];
         let mut next_p = self.p.clone();
         for &(j, i) in &self.plastic_edges {
-            let unbounded = eta * delta * gates[j] * self.e[j][i];
+            let unbounded = update.eta * delta * gates[j] * self.e[j][i];
             if !unbounded.is_finite() {
                 return Err(PlasticityError::NonFiniteState("raw update".to_owned()));
             }
-            let bounded = unbounded.clamp(-max_update, max_update);
+            let bounded = unbounded.clamp(-update.max_update, update.max_update);
             let candidate = self.p[j][i] + bounded;
             if !candidate.is_finite() {
                 return Err(PlasticityError::NonFiniteState("P".to_owned()));
             }
-            let clamped = candidate.clamp(-plastic_bound, plastic_bound);
+            let clamped = candidate.clamp(-self.plastic_bound, self.plastic_bound);
             raw[j][i] = unbounded;
             limited[j][i] = bounded;
             actual[j][i] = clamped - self.p[j][i];
             next_p[j][i] = clamped;
         }
-        let baseline_new = baseline_old + baseline_beta * delta;
+        let baseline_new = baseline_old + update.baseline_beta * delta;
         if !baseline_new.is_finite() {
             return Err(PlasticityError::NonFiniteState("baseline".to_owned()));
         }
@@ -713,6 +744,7 @@ impl PlasticState {
             plastic_mask: self.mask_kind.name().to_owned(),
             trace_policy: self.trace_policy.name().to_owned(),
             tau_e: self.tau_e_config,
+            plastic_bound: self.plastic_bound,
             p: self.p.clone(),
             e: self.e.clone(),
             reward_baseline: self.reward_baseline,
@@ -721,14 +753,16 @@ impl PlasticState {
     }
 
     /// Restore validated state onto a topology plus its immutable `w0`.
-    /// Rejects schema, dimension, finiteness, mask-agreement, nonzero
-    /// `P`/`E` on missing/nonplastic entries, and nonfinite baseline
-    /// instead of defaulting them. v1 snapshots predate the M3-02 baseline
-    /// and dedup state and are rejected as incompatible.
+    /// Rejects schema, dimension, finiteness, bound/config disagreement,
+    /// out-of-bound offsets, mask disagreement, nonzero `P`/`E` on missing
+    /// or nonplastic entries, and nonfinite baseline instead of defaulting.
+    /// Pre-v3 snapshots lack at least one required lifetime invariant and are
+    /// rejected as incompatible.
     pub fn restore(
         snapshot: PlasticSnapshot,
         topology: &Topology,
         w0: &[Vec<f64>],
+        expected_plastic_bound: f64,
     ) -> Result<Self, PlasticityError> {
         if snapshot.schema_version != PLASTIC_SNAPSHOT_SCHEMA_VERSION {
             return Err(PlasticityError::Incompatible(format!(
@@ -744,6 +778,14 @@ impl PlasticState {
         }
         let mask_kind = PlasticMaskKind::from_name(&snapshot.plastic_mask)?;
         let trace_policy = TracePolicy::from_name(&snapshot.trace_policy, snapshot.tau_e)?;
+        validate_plastic_bound(expected_plastic_bound)?;
+        validate_plastic_bound(snapshot.plastic_bound)?;
+        if snapshot.plastic_bound != expected_plastic_bound {
+            return Err(PlasticityError::Incompatible(format!(
+                "snapshot plastic_bound {} does not match resolved {}",
+                snapshot.plastic_bound, expected_plastic_bound
+            )));
+        }
         check_w0(topology, w0)?;
         let n = topology.neuron_count;
         if snapshot.p.len() != n
@@ -759,6 +801,16 @@ impl PlasticState {
             || !snapshot.e.iter().flatten().all(|v| v.is_finite())
         {
             return Err(PlasticityError::Corrupt("P/E must be finite".to_owned()));
+        }
+        if snapshot
+            .p
+            .iter()
+            .flatten()
+            .any(|value| value.abs() > expected_plastic_bound)
+        {
+            return Err(PlasticityError::Corrupt(format!(
+                "P exceeds plastic_bound {expected_plastic_bound}"
+            )));
         }
         if !snapshot.reward_baseline.is_finite() {
             return Err(PlasticityError::Corrupt(
@@ -801,6 +853,7 @@ impl PlasticState {
             plastic_edges,
             trace_policy,
             tau_e_config: snapshot.tau_e,
+            plastic_bound: snapshot.plastic_bound,
             p: snapshot.p,
             e: snapshot.e,
             w_effective: vec![vec![0.0; n]; n],
@@ -824,11 +877,21 @@ pub struct PlasticSnapshot {
     pub plastic_mask: String,
     pub trace_policy: String,
     pub tau_e: f64,
+    pub plastic_bound: f64,
     pub p: Vec<Vec<f64>>,
     pub e: Vec<Vec<f64>>,
     pub reward_baseline: f64,
     #[serde(deserialize_with = "crate::checkpoint::required_option")]
     pub last_feedback: Option<u64>,
+}
+
+fn validate_plastic_bound(plastic_bound: f64) -> Result<(), PlasticityError> {
+    if !(plastic_bound.is_finite() && plastic_bound > 0.0) {
+        return Err(PlasticityError::InvalidParams(format!(
+            "plastic_bound must be finite and > 0; found {plastic_bound}"
+        )));
+    }
+    Ok(())
 }
 
 fn check_w0_shape(n: usize, w0: &[Vec<f64>]) -> Result<(), PlasticityError> {
@@ -953,7 +1016,7 @@ mod tests {
         let w0 = small_w0(&topology);
         for mask in ["all_recurrent_edges", "motor_afferent_only"] {
             for trace in ["persistent", "no_decay_diagnostic"] {
-                let state = PlasticState::new(&topology, &w0, mask, trace, 32.0).unwrap();
+                let state = PlasticState::new(&topology, &w0, mask, trace, 32.0, 0.5).unwrap();
                 assert!(state.p().iter().flatten().all(|&v| v == 0.0));
                 assert!(state.e().iter().flatten().all(|&v| v == 0.0));
                 assert_eq!(state.effective_weights(), &w0);

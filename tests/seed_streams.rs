@@ -11,8 +11,8 @@
 //!   runtime-randomized `HashMap` hasher is never used for derivation.
 
 use cra::rng::{
-    SUPPORTED_NAMESPACES, SUPPORTED_STREAMS, SeedTuple, derive_seed_hex, is_supported_namespace,
-    rng_for, validate_tuple,
+    ACTOR_INIT_STREAM, CUE_MEMBERSHIP_STREAM, SUPPORTED_NAMESPACES, SUPPORTED_STREAMS, SeedTuple,
+    derive_seed_hex, is_supported_namespace, rng_for, validate_tuple,
 };
 use rand_core::RngCore;
 
@@ -68,6 +68,15 @@ fn reserved_streams_are_pairwise_distinct() {
         let hex = derive_seed_hex(&tuple(1, "development", 1, 0, stream)).unwrap();
         assert!(seen.insert(hex), "duplicate seed for stream {stream}");
     }
+}
+
+#[test]
+fn actor_initialization_and_hidden_membership_have_distinct_streams() {
+    assert_ne!(ACTOR_INIT_STREAM, CUE_MEMBERSHIP_STREAM);
+    let actor = derive_seed_hex(&tuple(1, "development", 1, 0, ACTOR_INIT_STREAM)).unwrap();
+    let membership =
+        derive_seed_hex(&tuple(1, "development", 1, 0, CUE_MEMBERSHIP_STREAM)).unwrap();
+    assert_ne!(actor, membership);
 }
 
 #[test]

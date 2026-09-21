@@ -19,8 +19,8 @@
 //! }
 //! ```
 //!
-//! RNG ownership: the lifetime draws only from `init` (membership shuffle),
-//! `mapping_init` (birth mappings), `mapping_change` (hazard flips),
+//! RNG ownership: the lifetime draws only from `cue_membership` (hidden role
+//! shuffle), `mapping_init` (birth mappings), `mapping_change` (hazard flips),
 //! `cue_order` (cue choice), `timing` (quiet/gap/delay lengths), and
 //! `reward_noise` (one bit per commitment). It never touches `actor_noise`,
 //! `tie_break`, or `evolution`, so agent-side draws cannot perturb the
@@ -146,17 +146,18 @@ impl Lifetime {
             ))
             .map_err(|e| SimError::InvalidConfiguration(format!("bad seed tuple: {e}")))
         };
-        let mut init_rng = stream("init")?;
+        let mut membership_rng = stream(crate::rng::CUE_MEMBERSHIP_STREAM)?;
         let mut mapping_init_rng = stream("mapping_init")?;
         let change_rng = stream("mapping_change")?;
         let cue_rng = stream("cue_order")?;
         let timing_rng = stream("timing")?;
         let noise_rng = stream("reward_noise")?;
 
-        // Stable/volatile membership: shuffle cue ids on the init stream.
+        // Stable/volatile membership has its own stream; actor initialization
+        // must not be coupled to hidden environment roles.
         let n_stable = ((cue_count as f64 * env.stable_fraction).round() as usize).min(cue_count);
         let mut membership: Vec<usize> = (0..cue_count).collect();
-        membership.shuffle(&mut init_rng);
+        membership.shuffle(&mut membership_rng);
         let hidden = HiddenState::at_birth(
             cue_count,
             &membership,

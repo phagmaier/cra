@@ -1,4 +1,5 @@
 {
+  "schema_version": 2,
   "lifetime_index": 0,
   "namespace": "development",
   "outer_seed": 1,
@@ -7,6 +8,10 @@
     {
       "seed_hex": "da2a722cf5b2f554953ce70c39fa286eb6aa9b22edbf7cdd1f391ca9ba4925a2",
       "stream": "cue_order"
+    },
+    {
+      "seed_hex": "a168af727df5b94e67b94aebe5bca8e73ebdcc2820f03fed7a05604165411e29",
+      "stream": "cue_membership"
     },
     {
       "seed_hex": "aba436459ce5ce06d62b26d1120b5d99f89905137b74e6561a741be596b20b61",

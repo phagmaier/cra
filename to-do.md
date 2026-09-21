@@ -30,19 +30,20 @@ and [continuation guide](docs/handoff.md).
 
 | Field | Current value |
 | --- | --- |
-| Current milestone | M3 in progress; M2-GATE passed 2026-09-21 UTC; M3-03 verified 2026-09-21 UTC |
+| Current milestone | M3 in progress; M2-GATE passed; M3-PREFLIGHT verified 2026-09-21 UTC |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M3-03 — hand-calculated golden update fixture |
+| Last verified task | M3-PREFLIGHT — owner-requested pre-integration hardening |
 | Claimed task | None |
 | Next eligible task | M3-04 |
 | Current blocker | None |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | 2026-09-21 UTC M3-03; docs/evidence/m3-03/summary.md and ledger below |
+| Last evidence record | 2026-09-21 UTC M3-PREFLIGHT; docs/evidence/m3-preflight/summary.md and ledger below |
 
 ### Session ownership and handoffs
 
 | Owner/session | Task IDs | Files or interfaces owned | Status / handoff |
 | --- | --- | --- | --- |
+| opencode 2026-09-21 M3 preflight | M3-PREFLIGHT | src/{rng,run,checkpoint,environment/mod}.rs, src/agent/{no_learning,topology,plasticity}.rs, tests/{seed_streams,environment_contract,plasticity,feedback_updates,golden_updates}.rs, analysis/{validate_logs,test_validate_logs}.py, analysis/fixtures/valid/seed_streams.json, docs/, README.md, to-do.md | Done; hardening plus versioned provenance, 249 Rust/17 Python tests pass; next M3-04 |
 | opencode 2026-09-21 M3-03 | M3-03 | tests/golden_updates.rs, docs/evidence/m3-03/, README.md, docs/{decisions,evidence/README,handoff}.md, to-do.md | Done; 4 new tests (fixture only) and full checks pass; next M3-04 |
 | opencode 2026-09-21 M3-02 | M3-02 | src/agent/plasticity.rs, tests/feedback_updates.rs, docs/evidence/m3-02/, README.md, docs/{decisions,evidence/README,handoff}.md, to-do.md | Done; 11 new tests and full checks pass; next M3-03 |
 | opencode 2026-09-21 M3-01 | M3-01 | src/agent/{plasticity,actor,mod}.rs, src/lib.rs, tests/plasticity.rs, docs/evidence/m3-01/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; 16 new tests and full checks pass; next M3-02 |
@@ -299,6 +300,11 @@ Demonstrate learning from delayed terminal rewards in a deliberately episodic di
   - Deliver: Implement Section 17.3 independently of ordinary configured time constants: score 0.4, new eligibility 0.67, delta 0.4, raw update 0.00067, new P 0.10067, and new baseline 0.64.
   - Verify: Use tight stated floating-point tolerances. Assert the old baseline is used for delta, and test both clipped and unclipped cases separately. Save the fixture in tests/golden_updates.rs.
   - Evidence: `docs/evidence/m3-03/summary.md` (2026-09-21 UTC). Fixture-only `tests/golden_updates.rs` drives the 17.3 chain through `conditional_score`/`advance_eligibility`/`apply_feedback_once` with explicit `alpha_h = 0.5`, `lambda_e = 0.9`; unclipped golden plus separate per-edge and bound clamps at `1e-12`–`1e-15` (1-ulp allowance on one `actual == limited` comparison). 4 new tests; 247 fast Rust tests pass, 3 default ignores, 2 compile-fail doc checks, clean fmt/Clippy. No production change; M3-04 episodic runner remains.
+
+- [x] **M3-PREFLIGHT - Apply owner-requested pre-integration hardening**
+  - Deliver: separate hidden cue-role assignment from actor initialization RNG, replace positional feedback-update hyperparameters with a named validated value, and reject restored plastic offsets outside the resolved bound. Preserve learning arithmetic and leave runner/tick-order work in M3-04/M4-01.
+  - Verify: stream identities are distinct, existing update goldens remain unchanged, out-of-bound snapshots fail explicitly, and focused plus full quality checks pass. Record any deterministic fixture migration rather than silently changing expected values.
+  - Evidence: `docs/evidence/m3-preflight/summary.md` (2026-09-21 UTC). Hidden cue-role membership uses dedicated `cue_membership` while actor `init` and other streams remain unchanged; `FeedbackUpdateParams` replaces positional event hyperparameters; `plastic_bound` is stored and validated by plastic snapshot schema 3. Seed-stream provenance is schema 2 with legacy schema-1 audit support. Mixed-role assignment has a recorded deterministic migration. 249 fast Rust tests and 17 Python tests pass, a fresh release smoke audits clean, and M3-03 goldens are unchanged. No learner or acquisition claim.
 
 - [ ] **M3-04 - Create the explicitly episodic clean-learning runner**
   - Deliver: Use two unknown cue-action mappings, zero noise, no reversals or blank gap, short delay, reset state/traces between diagnostic rollouts, no trace decay, and one terminal update. Name this profile episodic_stationary, separate from continuous debug_stationary.
@@ -2816,6 +2822,68 @@ Tracker boxes updated: M3-03 checked after verification; status/ownership/
 Next eligible task: M3-04.
 ```
 
+```text
+Date / agent or session: 2026-09-21 / opencode (M3 preflight session)
+Task IDs: M3-PREFLIGHT
+Spec sections: 5.3/5.8 (environment parameters and independent exogenous
+  streams), 7.5 (bounded update), 10.6 (bounds/failure), 17.2 (plasticity
+  invariants)
+Change and affected files: src/rng.rs (explicit actor-init and cue-membership
+  owners); src/environment/mod.rs (dedicated hidden-membership stream);
+  src/agent/{no_learning,topology}.rs and src/checkpoint.rs (one central
+  actor-init stream identity); src/run.rs (seed provenance schema 2);
+  src/agent/plasticity.rs (named FeedbackUpdateParams, lifetime plastic bound,
+  snapshot schema 3 with bound/config validation); tests/{seed_streams,
+  environment_contract,plasticity,feedback_updates,golden_updates}.rs;
+  analysis/{validate_logs,test_validate_logs}.py and current seed fixture;
+  README.md,
+  docs/{decisions,evidence/README,handoff}.md,
+  docs/evidence/m3-preflight/summary.md, to-do.md.
+Code revision / dirty-tree state: base 9fe089b clean at start; listed files
+  modified/new at verification time.
+Commands actually executed:
+  cargo test --locked --test seed_streams --test environment_contract
+    --test randomized_env --test replay --test checkpoint
+  cargo test --locked --test plasticity --test feedback_updates
+    --test golden_updates
+  cargo fmt --all
+  cargo test --locked --test seed_streams --test environment_contract
+    --test randomized_env --test replay --test checkpoint --test plasticity
+    --test feedback_updates --test golden_updates
+  cargo fmt --all -- --check
+  cargo clippy --all-targets --locked -- -D warnings
+  cargo test --all-targets --locked
+  cargo test --locked --doc
+  python3 analysis/test_validate_logs.py
+  python3 analysis/validate_logs.py analysis/fixtures/valid
+  cargo run --release --locked -- simulate --config configs/env_smoke.toml
+    --baseline random --lifetimes 1 --seed 1
+    --out-dir /tmp/opencode/m3-preflight-audit
+  python3 analysis/validate_logs.py
+    /tmp/opencode/m3-preflight-audit/env_smoke-root1-outer1-1789985082
+  git diff --check
+Outcome and checks passed: affected focused suites pass; full fast Rust suite
+  249 passed, 3 intentional ignores; 2 compile-fail doc tests and 17 Python
+  audit tests pass; clean fmt/Clippy/diff check. A fresh release B0 lifetime
+  completed and audited clean. Existing checkpoint/replay suites and M3-03
+  golden values pass unchanged. Restore rejects bound mismatch/out-of-bound P.
+Checks not run / failures / blockers: no failures. Slow M2 Monte Carlo not
+  rerun because score mathematics are unchanged.
+Configuration and suite hashes: source/test SHA-256 values are recorded in
+  docs/evidence/m3-preflight/summary.md; configured numeric values unchanged.
+Seed namespace / outer seeds / lifetime count: deterministic tests plus one
+  development root1/outer1 B0 lifetime; no final-test or learning lifetime.
+Artifact paths and checksums where relevant:
+  docs/evidence/m3-preflight/summary.md.
+Interpretation and claim limits: mixed stable/volatile role assignment now
+  intentionally differs from revisions through 9fe089b; all other stream
+  identities are unchanged and historical artifacts remain revision-bound.
+  Seed provenance is versioned with legacy audit support; ordinary event logs
+  are unchanged. No learner runner, ordering proof or acquisition claim.
+Tracker boxes updated: M3-PREFLIGHT checked after verification.
+Next eligible task: M3-04.
+```
+
 ## Blockers and decision register - keep current
 
 No blockers. M1-GATE re-verified after the 2026-09-21 UTC owner-requested
@@ -2838,6 +2906,11 @@ acquisition evidence yet.
 M3-03 verified 2026-09-21 UTC: 4 new golden-fixture tests and the full
 247-test fast suite plus 2 compile-fail docs pass; Section 17.3 chain and
 separate clipped cases exist. Fixture only: no acquisition evidence yet.
+M3-PREFLIGHT verified 2026-09-21 UTC: cue-role and actor-init RNG streams are
+separate; feedback parameters are named; plastic snapshot v3 enforces its
+resolved bound. Full 249-test fast suite, 2 compile-fail docs, 17 Python tests,
+and one audited release smoke pass. The
+mixed-role seed migration is recorded; no learner/acquisition claim follows.
 Next: M3-04 (explicitly episodic clean-learning runner).
 M1 findings, corrections and claim limits: `docs/m1-review.md`.
 M0 historical evidence remains in `docs/m0-review.md`.
