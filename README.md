@@ -142,6 +142,7 @@ pipeline in M8. Do not treat their absence as a failure of M0.
 order, structural validation), `agent/weights.rs` (M1-02 row-scaled `W0`,
 dense `B`, zero biases, parameter validation), `agent/actor.rs` (M1-03
 double-buffered transition, `-expm1` leaks, post-integration noise),
+`agent/motor.rs` (M1-06 pool means, leaky filter, new-q commitment),
 `experiments/baseline.rs` (B0/B1/O1 harness),
 `logging/` (event records + validation), `run.rs` (provenance + simulation
 runner), and thin `main.rs`.

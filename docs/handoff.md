@@ -1,9 +1,8 @@
 # Agent continuation guide
 
-Updated 2026-09-21 UTC after M1-05, from code revision `5f8b9b8`
-(`M1-03 done`) with M1-04/M1-05 changes uncommitted. This is a working
-handoff. Check the tracker and Git state for newer work before claiming
-a task.
+Updated 2026-09-21 UTC after M1-06, from code revision `585f36c`
+(`m1-05`) with M1-06 changes uncommitted. This is a working handoff.
+Check the tracker and Git state for newer work before claiming a task.
 
 ## Start here
 
@@ -19,17 +18,16 @@ a task.
 
 ## Current position and evidence
 
-**M0-GATE passed and was re-verified. M1-05 verified. Next task: M1-06.**
-There is no outstanding M1-05 blocker. The claim track remains `family_only`.
+**M0-GATE passed and was re-verified. M1-06 verified. Next task: M1-07.**
+There is no outstanding M1-06 blocker. The claim track remains `family_only`.
 No reserved final-test outcomes have been inspected.
 
-M1-05 verified adaptation with no source change: strength 0 hides `a_old`
-from `h` bit-identically, `a` follows its own `tau_a`, a nonzero-strength
-unit fixture shows the specified opposing sign against a paired control
-(overshooting below zero while the control stays positive), persistence
-replays exactly across input changes, and `debug_stationary.toml` pins
-strength 0. 5 tests in `tests/adaptation.rs`; full suite is 121 Rust tests
-passing with clean fmt/clippy; see the M1-05 tracker ledger entry.
+M1-06 added `src/agent/motor.rs` (fixed pool means, leaky filter, new-q
+commitment, tie-only RNG draws) with 7 tests in `tests/motor.rs` plus 1
+unit test. Strict decisions consume zero RNG (the no-exploration proof);
+exact ties draw one fair coin. Full suite is 129 Rust tests passing with
+clean fmt/clippy; see the M1-06 tracker ledger entry. All prior results
+unchanged.
 
 The [M0 review](m0-review.md) records 73 Rust tests and 14 Python tests
 passing, clean fmt/clippy, four original runs audited, and seven fresh
@@ -44,33 +42,36 @@ is available for a quick audit. Reproduce missing raw runs using the saved
 commands/configs into new directories; preserve historical evidence paths
 and distinguish reruns from the original execution.
 
-## Next task: M1-06
+## Next task: M1-07
 
-**Deliver:** fixed motor pools, filtering, and commitment — average new
-activities within the two fixed disjoint motor populations, the leaky motor
-filter, and the higher-filtered-output choice at commitment with a
-dedicated fair tie RNG.
+**Deliver:** the nonplastic actor integrated through the common runner —
+continuously available motor output on every tick, public reward processed
+as sensory input with no weight learning, and the inherited weights
+provably unchanged across a lifetime. Uses an explicit actor-no-learning
+profile for B3.
 
-Read spec Sections 6.3–6.4 alongside the
+Read spec Sections 3.4, 5.6–5.8, and 9 alongside the
 [M1 task queue](../to-do.md#m1---build-a-continuous-actor-with-no-learning).
-Inspect `src/agent/topology.rs` (motor pool assignment), `src/agent/actor.rs`
-(`r` activity output), `src/rng.rs` (the `tie_break` stream), and
-`src/environment/observation.rs` (`MotorOutput`) first. Likely home is a
-new `src/agent/motor.rs`; keep it free of plasticity, trained decoders,
-and exploration policies.
+Inspect `src/experiments/baseline.rs` (`OrdinaryPolicy`, `run_ordinary`),
+`src/environment/mod.rs` (tick driver, `commit`, consumption ledger),
+`src/agent/{actor,motor,weights}.rs`, and `src/run.rs` (run provenance)
+first. The agent must implement the ordinary `Agent` trait so the
+information boundary is type-level, like B0/B1.
 
-- Prove the golden filter recurrences exactly (fixed-point arithmetic from
-  hand means, not from the implementation's own alpha helper alone).
-- Prove commitment reads the new `q` values and exact ties use only the
-  tie stream (forced-tie fixture with a seeded `tie_break` RNG).
-- Prove disjointness/capacity against the config validation (pools must
-  match `topology.rs` assignment; no trained decoder, softmax, or
-  epsilon-greedy policy).
-- Verify with the stated checks, then run the applicable full quality
+- Advance the network on every phase (quiet/cue/gap/response/delay/
+  feedback); never reset state at cue/reward/change boundaries; keep
+  `W0` bit-identical throughout (hash or compare before/after).
+- Keep environment scheduling identical to M0 (same tick counts, same
+  exogenous streams; agent draws come only from `actor_noise`/`tie_break`
+  like B0 does).
+- Preserve the feedback ordering the runner already enforces
+  (`apply_feedback` before `advance`); selection reads policy state only.
+- Verify with the stated checks (phase continuity, weight invariance,
+  logging on/off invariance), then run the applicable full quality
   checks and append tracker evidence.
 
-Keep M1-07 runner integration and later learning/search work in their task
-order. Completing M1-06 alone does not pass M1-GATE.
+Keep M1-08 traces/watchdog and later learning/search work in their task
+order. Completing M1-07 alone does not pass M1-GATE.
 
 ## Implementation map
 
@@ -87,6 +88,7 @@ order. Completing M1-06 alone does not pass M1-GATE.
 | Actor transition (M1-03) | `src/agent/actor.rs` | `tests/actor.rs`; orientation/simultaneity/leak/no-clip fixtures |
 | Perturbation schedule (M1-04) | `src/agent/actor.rs` + `weights.rs` | `tests/actor_noise.rs`; per-tick draws, moments, resume primitive |
 | Adaptation at strength 0 (M1-05) | `src/agent/actor.rs` (verified) | `tests/adaptation.rs`; inertness, sign, persistence, config pin |
+| Motor readout (M1-06) | `src/agent/motor.rs` | `tests/motor.rs`; golden filters, new-q commitment, tie-only draws |
 | Ordinary/hidden event serialization | `src/logging/events.rs` | `tests/event_logging.rs`, `analysis/test_validate_logs.py` |
 | CLI dispatch | `src/main.rs` | `validate-config` and baseline-only `simulate` |
 

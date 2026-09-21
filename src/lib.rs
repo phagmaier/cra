@@ -8,9 +8,10 @@
 //! Python log audit are implemented. M1-01 adds inherited recurrent topology
 //! ([`agent::topology`]: Bernoulli mask, fixed motor pools, stable edge
 //! order, structural validation), M1-02 inherited weights
-//! ([`agent::weights`]: row-scaled `W0`, dense `B`, zero biases), and M1-03
-//! the double-buffered actor transition ([`agent::actor`]). Plasticity,
-//! search, and comparative analysis remain later milestones.
+//! ([`agent::weights`]: row-scaled `W0`, dense `B`, zero biases), M1-03
+//! the double-buffered actor transition ([`agent::actor`]), and M1-06 the
+//! fixed motor readout ([`agent::motor`]). Plasticity, search, and
+//! comparative analysis remain later milestones.
 
 pub mod agent;
 pub mod config;

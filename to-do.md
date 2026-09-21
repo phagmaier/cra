@@ -30,14 +30,14 @@ and [continuation guide](docs/handoff.md).
 
 | Field | Current value |
 | --- | --- |
-| Current milestone | M1 open; M1-05 verified 2026-09-21 UTC, M1-GATE still open |
+| Current milestone | M1 open; M1-06 verified 2026-09-21 UTC, M1-GATE still open |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M1-05 (adaptation); M0 scope verification remains M0-REVIEW |
+| Last verified task | M1-06 (motor readout); M0 scope verification remains M0-REVIEW |
 | Claimed task | None |
-| Next eligible task | M1-06 |
+| Next eligible task | M1-07 |
 | Current blocker | None |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | 2026-09-21 UTC M1-05 ledger entry (this file); M0 simulation evidence in docs/evidence/m0-review/ |
+| Last evidence record | 2026-09-21 UTC M1-06 ledger entry (this file); M0 simulation evidence in docs/evidence/m0-review/ |
 
 ### Session ownership and handoffs
 
@@ -54,6 +54,7 @@ and [continuation guide](docs/handoff.md).
 | agent 2026-09-21 | M1-03 | src/agent/{mod,actor}.rs, tests/actor.rs, docs/decisions.md | Done, verified; handoff to M1-04 |
 | agent 2026-09-21 | M1-04 | src/agent/actor.rs, tests/actor_noise.rs, docs/decisions.md | Done, verified; handoff to M1-05 |
 | agent 2026-09-21 | M1-05 | tests/adaptation.rs | Done, verified; handoff to M1-06 |
+| agent 2026-09-21 | M1-06 | src/agent/{mod,motor}.rs, tests/motor.rs, docs/decisions.md | Done, verified; handoff to M1-07 |
 
 Parallel work requires settled interfaces and satisfied dependencies. Do not parallelize successive scientific milestones or let two agents independently redefine feedback ordering, RNG policy, or checkpoint schema. Coordinate changes to this tracker through one integrator.
 
@@ -189,7 +190,7 @@ Establish correct, continuously evolving actor dynamics and replay before introd
   - Deliver: Update the signed adaptation average from old activity using its separate time constant. Preserve it across all environmental phase boundaries.
   - Verify: At strength zero adaptation has no influence on actor dynamics. A nonzero-strength unit fixture checks its sign and recurrence, but the initial learner is not simultaneously complicated by enabling this mechanism.
 
-- [ ] **M1-06 - Implement fixed motor pools, filtering, and commitment**
+- [x] **M1-06 - Implement fixed motor pools, filtering, and commitment**
   - Deliver: Average new activities within the two fixed disjoint motor populations, apply the leaky motor filter, and choose the higher filtered output at commitment with a dedicated fair tie RNG.
   - Verify: Golden filter recurrences pass. Commitment reads the new q values; exact ties use only the tie stream. No trained decoder, softmax exploration, or epsilon-greedy actor policy is added.
 
@@ -1805,6 +1806,59 @@ Interpretation and claim limits: Adaptation behavior verified; the
   claim. M1-GATE remains open.
 Tracker boxes updated: M1-05 checked.
 Next eligible task: M1-06.
+```
+
+```text
+Date / agent or session: 2026-09-21 UTC / agent (M1 motor session)
+Task IDs: M1-06
+Spec sections: 6.3 (motor filter constant), 6.4 (pool means, leaky
+  filter, commitment, tie stream), 10.4 (birth q = 0)
+Change and affected files: src/agent/motor.rs (new: MotorState with birth
+  zeros/from_q, update returning new MotorOutput, decide_action with
+  tie-only draws, pool validation, MotorError); src/agent/mod.rs +
+  src/lib.rs (register/document motor); tests/motor.rs (new, 7 tests);
+  docs/decisions.md (M1-06 conventions entry); README.md (layout line);
+  docs/handoff.md (M1-07 continuation).
+Code revision / dirty-tree state: base 585f36c (m1-05); clean at start,
+  M1-06 files new or modified and uncommitted at handoff (M README.md,
+  docs/decisions.md, docs/handoff.md, src/agent/mod.rs, src/lib.rs,
+  to-do.md; ?? src/agent/motor.rs, tests/motor.rs).
+Commands actually executed:
+  cargo test --locked --test motor (7/7 pass)
+  cargo test --all-targets --locked (129/129 pass, 1 ignored: 26 lib
+    incl. 1 new motor unit + 0 bin + 7 actor + 7 actor_noise + 5
+    adaptation + 7 motor + 7 baselines + 4 config + 20 contract + 5
+    logging + 3 order + 5 leakage + 5 randomized + 5 seeds + 13 topology
+    + 10 weights)
+  cargo fmt --all -- --check (clean)
+  cargo clippy --all-targets --locked -- -D warnings (clean after
+    iterator-form pool-mean loop in src/agent/motor.rs)
+  python3 analysis/test_validate_logs.py (14/14 pass, unchanged layer)
+  cargo run --release --locked -- validate-config
+    configs/debug_stationary.toml (OK) and configs/env_smoke.toml (OK)
+Outcome and checks passed: Golden recurrences match the independent
+  1-exp formulation at 1e-12 from zero and over three ticks; pool means
+  read assigned populations (swaps would flip values); stale q favoring
+  action 0 loses to fresh activity favoring 1 (commitment reads new q);
+  strict decisions leave the tie word position unchanged while an exact
+  tie draws one coin equal to the replicated random_bool (deterministic
+  per seed); empty/out-of-range/overlapping pools, bad taus, and
+  nonfinite inputs rejected; debug pools equal the topology assignment
+  ([12,13]/[14,15]) with finite readout.
+Checks not run / failures / blockers: None. M0 smoke simulate not rerun
+  (no runner change). Full-lifetime integration waits for M1-07.
+Configuration and suite hashes: Hand N = 4 fixtures (means +-0.15..1.0,
+  tau_q 3); tie_break seed (root 1, development, outer 1, lifetime 0);
+  debug_stationary motor_filter_tau; no suites consumed.
+Seed namespace / outer seeds / lifetime count: development tie_break
+  fixtures only; no lifetimes simulated.
+Artifact paths and checksums where relevant: src/agent/motor.rs,
+  tests/motor.rs (no run directories produced).
+Interpretation and claim limits: Fixed readout only. No decoder, no
+  exploration policy (proven by zero RNG consumption on strict
+  decisions), no learning claim. M1-GATE remains open.
+Tracker boxes updated: M1-06 checked.
+Next eligible task: M1-07.
 ```
 
 ## Blockers and decision register - keep current

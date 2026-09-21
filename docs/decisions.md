@@ -415,3 +415,32 @@ make code or a result look successful.**
   Consequence: the M1-09 schema must carry seed bytes plus word position
   for the noise stream, and any change of normal implementation re-opens
   this entry.
+
+## 2026-09-21 UTC — M1-06 motor readout conventions (spec 6.3–6.4, 10.4)
+
+- **Scope:** fixed pool means, the leaky motor filter, and commitment with
+  a dedicated tie RNG. No trained decoder, softmax, or epsilon-greedy
+  exploration (spec 6.4 forbids them initially). Affected spec sections:
+  6.3 (filter constant), 6.4 (readout/commitment), 10.4 (birth `q = 0`).
+- **One assignment source.** Pools come from `topology::motor_pools`
+  (last indices, M1-01); `motor.rs` takes pool slices as arguments and
+  revalidates non-emptiness, index range, and disjointness rather than
+  trusting callers or duplicating the assignment rule. Consequence: M1-06
+  cannot drift from the M1-01 assignment; a future assignment change
+  touches one function.
+- **Filter alpha reused.** `alpha_q = leak_alpha(motor_filter_tau)` shares
+  the M1-03 helper (same `-expm1` contract); `motor_filter_tau = 3` is the
+  configured starting value, validated finite and positive per call.
+- **Ties draw, decisions otherwise don't.** `decide_action` reads the new
+  `q` values: strict inequality returns the winner with zero RNG
+  consumption, exact equality draws one `random_bool(0.5)` from the
+  dedicated `tie_break` stream. Consequence: the word position of the tie
+  RNG is unchanged by any non-tie decision, which doubles as the
+  no-epsilon-greedy proof (an exploratory policy would draw every call).
+  M1-07 pairs the tie stream per lifetime like every other agent stream.
+- **`MotorOutput` reused for the readout.** The filter returns the
+  boundary `MotorOutput` type directly, so commitment callers cannot
+  mistake stale `q` for new: `update` returns the new values and
+  `decide_action` takes them explicitly. Birth state is `q = [0, 0]`
+  (spec 10.4); `from_q` serves fixtures and M1-09 restore with a
+  finiteness check.
