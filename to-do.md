@@ -32,17 +32,18 @@ and [continuation guide](docs/handoff.md).
 | --- | --- |
 | Current milestone | M2 open; M1-GATE passed 2026-09-21 UTC |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M2-03 — one-neuron analytical learning-direction diagnostic |
+| Last verified task | M2-04 — fixed-weight, no-decay finite-rollout diagnostic |
 | Claimed task | None |
-| Next eligible task | M2-04 |
+| Next eligible task | M2-05 |
 | Current blocker | None |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | 2026-09-21 UTC M2-03; completion ledger below and docs/evidence/m2-03/summary.md |
+| Last evidence record | 2026-09-21 UTC M2-04; completion ledger below and docs/evidence/m2-04/summary.md |
 
 ### Session ownership and handoffs
 
 | Owner/session | Task IDs | Files or interfaces owned | Status / handoff |
 | --- | --- | --- | --- |
+| Codex 2026-09-21 M2-04 | M2-04 | src/experiments/{mod,finite_rollout}.rs, tests/finite_rollout.rs, README.md, docs/{decisions,handoff}.md, docs/evidence/m2-04/, to-do.md | Done; 8 integration and 2 compile-fail checks pass; next M2-05 |
 | Codex 2026-09-21 M2-03 | M2-03 | tests/score_learning_direction.rs, docs/evidence/m2-03/, docs/experiments.md, README.md, docs/handoff.md, to-do.md | Done; million-sample diagnostic and full fast checks pass; next M2-04 |
 | Codex 2026-09-21 continuation | M2-02 | tests/score_log_probability.rs, docs/evidence/m2-02/, README.md, docs/handoff.md, to-do.md | Done; 288 derivative comparisons and full Rust checks pass; next M2-03 |
 | Codex 2026-09-21 | M2-01 | src/agent/{mod,score}.rs, tests/score.rs, README.md, docs/handoff.md, to-do.md | Done; eight score tests and full Rust checks pass; next M2-02 |
@@ -254,7 +255,7 @@ Validate the conditional Gaussian score and restricted finite-rollout interpreta
   - Deliver: Use alpha=0.2, input=0.7, weight=0.3, sigma=0.4; compare the mean of (reward-0.5)*score against the closed-form derivative, approximately 0.138862. Save sample count, seed, mean, and standard error.
   - Verify: Use a tolerance declared before execution, such as five standard errors plus numerical tolerance. Confirm the opposite target reverses the derivative sign. Investigate a failure instead of rerunning until it passes.
 
-- [ ] **M2-04 - Build the exact finite-rollout diagnostic mode**
+- [x] **M2-04 - Build the exact finite-rollout diagnostic mode**
   - Deliver: Use weight-independent initial state, fixed weights during a rollout, fixed nonzero noise, no state clipping, no eligibility decay, and a baseline fixed independently of rollout perturbations. Sum local scores and apply at most one terminal update.
   - Verify: Tests prohibit online updates or running-baseline changes inside this diagnostic. Its resets and no-decay policy are explicit, not hidden meanings of birth_only or a very large finite tau.
 
@@ -2491,15 +2492,72 @@ Tracker boxes updated: M2-03 checked.
 Next eligible task: M2-04.
 ```
 
+```text
+Date / agent or session: 2026-09-21 UTC / Codex M2-04
+Task IDs: M2-04
+Spec sections: 7.2, 7.6, 9, 10.5, 16/M2, 17.6
+Change and affected files: src/experiments/{mod,finite_rollout}.rs;
+  tests/finite_rollout.rs; README, handoff, decisions, tracker and evidence.
+  Isolated diagnostic reuses unchanged actor/score. No production runner,
+  config, RNG derivation, schema, dependency or spec changes.
+Code revision / dirty-tree state: base 9d31b9d, prior uncommitted M2-02/03
+  preserved; M2-04 uncommitted. Source and artifact hashes in summary.md.
+Commands actually executed:
+  cargo fmt --all
+  cargo test --locked --test finite_rollout (8 passed after fixture fix)
+  cargo test --locked --doc (initially 1, finally 2 compile-fail tests pass)
+  cargo fmt --all -- --check (clean)
+  cargo clippy --all-targets --locked -- -D warnings (clean)
+  CRA_M2_ROLLOUT_EVIDENCE=docs/evidence/m2-04/golden.json cargo test
+    --all-targets --locked (207 passed, 0 failed, 2 default ignores)
+Outcome: Frozen weights/noise/baseline, weight-independent zero state,
+  exact score sums with no decay, terminal-only reward and at most one
+  optional unclipped update to a W0 copy. Explicit reset between completed
+  independent rollouts, not a production reset-policy reinterpretation.
+  Golden 3-tick fixture: edge sum 0.4, reward-weighted score 0.3, copied
+  terminal weight 3. Missing edges and original W0 remain unchanged.
+  Early/duplicate finish, extra steps and live parameter/baseline mutation
+  rejected. Numerical failures cannot be finalized/retried/reset. Direct
+  16-tick recurrent actor and RNG parity holds with manual score accumulation.
+Checks not run / failures / blockers: Initial focused compile exposed two
+  test-only array repetitions of Vec; fixed to vector repetition. No changed
+  equations/tolerances or blocker. M2-03 Monte Carlo and weight-printing probe
+  remain ignored in fast suite and were not rerun here. No standalone CLI
+  smoke/Python analysis rerun; no continuous runner/analysis change.
+Configuration and suite hashes: Golden fixture fully saved in golden.json,
+  injected perturbations (no seed). Stochastic parity uses development/
+  root1/outer204/lifetime0/actor_noise. Source and output hashes in summary.
+Artifact paths: docs/evidence/m2-04/{summary.md,golden.json};
+  src/experiments/finite_rollout.rs; tests/finite_rollout.rs.
+Interpretation and claim limits: Restricted diagnostic infrastructure only;
+  M2-05 recurrent Monte Carlo check still required. M2-GATE open. No learning
+  claim or scientific deviation; interface rationale in docs/decisions.md.
+Tracker boxes updated: M2-04 checked.
+Next eligible task: M2-05.
+```
+
+```text
+Date / agent or session: 2026-09-21 UTC / Codex M2-04 provenance addendum
+Task IDs: M2-04
+Final Git inspection: HEAD is now 72ad075 (m2-03), which committed the
+  prior M2-02/03 work during this session. The base 9d31b9d in the entry
+  above denotes the session start. M2-04 files remain uncommitted.
+Verification: Python stdlib evidence check revalidated all saved source
+  and golden-output SHA-256s, golden numeric results and local Markdown
+  links; all match. git diff --check clean. No tested behavior changed.
+Next eligible task: M2-05 (unchanged).
+```
+
 ## Blockers and decision register - keep current
 
 No blockers. M1-GATE re-verified after the 2026-09-21 UTC owner-requested
 corrective review: 185 Rust passes (1 ignored probe), 15 Python passes,
 clean fmt/Clippy, eleven corrected audited runs and two original comparisons.
-M2-01–M2-03 verified: score/derivative tests and million-sample one-neuron
-direction diagnostic pass; 199 fast Rust passes, two default ignores (the
-separately passed diagnostic and existing probe), clean fmt/Clippy.
-Next: M2-04; M2-GATE remains open.
+M2-01–M2-04 verified: score/derivative tests, one-neuron direction diagnostic
+and finite-rollout harness pass. Fresh M2-04 checks: 207 fast Rust passes,
+two compile-fail doc tests, two default ignores (M2-03 diagnostic passed in
+its recorded prior run; existing probe unrun), clean fmt/Clippy.
+Next: M2-05; M2-GATE remains open.
 M1 findings, corrections and claim limits: `docs/m1-review.md`.
 M0 historical evidence remains in `docs/m0-review.md`.
 Scientific decisions remain in the append-only `docs/decisions.md`.

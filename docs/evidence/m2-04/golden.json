@@ -1,0 +1,134 @@
+{
+  "configuration": {
+    "actor": {
+      "adaptation_strength": 0.0,
+      "edge_probability": 1.0,
+      "input_scale": 0.3,
+      "motor_filter_tau": 3.0,
+      "motor_neurons_per_action": 1,
+      "neuron_count": 2,
+      "noise_sigma": 0.1,
+      "recurrent_gain": 0.8,
+      "self_edges": false,
+      "tau_a": 100.0,
+      "tau_h": 1.4426950408889634
+    },
+    "baseline": 0.25,
+    "horizon": 3,
+    "parameters": {
+      "topology": {
+        "edge_probability": 1.0,
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ],
+        "init_seed_hex": "M2-04",
+        "mask": [
+          [
+            false,
+            true
+          ],
+          [
+            true,
+            false
+          ]
+        ],
+        "motor0": [
+          0
+        ],
+        "motor1": [
+          1
+        ],
+        "motor_per_action": 1,
+        "neuron_count": 2,
+        "self_edges": false
+      },
+      "weights": {
+        "bias": [
+          0.0,
+          0.0
+        ],
+        "input_weights": [
+          [
+            0.0
+          ],
+          [
+            0.0
+          ]
+        ],
+        "w0": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ]
+      }
+    },
+    "terminal_eta": 10.0,
+    "terminal_reward": 1.0
+  },
+  "decay": "none",
+  "initial_state": "zero independent of weights",
+  "perturbations": [
+    [
+      2.0273255405408217,
+      -4.236489301936018
+    ],
+    [
+      -0.2,
+      0.4
+    ],
+    [
+      0.0,
+      0.0
+    ]
+  ],
+  "reset": "only between completed rollouts",
+  "result": {
+    "baseline": 0.25,
+    "mode": "fixed_weight_no_decay_rollout",
+    "reward": 1.0,
+    "reward_weighted_scores": [
+      [
+        0.0,
+        0.30000000000000004
+      ],
+      [
+        0.30000000000000004,
+        0.0
+      ]
+    ],
+    "score_sums": [
+      [
+        0.0,
+        0.4000000000000001
+      ],
+      [
+        0.4000000000000001,
+        0.0
+      ]
+    ],
+    "steps": 3,
+    "terminal_weights": [
+      [
+        0.0,
+        3.0000000000000004
+      ],
+      [
+        3.0000000000000004,
+        0.0
+      ]
+    ]
+  },
+  "rng": "none: deterministic injected perturbations"
+}

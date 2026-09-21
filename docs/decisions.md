@@ -671,3 +671,28 @@ make code or a result look successful.**
   corrections. Some initializations remain strongly action-biased; both-action
   reachability is across seeds, not a within-lifetime balance claim. M2-01
   remains next. See [the review](m1-review.md) and its evidence bundle.
+
+## 2026-09-21 UTC — M2-04 restricted finite-rollout interface
+
+- **Spec 7.6, 10.5, 16/M2 and 17.6.** Implement the diagnostic under
+  `experiments::finite_rollout`, with explicit mode name
+  `fixed_weight_no_decay_rollout`. It reuses the unchanged actor and score
+  implementations, starting at zero state independent of weights. Do not
+  reinterpret a main reset policy or approximate no decay with a large tau.
+- **Frozen assumptions.** Owned parameters, sigma and baseline have no live
+  mutators. The caller chooses a fixed baseline before drawing this rollout's
+  noise. Input/reward rules must not depend directly on the differentiated
+  weight. Scores sum over existing edges; there are no gates or main learning
+  bounds. Terminal reward is accepted only after the fixed horizon.
+- **Terminal update and reset.** `finish(reward, None)` returns the estimator
+  without an update; `Some(eta)` produces one updated copy of W0. The original
+  parameters never change. Duplicate finalization and extra transitions fail.
+  Explicit reset is allowed only after a successful finish and restores zero
+  activity/adaptation/scores with the same frozen weights and baseline; RNG
+  ownership remains with the caller. Numerical failure is terminal, cannot be
+  reset/retried in-place, and must be reported as a failed diagnostic sample.
+- **Scope.** No production runner/config/checkpoint change, no change to
+  continuous tick ordering, and no empirical recurrent-gradient claim yet.
+  These are engineering choices implementing the restricted diagnostic, not
+  revisions to the main learning rule. M2-05 supplies the recurrent empirical
+  check. Verification and artifact hashes: [M2-04 evidence](evidence/m2-04/summary.md).

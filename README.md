@@ -7,12 +7,12 @@ feedback?
 
 Status: **M0 complete and re-verified; M1 complete and re-verified (continuous
 nonplastic actor demo, bitwise replay on linux/x86_64 — explicitly not
-learning); M2-01–M2-03 score and one-transition diagnostics complete;
-next task M2-04.** The simulator core exists as a library
+learning); M2-01–M2-04 score diagnostics and finite-rollout harness complete;
+next task M2-05.** The simulator core exists as a library
 (`src/environment/`, `src/agent/` nonplastic dynamics plus `B3`
 harness, `src/checkpoint.rs`, `src/logging/`) with deterministic
 fixtures, randomized checks, baseline/actor runners, replay proofs, and
-an offline log audit. No plasticity, gating, evolution, or comparison
+an offline log audit. No production lifetime plasticity, gating, evolution, or comparison
 pipeline exists yet. Anything listed under "Planned" is a target from
 spec Section 18 / `to-do.md`, not working code.
 
@@ -25,7 +25,7 @@ records checkpoint/diagnostic fixes and fresh measured evidence.
 
 Start with [AGENTS.md](AGENTS.md), the [current tracker](to-do.md), and
 the [agent continuation guide](docs/handoff.md). The guide maps existing
-code/tests to M2-04 and records the integration limits to preserve.
+code/tests to M2-05 and records the integration limits to preserve.
 
 | Document | Responsibility |
 | --- | --- |
@@ -100,8 +100,22 @@ To save immutable JSON, set `CRA_M2_DIRECTION_EVIDENCE` to a fresh file in
 an existing directory; existing files are rejected. M2-03 verification:
 **199 fast Rust tests passed**, two default ignores (this separately passed
 diagnostic and the existing weight-printing probe), clean fmt/Clippy.
-The recurrent finite-rollout diagnostic remains queued. M2-GATE is open;
-these checks are not evidence of online learning or convergence.
+M2-04 implements `experiments::finite_rollout::FiniteRollout`, an isolated
+fixed-weight diagnostic with zero initial state, no score decay, a constant
+baseline and optional single terminal update on a weight copy. Its explicit
+between-rollout resets do not change `simulate` or the continuous agent.
+
+```bash
+cargo test --locked --test finite_rollout
+cargo test --locked --doc
+```
+
+Set `CRA_M2_ROLLOUT_EVIDENCE` to a fresh file in an existing directory to
+save the golden test's result. [M2-04 evidence](docs/evidence/m2-04/summary.md):
+eight integration tests and two compile-fail API checks pass; **207 fast
+Rust tests pass** overall, two default ignores, clean fmt/Clippy. The recurrent
+Monte Carlo comparison is next. M2-GATE is open; these checks are not evidence
+of online learning or convergence.
 
 To save the bounded observability tests' measured diagnostics, choose a fresh
 output directory (existing evidence files are never overwritten):
@@ -221,6 +235,7 @@ double-buffered transition, `-expm1` leaks, post-integration noise),
 runner), `agent/health.rs` (M1-08 read-only watchdog, summaries, stable
 traces), `checkpoint.rs` (M1-09 versioned lifetime files, config hash,
 checksum, atomic writes), `experiments/baseline.rs` (B0/B1/B3/O1 harness),
+`experiments/finite_rollout.rs` (M2-04 fixed-weight, no-decay diagnostic),
 `logging/` (event records + validation), `run.rs` (provenance + simulation
 runner), and thin `main.rs`.
 `configs/` holds `env_smoke.toml` (M0 smoke), `debug_stationary.toml`

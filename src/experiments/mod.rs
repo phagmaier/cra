@@ -1,7 +1,9 @@
-//! Experiment harnesses (M0: non-learning baselines).
+//! Experiment harnesses: baseline runs and isolated numerical diagnostics.
 //!
 //! Later milestones add suites, evolution evaluation, and interventions
-//! here. For now this module owns the M0 baseline ladder rungs that need
-//! no neurons: B0, B1, and the privileged O1 oracle (spec 13.1/13.3).
+//! here. The baseline harness covers B0/B1/O1 plus the M1 nonplastic actor
+//! B3; M2-04 adds the restricted fixed-weight finite-rollout diagnostic.
 
 pub mod baseline;
+/// Restricted fixed-weight score diagnostic; never a continuous agent mode.
+pub mod finite_rollout;

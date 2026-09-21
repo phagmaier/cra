@@ -1,7 +1,8 @@
 # Agent continuation guide
 
-Updated 2026-09-21 UTC after M2-03, from base
-`9d31b9d` (`m2-01 done`) with M2-02 and M2-03 changes uncommitted. Check the tracker
+Updated 2026-09-21 UTC after M2-04. Current HEAD is
+`72ad075` (`m2-03`), with M2-04 changes uncommitted. The session began at
+`9d31b9d`; the earlier M2-02/03 work was committed during this session. Check the tracker
 and Git state for newer work before claiming a task.
 
 ## Start here
@@ -18,8 +19,8 @@ and Git state for newer work before claiming a task.
 
 ## Current position and evidence
 
-**M0-GATE passed and was re-verified. M1-GATE passed. M2-01–M2-03 complete.
-Next task: M2-04.**
+**M0-GATE passed and was re-verified. M1-GATE passed. M2-01–M2-04 complete.
+Next task: M2-05.**
 There is no outstanding M1 blocker. The claim track remains `family_only`.
 No reserved final-test outcomes have been inspected.
 
@@ -44,10 +45,19 @@ statistics, analytical expectation and forced samples, plus an explicitly
 invoked million-sample diagnostic. It passed on first execution: positive
 mean 0.1387168, analytical 0.1388622, SE 0.00010645; paired opposite target
 negates the mean. Seed: development/root 1/outer 203/lifetime 0/actor_noise.
-Fresh full checks: **199 fast tests passed**, two default ignores (the
+M2-03 full checks: **199 fast tests passed**, two default ignores (the
 separately passed diagnostic and existing weight-printing probe), clean
 fmt/Clippy. No production changes. See [M2-03 evidence](evidence/m2-03/summary.md)
 for the predeclared plan, command and immutable machine-readable result.
+
+M2-04 adds `experiments::finite_rollout::FiniteRollout`: exact score sums,
+fixed weights/baseline/noise, zero initial state, bounded horizon, one terminal
+result/update and explicit between-rollout resets. Its terminal weight copy
+does not replace inherited parameters. Numerical failure prevents subsequent
+steps, finalization or reset. Eight integration tests and two compile-fail
+API checks pass; fresh full suite: **207 fast tests passed**, two default
+ignores, clean fmt/Clippy. The M2-03 Monte Carlo test was not rerun this session.
+Golden output, exact commands and hashes: [M2-04 evidence](evidence/m2-04/summary.md).
 
 M1 implements a continuous nonplastic actor and exits as a verified dynamics
 foundation, explicitly not learning. The [M1 corrective review](m1-review.md)
@@ -81,27 +91,33 @@ is available for a quick audit. Reproduce missing raw runs using the saved
 commands/configs into new directories; preserve historical evidence paths
 and distinguish reruns from the original execution.
 
-## Next task: M2-04
+## Next task: M2-05
 
-**Deliver:** the exact finite-rollout diagnostic mode (7.6). Use a
-weight-independent initial state, frozen weights during each rollout, fixed
-positive noise, no state clipping, no eligibility decay and a baseline fixed
-independently of the rollout perturbations. Sum scores and permit at most one
-terminal update. Test that online updates and running-baseline changes cannot
-occur within a rollout. Explicit diagnostic resets and no-decay semantics must
-remain distinct from the main birth-only continuous algorithm.
+**Deliver:** the short two-neuron recurrent finite-difference diagnostic
+(17.6). Compare sampled expected-reward differences under several positive/
+negative weight perturbations with terminal reward times summed local scores.
+Prespecify development seeds, horizon, samples, perturbation magnitudes and
+uncertainty tolerances. Report unresolved uncertainty honestly; do not accept
+a very wide interval as strong evidence or reseed after seeing a failure.
 
 Read spec Sections 7.1–7.2, 7.6, 9 and 17.6 alongside the
 [M2 task queue](../to-do.md#m2---verify-the-stochastic-score-independently).
-Inspect `src/agent/score.rs`, `tests/score.rs` and `src/agent/actor.rs`
-(receiving-`xi` buffer and `leak_alpha` helper). The score reads the receiving neuron's
+Inspect `src/experiments/finite_rollout.rs`, `tests/finite_rollout.rs`,
+`src/agent/score.rs` and `src/agent/actor.rs` (receiving-`xi` buffer and
+`leak_alpha` helper). The score reads the receiving neuron's
 perturbation on all its incoming edges, carries exactly one `alpha_h`
 factor, divides by the actual positive `sigma`, and never multiplies a
 tanh derivative or `1 - lambda_e`.
 
-- Keep the actor transition untouched. The pure score takes standard-normal
-  `xi`, not the scaled membrane increment, and old sender activity. It has
-  no mask, decay, gate or learning behavior; callers supply the edge inputs.
+- Use a fresh `FiniteRollout::new(actor, params, horizon, baseline)` per weight
+  setting; baseline zero yields the terminal-reward-times-score quantity in
+  17.6. `step` takes the caller's RNG; `step_with_perturbations` supports paired
+  saved perturbations. `finish(reward, None)` returns the estimator without
+  updating weights. `reset_between_rollouts` clears state/scores and retains
+  the original parameters/baseline. Record failed samples instead of silently
+  dropping them. Motor filtering/environment feedback are not in this harness.
+- Keep the actor transition untouched. No M3 eligibility decay or online
+  plasticity is enabled by the diagnostic.
 - Verify with the stated checks, then run the applicable full quality
   checks and append tracker evidence.
 
@@ -131,6 +147,7 @@ plasticity on the strength of implemented code alone.
 | Conditional score (M2-01) | `src/agent/score.rs` | `tests/score.rs`; receiver indexing, golden arithmetic, saturation, zero activity, invalid inputs and overflow |
 | Conditional derivative diagnostic (M2-02) | `tests/score_log_probability.rs` | Saved-sample finite differences across edges/leaks/noise scales; moving-sample negative control |
 | One-neuron direction diagnostic (M2-03) | `tests/score_learning_direction.rs` | Fast statistics/forced-sample fixtures plus ignored bounded Monte Carlo with immutable evidence export |
+| Finite-rollout diagnostic (M2-04) | `src/experiments/finite_rollout.rs` | `tests/finite_rollout.rs` plus compile-fail docs; fixed parameters/baseline, no decay, terminal-only update and explicit reset |
 | Adaptation at strength 0 (M1-05) | `src/agent/actor.rs` (verified) | `tests/adaptation.rs`; inertness, sign, persistence, config pin |
 | Motor readout (M1-06) | `src/agent/motor.rs` | `tests/motor.rs`; golden filters, new-q commitment, tie-only draws |
 | Nonplastic actor (M1-07, B3) | `src/agent/no_learning.rs` | `tests/no_learning.rs`; continuity, W0 invariance, schedule parity, guard separation |
