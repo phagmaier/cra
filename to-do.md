@@ -24,12 +24,12 @@ The checklist follows the specification's **M0-M10 milestone sequence**. Scienti
 
 | Field | Initial value |
 | --- | --- |
-| Current milestone | M0 - M0-05 verified 2026-09-21 |
+| Current milestone | M0 - M0-11 verified 2026-09-21 |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M0-05 |
+| Last verified task | M0-11 |
 | Claimed task | None |
-| Next eligible task | M0-06 |
-| Current blocker | None; M0-06 (observation boundary types) is unblocked |
+| Next eligible task | M0-12 |
+| Current blocker | None; M0-12 (randomized sanity checks) is unblocked |
 | Final-test status | No reserved final-test results inspected |
 | Last evidence record | 2026-09-21 M0-01–M0-05 bootstrap (see ledger) |
 
@@ -38,6 +38,8 @@ The checklist follows the specification's **M0-M10 milestone sequence**. Scienti
 | Owner/session | Task IDs | Files or interfaces owned | Status / handoff |
 | --- | --- | --- | --- |
 | agent 2026-09-21 | M0-01–M0-05 | src/{lib,main,config,rng,run}.rs, Cargo.toml, rust-toolchain.toml, configs/, manifests/, tests/{seed_streams,config_validation}.rs, README, docs/, analysis/ stub | Done, verified; handoff to M0-06 |
+| agent 2026-09-21 | M0-06–M0-08 | src/environment/*, tests/{environment_contract,leakage}.rs, tests/support/ | Done, verified; handoff to M0-09 |
+| agent 2026-09-21 | M0-09–M0-11 | src/environment/mod.rs (features), src/experiments/*, tests/{environment_contract,event_order,leakage,baselines}.rs | Done, verified; handoff to M0-12 |
 
 Parallel work requires settled interfaces and satisfied dependencies. Do not parallelize successive scientific milestones or let two agents independently redefine feedback ordering, RNG policy, or checkpoint schema. Coordinate changes to this tracker through one integrator.
 
@@ -92,27 +94,27 @@ Prove that observations, hidden mappings, timing, and reward accounting are corr
   - Deliver: Implement a resolved TOML schema from Section 19 and an environment-only smoke profile. Record all defaults and the seed source. Reject unknown/unsupported modes at execution rather than silently ignoring them. Add validation incrementally with each feature.
   - Verify: Table-test invalid probabilities, durations, dt != 1, pending-choice limits, schema versions, and missing seed namespaces. Include dimension, score-noise, reset-policy, and evolution validation as their modules arrive. The environment smoke profile does not pretend to run an unimplemented actor.
 
-- [ ] **M0-06 - Define the public observation boundary and private evaluator types**
+- [x] **M0-06 - Define the public observation boundary and private evaluator types**
   - Deliver: Implement Feedback, Observation, MotorOutput, and explicit error types following Section 18. Keep hidden state/annotations in separate environment/evaluator modules. Serialize ordinary and hidden streams separately.
   - Verify: The ordinary agent API has no access to target, correctness, hazard, noise labels, future schedule, or split identity. Feedback IDs are used only for infrastructure; they never enter the feature vector.
 
-- [ ] **M0-07 - Implement birth mappings, cue exposure counters, and phase scheduling**
+- [x] **M0-07 - Implement birth mappings, cue exposure counters, and phase scheduling**
   - Deliver: Build the quiet -> cue -> optional gap -> response -> delayed feedback state machine. Initialize binary mappings independently, apply hazard before repeat exposure only, and sample timing through its own stream.
   - Verify: Table-driven schedules include zero-length memory gaps and exact declared tick counts. Hazard 0 never flips; hazard 1 flips every repeat but not the first exposure. Hazard is not applied on global decisions or quiet ticks.
 
-- [ ] **M0-08 - Implement commitments and one pending reward**
+- [x] **M0-08 - Implement commitments and one pending reward**
   - Deliver: At the final response tick, store action and mapping-at-commit, sample/store the reward noise once, and schedule one feedback at start(t_commit + delay). Maintain unique event identity and complete-lifetime outcome counts.
   - Verify: Delay 1 means next-tick feedback. A later mapping change cannot alter an already pending reward. No second commitment is accepted while unresolved; a completed lifetime has equal commitment/outcome counts and no pending reward.
 
-- [ ] **M0-09 - Build every observable feature and latch transition**
+- [x] **M0-09 - Build every observable feature and latch transition**
   - Deliver: Populate K + 6 channels exactly: one-hot cue, cue-present, go, outcome-present, outcome-value, and two previous-action channels. Keep sensory phase flags distinct from evaluator annotations.
   - Verify: Zero reward sets outcome-present=1 and outcome-value=0. Before first commitment both action channels are zero; afterward the new action appears starting next tick. Cues disappear outside presentation and feedback lasts exactly one tick.
 
-- [ ] **M0-10 - Add B0, B1, and the isolated O1 oracle harness**
+- [x] **M0-10 - Add B0, B1, and the isolated O1 oracle harness**
   - Deliver: Implement random action, both constant-action agents, and a researcher-only hidden-state oracle. Route all through the same environment timing and reward accounting. Keep oracle privileges outside ordinary agent code paths.
   - Verify: The oracle has latent accuracy exactly 1. Random/constant controls use only their permitted information. Reward uses each agent's action and shared noise bit, not a shared forced reward across agents.
 
-- [ ] **M0-11 - Write deterministic environment contract fixtures**
+- [x] **M0-11 - Write deterministic environment contract fixtures**
   - Deliver: Populate tests/environment_contract.rs, tests/event_order.rs, and tests/leakage.rs with explicit schedules, mappings, forced noise bits, and expected features/rewards. Include commitment at tick 20 and delay 3.
   - Verify: Tick 23 start delivers exactly one outcome; ticks 21-22 are ordinary transitions. Cover every Section 17.1 item, correct/wrong zero-noise actions, forced noise reversal, and no feedback before commitment.
 
@@ -951,14 +953,257 @@ Tracker boxes updated: M0-01 through M0-05 checked.
 Next eligible task: M0-06.
 ```
 
+```text
+Date / agent or session: 2026-09-21 / agent (environment core session)
+Task IDs: M0-06
+Spec sections: 5.5-5.6 (observable/forbidden inputs), 18.2-18.3 (boundary
+  types), 20.2 (separate ordinary/hidden streams)
+Change and affected files: src/environment/observation.rs (new: Feedback,
+  Observation, MotorOutput, SimError with 4 sketch variants + 6 explicit
+  driver variants, Agent trait, feature_dim = K + 6);
+  src/environment/hidden_state.rs (new: HiddenState, CueRole,
+  HiddenAnnotation, evaluator-only accessors); tests/leakage.rs (new: 4
+  boundary tests); src/environment/mod.rs re-exports boundary types.
+Code revision / dirty-tree state: base 10a7ae8 (M0-01–M0-05); new files
+  untracked, src/lib.rs + README.md + docs/decisions.md modified.
+Commands actually executed:
+  cargo test --all-targets --locked (leakage 4/4 pass)
+  cargo fmt --all -- --check (clean)
+  cargo clippy --all-targets --locked -- -D warnings (clean)
+Outcome and checks passed: Ordinary types serialize with exactly their
+  public keys; hidden annotations serialize separately (join key event_id
+  only); event ids travel only in the feedback envelope with K + 6 wide
+  features; a recording Agent driven on a full 6-outcome lifetime receives
+  no hidden markers. SimError covers duplicate/unknown feedback,
+  nonfinite state, checkpoints, and driver misuse explicitly.
+Checks not run / failures / blockers: None. Feature content population is
+  M0-09 (vectors are width-correct zeros, labeled scaffolding).
+Configuration and suite hashes: N/A (code-only task; smoke configs
+  re-validated via CLI).
+Seed namespace / outer seeds / lifetime count: development, root 1, outer 1,
+  lifetime 0; one 6-outcome smoke lifetime driven in leakage tests.
+Artifact paths and checksums where relevant: tests/leakage.rs.
+Interpretation and claim limits: Boundary contract only. The Agent trait has
+  no hidden-state parameters by construction; agent implementations arrive
+  in M0-10/M1.
+Tracker boxes updated: M0-06 checked.
+Next eligible task: M0-07 (completed same session; see next entry).
+```
+
+```text
+Date / agent or session: 2026-09-21 / agent (environment core session)
+Task IDs: M0-07
+Spec sections: 5.1-5.4 (mappings/noise/volatility/cues), 5.7 (event
+  sequence), 10.4 (birth), 17.1 (hazard items)
+Change and affected files: src/environment/schedule.rs (new: Phase,
+  PhaseState, exact inclusive timing draws); src/environment/hidden_state.rs
+  (birth sampling, present() with per-exposure hazard); src/environment/
+  mod.rs (Lifetime::new: membership shuffle on init, warmup-first quiet,
+  fixed per-cycle draw order); tests/environment_contract.rs +
+  tests/support/mod.rs (new: table-driven schedule tests).
+Code revision / dirty-tree state: base 10a7ae8; new files untracked.
+Commands actually executed:
+  cargo test --all-targets --locked (contract schedule/hazard tests pass)
+  cargo fmt --all -- --check (clean)
+  cargo clippy --all-targets --locked -- -D warnings (clean)
+Outcome and checks passed: Exact tick counts verified for gap [0,0]
+  (response starts immediately, 17-tick cycles) and gap [2,2] (21-tick
+  shape); hazard 0 never flips over 6 cycles; hazard 1 flips every repeat
+  but not the first (unit + lifetime level); mappings invariant across
+  quiet spans; sampled lengths stay in configured ranges; inverted ranges
+  are explicit errors. Timing stream order (quiet, cue, gap per cycle) is
+  fixed and documented.
+Checks not run / failures / blockers: None. During development two test
+  expectations were wrong, not the implementation: hazard-1 alternation
+  (third presentation flips back to birth) and a loop range that included
+  the feedback tick. Both corrected in tests with the alternation asserted
+  explicitly; no source change resulted.
+Configuration and suite hashes: Programmatic test configs derived from
+  configs/env_smoke.toml values (validated before birth).
+Seed namespace / outer seeds / lifetime count: development, root 1, outer 1,
+  lifetime 0; up to 6-outcome lifetimes per test.
+Artifact paths and checksums where relevant: tests/environment_contract.rs,
+  tests/support/mod.rs.
+Interpretation and claim limits: Scheduling/hazard contracts only. Full
+  factorial noise/volatility counterbalancing is deferred to M5-02
+  (recorded in docs/decisions.md); M0 assignment cycles config lists.
+Tracker boxes updated: M0-07 checked.
+Next eligible task: M0-08 (completed same session; see next entry).
+```
+
+```text
+Date / agent or session: 2026-09-21 / agent (environment core session)
+Task IDs: M0-08
+Spec sections: 5.1 (reward at commit), 5.8 (commitment), 9.4 (delay
+  accounting), 17.1 (reward/count items)
+Change and affected files: src/environment/mod.rs (commit,
+  commit_with_noise diagnostic path, PendingReward stored at commit,
+  due_tick = commit_tick + delay, exactly-once delivery in advance(),
+  note_feedback_consumed ledger, counts/is_complete); tests/
+  environment_contract.rs (reward/commit/count tests).
+Code revision / dirty-tree state: base 10a7ae8; new files untracked.
+Commands actually executed:
+  cargo test --all-targets --locked (full suite 38/38 pass: 14 lib + 2
+    config + 13 contract + 4 leakage + 5 seeds)
+  cargo fmt --all -- --check (clean)
+  cargo clippy --all-targets --locked -- -D warnings (clean)
+  cargo run --locked -- validate-config configs/env_smoke.toml (OK)
+  cargo run --locked -- validate-config configs/debug_stationary.toml (OK)
+  cargo run --locked -- simulate --config configs/env_smoke.toml --seed 1
+    --outer-seed 1 (run dir runs/env_smoke-root1-outer1-1789961883/)
+Outcome and checks passed: Delay 1 delivers next tick; delay 3 delivers at
+  commit+3 with two ordinary delay ticks (commit 17 -> feedback 20);
+  correct/wrong score 1/0 at zero noise; forced noise bit reverses either
+  reward (all 4 combos); pending reward equals delivered reward and reads
+  the current mapping each cycle; double commit / action 2 / advance
+  without commit rejected; event ids 0,1,2,3 unique and consumed once;
+  completed lifetimes have equal counts and no pending reward; duplicate
+  and unknown consumption rejected without state change; 5000
+  actor_noise-stream draws leave the schedule bitwise identical.
+Checks not run / failures / blockers: None. Outcome-present/latch feature
+  items and the tick-20/delay-3 fixture belong to M0-09/M0-11.
+Configuration and suite hashes: configs/env_smoke.toml,
+  configs/debug_stationary.toml validated via CLI.
+Seed namespace / outer seeds / lifetime count: development, root 1, outer 1,
+  lifetime 0 (plus lifetime 3 schedule-divergence check); <= 6 outcomes per
+  test lifetime.
+Artifact paths and checksums where relevant: tests/environment_contract.rs;
+  runs/env_smoke-root1-outer1-1789961883/{manifest.json,resolved_config.toml,
+  seed_streams.json} (local, git-ignored).
+Interpretation and claim limits: Commitment/reward contracts only. No
+  agent, no learning, no feature content yet.
+Tracker boxes updated: M0-06 through M0-08 checked.
+Next eligible task: M0-09.
+```
+
+```text
+Date / agent or session: 2026-09-21 / agent (features/baselines/fixtures session)
+Task IDs: M0-09
+Spec sections: 5.5 (observable channels), 9 step 9d (latch), 17.1
+  (outcome-present, latch items)
+Change and affected files: src/environment/mod.rs (K + 6 feature builder
+  in advance(): one-hot cue + cue-present on cue ticks, go on response,
+  outcome-present/value on the single feedback tick, previous-action latch
+  from stored last_action); tests/environment_contract.rs (+4 tests).
+Code revision / dirty-tree state: base 10a7ae8 (M0-01–M0-08); environment
+  module + tests untracked/modified, spec.md untouched.
+Commands actually executed:
+  cargo test --all-targets --locked (contract suite 17/17 incl. 4 new)
+  cargo fmt --all -- --check (clean)
+  cargo clippy --all-targets --locked -- -D warnings (clean)
+Outcome and checks passed: Exact per-tick feature vectors for a full
+  cycle (quiet zeros, one-hot+present, go-only, feedback channels);
+  reward 0 delivered as present=1/value=0, never as absent; latch empty
+  through the commitment tick and flipped from the next tick on (both
+  directions across two cycles); cue channels live only during Cue and
+  outcome-present fires exactly once per outcome (16 cue ticks, 2 feedback
+  ticks over 2 cycles).
+Checks not run / failures / blockers: One test-side arithmetic slip
+  (loop range included the driver's own first feedback in the count) was
+  corrected by driving all cycles in a single loop; implementation
+  untouched. None otherwise.
+Configuration and suite hashes: Programmatic configs from base_config
+  (validated before birth).
+Seed namespace / outer seeds / lifetime count: development, root 1, outer 1,
+  lifetime 0; <= 6 outcomes per test lifetime.
+Artifact paths and checksums where relevant: tests/environment_contract.rs
+  (M0-09 block).
+Interpretation and claim limits: Feature/latch contracts only. Values are
+  exact 0/1 (finite by construction, debug-asserted).
+Tracker boxes updated: M0-09 checked.
+Next eligible task: M0-10 (completed same session; see next entry).
+```
+
+```text
+Date / agent or session: 2026-09-21 / agent (features/baselines/fixtures session)
+Task IDs: M0-10
+Spec sections: 13.1 (B0/B1/O1), 13.3 (oracle expectations), 5.8 (shared
+  exogenous schedule)
+Change and affected files: src/experiments/mod.rs + baseline.rs (new:
+  OrdinaryPolicy trait, RandomBaseline on the tie_break stream, constant
+  baselines, privilege-isolated Oracle, run_ordinary/run_oracle harnesses
+  with joined ChoiceRecords, BaselineSummary); src/lib.rs (experiments
+  module); tests/baselines.rs (new: 5 tests).
+Code revision / dirty-tree state: base 10a7ae8; new files untracked.
+Commands actually executed:
+  cargo test --all-targets --locked (baselines 5/5 pass)
+  cargo fmt --all -- --check (clean)
+  cargo clippy --all-targets --locked -- -D warnings (clean)
+Outcome and checks passed: Oracle latent accuracy exactly 1.0 on noisy
+  (eps 0.1) and hazard-1 tracking configurations, with reward exactly
+  !noise_bit per choice; constants commit only their action with per-choice
+  XOR accounting; random baseline reproduces its 64-choice action sequence
+  from seeds, explores both actions, and diverges on lifetime 3; paired
+  oracle/constant lifetimes share cue, noise-bit, and event-id sequences
+  while rewards differ exactly where actions differ (production commit path
+  on both sides — no forced shared rewards).
+Checks not run / failures / blockers: None. A mid-session edit tangled the
+  two runner bodies; the file was rewritten whole and re-verified (full
+  suite green). Tabular B2 belongs to M5, not this task.
+Configuration and suite hashes: Programmatic configs (stationary_noisy
+  eps 0.1, hazard-1 K=1); validated before birth.
+Seed namespace / outer seeds / lifetime count: development, root 1, outer 1,
+  lifetimes 0 and 3; 6-64 outcomes per run.
+Artifact paths and checksums where relevant: src/experiments/baseline.rs,
+  tests/baselines.rs.
+Interpretation and claim limits: Baseline/scoring contracts only. Oracle
+  reward expectations are per-choice identities, never per-run upper
+  bounds (spec 13.3).
+Tracker boxes updated: M0-10 checked.
+Next eligible task: M0-11 (completed same session; see next entry).
+```
+
+```text
+Date / agent or session: 2026-09-21 / agent (features/baselines/fixtures session)
+Task IDs: M0-11
+Spec sections: 9.4 (timeline), 17.1 (full deterministic list), 5.5-5.6
+  (feature/label boundary)
+Change and affected files: tests/event_order.rs (new: birth goldens +
+  tick-20/delay-3 timeline + forced-zero variant); tests/leakage.rs
+  (+1 pinned-fixture test).
+Code revision / dirty-tree state: base 10a7ae8; new/extended tests only
+  (no src changes needed — implementation already satisfied the fixture).
+Commands actually executed:
+  cargo test --all-targets --locked (full suite 52/52 pass: 15 lib + 5
+    baselines + 2 config + 17 contract + 3 event_order + 5 leakage + 5 seeds)
+  cargo fmt --all -- --check (clean)
+  cargo clippy --all-targets --locked -- -D warnings (clean)
+  cargo run --locked -- validate-config configs/env_smoke.toml (OK)
+  cargo run --locked -- simulate --config configs/env_smoke.toml --seed 1
+    --outer-seed 1 (run dir runs/env_smoke-root1-outer1-1789962423/)
+Outcome and checks passed: Birth goldens hardcoded (mappings [1, 1], first
+  cue 1; probed once via a deleted temporary test, then pinned);
+  commitment only at tick 20, ordinary delay ticks 21-22, exactly one
+  outcome at tick 23 with annotation (commit 20, outcome 23, exposure 1);
+  exact per-tick feature vectors; forced-wrong variant delivers 0 as
+  present=1/value=0; pinned ordinary JSON log matches expected public
+  values with no hidden markers. Every deterministic §17.1 item now has a
+  home (coverage map in docs/decisions.md); randomized frequencies belong
+  to M0-12.
+Checks not run / failures / blockers: One test-side count slip (24 ticks,
+  not 25) corrected; implementation untouched. None otherwise.
+Configuration and suite hashes: Fixture config (gap [5,5], delay [3,3])
+  validated in-test; smoke configs validated via CLI.
+Seed namespace / outer seeds / lifetime count: development, root 1, outer 1,
+  lifetime 0; 1-4 outcomes per fixture lifetime.
+Artifact paths and checksums where relevant: tests/event_order.rs;
+  runs/env_smoke-root1-outer1-1789962423/{manifest.json,resolved_config.toml,
+  seed_streams.json} (local, git-ignored).
+Interpretation and claim limits: Deterministic fixture evidence only. No
+  statistical claims; M0-12 covers randomized checks.
+Tracker boxes updated: M0-09 through M0-11 checked.
+Next eligible task: M0-12.
+```
+
 ## Blockers and decision register - keep current
 
-No blockers. 2026-09-21: M0-01–M0-05 verified (fmt/clippy/test clean,
-11/11 tests, both smoke configs validate, scaffold simulate writes
-provenance). Next: M0-06 (public observation boundary + private evaluator
-types). Scientific ambiguities/decisions for this session are in
-`docs/decisions.md` (toolchain pin, SHA-256/ChaCha8 derivation, explicit
-`[seeds]` section, env-only vs full reference profiles, run provenance).
+No blockers. 2026-09-21: M0-01–M0-11 verified (fmt/clippy clean, full suite
+52/52 pass, both smoke configs validate, scaffold simulate writes
+provenance). Next: M0-12 (seeded randomized sanity checks). Scientific
+ambiguities/decisions for this session are in `docs/decisions.md` (latch
+call-order semantics, B0 tie_break ownership, privilege isolation, shared
+schedule without shared rewards, golden values + probe method, §17.1
+coverage map).
 
 ## First meaningful success
 

@@ -5,10 +5,15 @@ generated gating improve a continuously running recurrent agent's adaptation
 to real changes without damaging stable associations under misleading
 feedback?
 
-Status: **M0 in progress (tasks M0-01–M0-05)**. No neural dynamics,
-plasticity, evolution, or full environment stepping exists yet. Anything
-listed below under "Planned" is a target from spec Section 18 / `to-do.md`,
-not working code.
+Status: **M0 in progress (tasks M0-01–M0-11 verified)**. The environment
+core exists as a library (`src/environment/`: observation boundary, hidden
+state, phase scheduling, K + 6 features, commitments, pending rewards;
+`src/experiments/baseline.rs`: B0/B1/O1 harness) with contract tests
+(`tests/environment_contract.rs`, `tests/event_order.rs`,
+`tests/leakage.rs`, `tests/baselines.rs`). No neural dynamics, plasticity,
+evolution, randomized sanity checks (M0-12), provenance logging (M0-13),
+or log audit (M0-14) exists yet. Anything listed below under
+"Planned" is a target from spec Section 18 / `to-do.md`, not working code.
 
 ## Toolchain (pinned)
 
@@ -42,13 +47,10 @@ Notes:
 - `validate-config <file>` parses and validates the TOML against the
   `schema_version = 1` schema (spec 19). Unknown fields and unsupported
   modes are rejected, never silently ignored.
-- `simulate` at M0 is scaffolding only: it validates, resolves effective
-  seeds (`--seed`/`--root-seed` and `--outer-seed` overrides recorded
-  per-field as `config`- vs `cli`-sourced),
-  and writes a unique run directory with `resolved_config.toml`,
-  `manifest.json`, and `seed_streams.json`. It does **not** step the
-  environment or any actor; claiming otherwise would violate M0-05. Full
-  phase scheduling arrives in M0-07+.
+- `simulate` at M0 still writes provenance only (full lifetime logging and
+  the environment-driven CLI arrive in M0-13/M0-14). Phase scheduling,
+  commitments, and rewards already run in the library and are exercised by
+  `cargo test --test environment_contract`.
 - Seed namespaces (`development`, `training`, `validation`, `final_test`)
   are disjoint by construction. Final-test seeds must never enter
   tuning/search/validation. Stream derivation:
