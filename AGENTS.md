@@ -4,23 +4,25 @@
 
 This repository implements **Learning When to Learn**, specified in [`spec.md`](spec.md), version 0.1. The research question is whether internally generated learning gates improve a continuously running recurrent agent's adaptation to real changes without unnecessarily damaging stable associations under misleading feedback.
 
-Read this as project guidance for coding agents, not as a report of implemented features or successful experiments. Milestone status lives in `to-do.md`: M0-GATE has passed (environment, baselines, logging, and audit implemented and verified), so never assume a task is unimplemented — inspect the repository, the tracker, and recent decision/experiment records first.
+Read this as durable project guidance for coding agents. Current milestone status, ownership, and next eligible work live in `to-do.md`. Inspect the repository and evidence before assuming a feature exists or a task is unimplemented.
 
 - **`spec.md`** defines the scientific model, information boundaries, equations, experimental controls, and claim limits. Section 9 is authoritative for tick ordering. Required contracts, proposed defaults, and hypotheses are different things.
 - **`to-do.md`** defines the ordered work queue, milestone gates, ownership, and completion evidence. Keep it current as work is verified.
 - **`AGENTS.md`** defines execution conventions. Repository workflow details introduced here, such as evidence records and quality commands, are engineering choices rather than new scientific requirements.
+- **[`docs/handoff.md`](docs/handoff.md)** is the current continuation guide: implementation map, next-task entry points, and integration limits. Update it when those facts change; it does not override the spec or tracker.
+- **[`README.md`](README.md)** owns runnable command examples. **[`docs/decisions.md`](docs/decisions.md)** and **[`docs/experiments.md`](docs/experiments.md)** preserve dated decisions and results. Read later corrections before applying an older entry.
 
 Do not silently revise a scientific contract to make code or a result look successful. Record an ambiguity or proposed deviation in `docs/decisions.md`, including the affected spec sections, alternatives, and consequences. An unresolved scientific conflict blocks dependent implementation; continue independent work or report the blocker. Do not overwrite `spec.md` without an explicit request to change it.
 
 ## Start every work session
 
-1. Read this file and the status/ownership block in `to-do.md`. Inspect the actual repository and existing changes before assuming a task is unimplemented.
+1. Read this file, the status/ownership block in `to-do.md`, and `docs/handoff.md`. Inspect `git status --short` and recent commits before claiming work. A handoff revision is a snapshot; check for newer changes.
 2. Read the spec sections linked by the next eligible task. Before main-agent work, read Sections 1-10. Revisit Sections 5, 8, 9, and 17 whenever changing simulation, feedback, or learning behavior.
 3. Inspect the relevant implementation, tests, configuration, and recent decision/experiment records. A checked box without usable evidence is not proof that a gate passes.
 4. Claim one small task or an explicitly bounded related group. Preserve other agents' and the user's work. Do not perform unrelated refactors, destructive Git operations, or broad dependency upgrades.
 5. State the task ID, intended change, and verification scope. Work from the smallest relevant test to the milestone smoke run.
 
-If no task has been completed, start at **M0-01**. Otherwise start at the tracker's next eligible task (M1-01 once M0-GATE has passed). Do not jump to evolution, dashboards, or the nominal main search ahead of the milestone gates.
+If no task has been completed, start at **M0-01**. Otherwise use the tracker's next eligible task. A user-requested review or documentation task can be claimed separately without advancing implementation milestones. Do not jump to evolution, dashboards, or the nominal main search ahead of the milestone gates.
 
 ## Task selection, completion, and handoff
 
@@ -34,6 +36,8 @@ Empirical gates need measured evidence. In particular, M3 and M4 require demonst
 
 At handoff, update the current milestone, claimed task, last verified task, blockers, and next eligible task. Summarize changed files, commands actually run, results, deviations, and remaining risks. Do not claim tests or runs that were not executed.
 
+Keep current summaries in `README.md` and `docs/handoff.md` aligned with the tracker. Preserve historical evidence, raw runs, and dated review reports; append corrections and link them rather than rewriting past results. Distinguish checks run this session from prior recorded checks. For documentation-only work, check links, commands, and factual consistency; do not claim a fresh simulator test pass from old evidence.
+
 ### Multiple agents
 
 Use the ownership table in `to-do.md` to record owner, task IDs, and files before parallel work. Agree on shared interfaces first. One integrator owns shared API changes and the tracker merge. Avoid concurrent edits to the same files. Shared-file changes require coordination; all integration tests must pass after merging, even if individual branches passed. Do not use worker completion order to define scientific ordering.
@@ -41,6 +45,19 @@ Use the ownership table in `to-do.md` to record owner, task IDs, and files befor
 Parallel sessions drift: re-read the status/ownership block and `git status` at the start of every session, since another agent may have committed, claimed tasks, or left uncommitted work. The evidence ledger in `to-do.md` is append-only — add entries, never rewrite or delete another agent's. Coordinate through the integrator before touching shared interfaces (tick ordering, RNG policy, checkpoint schema, event schemas).
 
 ## Language and architecture decisions
+
+### Library documentation lookup
+
+For library-, framework-, SDK-, API-, CLI-, or cloud-specific questions,
+fetch current documentation with Context7. Start with `resolve-library-id`
+using the library name and lookup purpose unless an exact `/org/project`
+ID is supplied. Choose the relevant authoritative match, then use
+`query-docs` scoped to one concept per query. Prefer Context7 over web search
+for library documentation. This requirement does not apply to ordinary
+code review, refactoring, business-logic debugging, or general programming
+concepts. Report missing documentation access if it prevents verification.
+
+### Implementation responsibilities
 
 **Rust is the authoritative simulator and runner.** Implement environment scheduling, actor/modulator transitions, eligibility, learning, motor commitment, baselines, evolution, replay, checkpoints, and intervention branching in Rust. Use `f64` for the first reference implementation.
 
@@ -171,6 +188,11 @@ python3 analysis/test_validate_logs.py
 Baselines for `simulate --baseline`: `random` (B0), `constant-0` /
 `constant-1` (B1), `oracle` (O1, privileged reference). Still planned:
 `benchmark`, `evolve`, `evaluate`, `intervene`, and `aggregate.py`.
+
+`debug_stationary.toml` currently validates as a reference profile but cannot
+be simulated by the M0 baseline runner. Use `env_smoke.toml` for executable
+baselines. In the audit command, replace `runs/<run-id>` with the printed
+directory; `analysis/fixtures/valid` is the committed portable alternative.
 
 After a Rust task, use the relevant focused tests and these checks once bootstrapped:
 

@@ -223,3 +223,28 @@ make code or a result look successful.**
   differs from the illustrative additive-warmup arithmetic in spec 22.2;
   use measured ticks in M1/M5 budgets. M5-02 still owns factorial assignment.
   No change to `spec.md`, distribution algorithms, or scientific equations.
+
+## 2026-09-21 UTC — Documentation authority and continuation (M0-DOCS)
+
+- **Scope:** documentation maintenance from `8216c14`; no scientific or
+  simulator behavior change. `spec.md`, prior dated records, and review
+  evidence remain historical sources and were not rewritten.
+- **Current versus durable guidance:** `to-do.md` owns live status and
+  claims; `AGENTS.md` owns durable conventions; `README.md` owns command
+  examples; `docs/handoff.md` maps the current implementation to the next
+  task. This avoids copying the full scientific model into another guide.
+  Update the handoff when entry points or integration constraints change.
+- **Historical records:** bootstrap-only descriptions in earlier decisions
+  are retained as history. M0-REVIEW supersedes their provenance-only runner,
+  placeholder features, marker-based directory ownership, and initial audit
+  descriptions. The current runner delivers real observations/feedback and
+  reserves directories atomically. M1 continuation must define event identity
+  explicitly; bare per-lifetime IDs are not global keys, and the earlier note
+  predicting globally unique IDs is not an additional scientific requirement.
+- **Seed manifests:** reservations document policy, while the M0 CLI resolves
+  seeds from config/explicit overrides and does not load or enforce numeric
+  ranges in these files. Corrected the development note saying no seeds had
+  been used. No seed coordinates, ranges, or namespace algorithms changed.
+- **Validation:** documentation changes receive link/anchor checks, structured
+  file parsing, and assertions that source/config edits are comment-only.
+  Previously recorded simulator tests remain prior evidence, not new runs.

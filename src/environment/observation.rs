@@ -36,8 +36,8 @@ pub struct Observation {
 
 impl Observation {
     /// Build an observation from an explicit feature vector and optional
-    /// feedback. Feature *content* is populated by the tick driver
-    /// (M0-09); this constructor only bundles validated parts.
+    /// feedback. This constructor bundles the supplied values without
+    /// validating them; the environment tick driver builds contractual features.
     pub fn new(features: Vec<f64>, feedback: Option<Feedback>) -> Self {
         Self { features, feedback }
     }

@@ -12,8 +12,9 @@
 //!   are parsed and validated when present (so `debug_stationary.toml` checks
 //!   dimension, score-noise, reset-policy, and evolution rules from M0), but
 //!   no neural/search code executes until its milestone.
-//! - All structs use `deny_unknown_fields`: unknown or unsupported modes are
-//!   rejected at load time, never silently ignored.
+//! - All structs use `deny_unknown_fields`: unknown fields/mode names are
+//!   rejected at load time. Known future modes may pass schema validation;
+//!   execution guards reject modes/sections not implemented by the runner.
 //! - Seed namespaces come from [`crate::rng::SUPPORTED_NAMESPACES`]; a
 //!   missing or unknown namespace is an error, never a silent test-seed
 //!   fallback.

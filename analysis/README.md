@@ -1,18 +1,43 @@
-# Analysis layer (offline, Python)
+# Offline analysis
 
-Pinned interpreter: Python `3.14.7` (`../.python-version`). Standard library only (see
-`requirements.txt`) — `tomllib` reads the resolved config, `json` the
-event streams. A notebook may explore results but must never be the only
-executable record.
+Use Python `3.14.7`, pinned in [`.python-version`](../.python-version).
+The M0 audit uses only the standard library; [requirements.txt](requirements.txt)
+therefore has no third-party dependencies. Add a dependency lock with the
+first actual external dependency. Rust remains the authoritative simulator.
 
-- `validate_logs.py <run_dir> [...]`: audits run/seed identity, complete
-  lifetime lengths, configured timing, finite values, duplicate feedback,
-  and hidden reward/change/exposure accounting. Exit 0 when clean.
-  Runs with event logging disabled get explicitly labeled provenance and
-  completion checks only; individual outcomes cannot be verified.
-- `test_validate_logs.py`: unit tests over `fixtures/valid` (a real oracle
-  smoke run), five deliberately corrupt variants, and systematic mutations
-  for truncation, identity, missing fields, malformed types, and hidden truth. Run with
-  `python3 analysis/test_validate_logs.py`.
-- `aggregate.py` arrives with the comparison pipeline in M8 (NumPy /
-  Matplotlib only when actually needed).
+## Commands
+
+Run from the repository root:
+
+```bash
+python3 analysis/test_validate_logs.py
+python3 analysis/validate_logs.py analysis/fixtures/valid
+```
+
+For a new run, replace the fixture path with the directory printed by
+`simulate`. Multiple run directories can be passed to one audit invocation.
+Exit 0 means every supplied run passed its applicable checks; exit 1 means
+at least one failed; exit 2 indicates missing CLI arguments.
+
+## Coverage and limits
+
+The audit checks run/seed identity, declared complete lifetime lengths,
+configured timing, finite values, duplicate feedback, hidden joins, and
+reward/change/exposure accounting. It rejects missing or unsuccessful
+completion records. With event logging disabled, it explicitly reports
+provenance/completion coverage only; individual outcomes are unavailable.
+
+`test_validate_logs.py` covers the real `fixtures/valid` oracle run, five
+stored corrupt variants, and additional mutation cases. Fixtures are
+historical test data: create separate new fixtures for schema changes and
+explain any changes to old expected behavior. Extend Rust validation and
+Python audit coverage together when adding logged quantities.
+
+Keep raw outputs immutable and derived analysis separate. Audit logs before
+aggregating them. `aggregate.py` and statistical figures remain M8 work;
+a notebook must not be the only executable analysis record.
+
+See the [current handoff](../docs/handoff.md) and
+[evidence guide](../docs/evidence/README.md) for continuation and saved-run
+availability. The earlier M0 review's 14 passing Python tests are recorded
+results, not a claim that every future checkout has already been verified.

@@ -481,8 +481,8 @@ fn run_lifetimes(
     }
     // NOTE: choice_index and event_id restart at 0 per lifetime in M0,
     // so multi-lifetime streams are validated as one contiguous block
-    // per lifetime (globally unique event ids arrive with the M1
-    // checkpoint/continuation work).
+    // per lifetime. M1 checkpoint/continuation work must preserve identity
+    // and explicitly specify any change to this schema.
     if event_log {
         validate_per_lifetime(&events, &hidden, cfg.environment.cue_count)?;
         write_jsonl(dir, "events.jsonl", &events).map_err(RunError::Log)?;

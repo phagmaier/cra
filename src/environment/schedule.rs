@@ -18,7 +18,7 @@ use rand_chacha::ChaCha8Rng;
 use super::observation::SimError;
 
 /// Public phase snapshot for logs and tests. The driver enum
-/// [`PhaseState`] additionally carries countdowns.
+/// `PhaseState` additionally carries countdowns and is internal to the driver.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Phase {
     Quiet,

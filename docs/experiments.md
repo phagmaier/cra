@@ -81,3 +81,15 @@ interrupted runs — missing data is not a zero score.
   exits 1 as expected and is recorded in the evidence.
 - Result: M0-GATE re-verified. These are correctness checks, not evidence of
   learning or relative performance. Next eligible task remains M1-01.
+
+## 2026-09-21 UTC — Agent documentation handoff (M0-DOCS)
+
+- Documentation maintenance from `8216c14`; no simulation or experiment run.
+- Current continuation guide: `docs/handoff.md`. Commands remain in README;
+  task order and ownership remain in the tracker. Corrected bootstrap-era
+  descriptions in live docs, source/config comments, and the development
+  reservation note. Prior records and M0 review evidence are unchanged.
+- The 73 Rust / 14 Python test results above belong to M0-REVIEW. This
+  documentation session uses document-consistency checks, not new empirical
+  evidence. See the M0-DOCS tracker entry for executed validation.
+- Next implementation task remains M1-01; no milestone was advanced.

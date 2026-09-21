@@ -6,7 +6,13 @@ This is the checkable implementation and research queue for [`spec.md`](spec.md)
 
 The checklist follows the specification's **M0-M10 milestone sequence**. Scientific equations, information boundaries, and claim limits come from the spec; Section 9 overrides informal descriptions of tick ordering. Task IDs, evidence records, ownership conventions, extra smoke-profile filenames, and the final-study scheduling below are execution choices added for agent coordination, not changes to the scientific model.
 
-**Initial state: no implementation or test execution is asserted. Every checkbox starts unchecked.** Existing code, if any, must be inspected and verified before updating this tracker. A document being written is not evidence that its proposed code or experiment exists.
+Checked tasks below have recorded verification in the completion ledger. Unchecked tasks remain planned. Inspect implementation and evidence before changing status; writing a plan does not complete a task. Historical ledger entries describe the repository at their recorded revision.
+
+Navigation: [current status](#current-status---maintain-at-every-handoff),
+[M1 queue](#m1---build-a-continuous-actor-with-no-learning),
+[milestone map](#milestone-map), [coverage index](#contract-and-test-coverage-index),
+[evidence ledger](#completion-evidence-ledger---append-do-not-fabricate),
+and [continuation guide](docs/handoff.md).
 
 ### Working rules
 
@@ -22,21 +28,22 @@ The checklist follows the specification's **M0-M10 milestone sequence**. Scienti
 
 ## Current status - maintain at every handoff
 
-| Field | Initial value |
+| Field | Current value |
 | --- | --- |
 | Current milestone | M0-GATE re-verified 2026-09-21 UTC after corrective review; M1 unblocked |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M0-REVIEW / M0-GATE re-verification |
+| Last verified task | M0-DOCS (documentation); latest simulator verification remains M0-REVIEW |
 | Claimed task | None |
 | Next eligible task | M1-01 |
 | Current blocker | None |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | 2026-09-21 UTC M0 corrective review; docs/evidence/m0-review/ |
+| Last evidence record | 2026-09-21 UTC M0-DOCS ledger entry; M0 simulation evidence in docs/evidence/m0-review/ |
 
-### Ownership for parallel agents
+### Session ownership and handoffs
 
 | Owner/session | Task IDs | Files or interfaces owned | Status / handoff |
 | --- | --- | --- | --- |
+| Codex documentation | M0-DOCS | Agent guidance, current handoff, README, tracker, manifest notes, source/config comments | Done; no behavior changes; handoff to M1-01 |
 | Codex review | M0-REVIEW | M0 Rust/Python implementation, regression tests, evidence and documentation | Done; M0-GATE re-verified, handoff to M1-01 |
 | agent 2026-09-21 | M0-01–M0-05 | src/{lib,main,config,rng,run}.rs, Cargo.toml, rust-toolchain.toml, configs/, manifests/, tests/{seed_streams,config_validation}.rs, README, docs/, analysis/ stub | Done, verified; handoff to M0-06 |
 | agent 2026-09-21 | M0-06–M0-08 | src/environment/*, tests/{environment_contract,leakage}.rs, tests/support/ | Done, verified; handoff to M0-09 |
@@ -72,7 +79,7 @@ For an implementation task, completion means its behavior and error cases exist,
 ## M0 - Freeze contracts and build the environment
 
 **Spec:** Sections 4-5, 9, 16/M0, 17.1, 18-20.  
-**Prerequisite:** None. Start here..
+**Prerequisite:** None. Completed; see current status for the next eligible task.
 
 Prove that observations, hidden mappings, timing, and reward accounting are correct without implementing recurrent neurons or evolution.
 
@@ -143,6 +150,10 @@ Prove that observations, hidden mappings, timing, and reward accounting are corr
 - [x] **M0-REVIEW - Owner-requested corrective review**
   - Reviewed implementation/results against M0 contracts; corrected runner feedback/boundaries, unsupported execution, invalid-input determinism, atomic run ownership, and audit acceptance.
   - Verified: 73 Rust tests, 14 Python tests, fmt/clippy, four unchanged original runs and seven fresh bounded runs. See `docs/m0-review.md` and the appended evidence ledger entry.
+
+- [x] **M0-DOCS - Prepare agent continuation documentation**
+  - Deliver: Current `docs/handoff.md`, clear document authority and navigation, corrected bootstrap descriptions, and seed/evidence guides.
+  - Verify: Local links/anchors, TOML/JSON parsing, source/config comment-only assertions, historical-record preservation, fmt, warning-free Rust documentation build, and portable fixture audit. No fresh simulator test run is claimed.
 
 ---
 
@@ -756,7 +767,7 @@ Use this index when modifying a cross-cutting feature. The cited tasks identify 
 
 ## Initial command milestones
 
-The exact CLI may be refined and documented during implementation. The following contracts come from spec Section 18, with environment/actor diagnostic entry points added as needed. `runs/example` and similar paths are placeholders, not files already present.
+The exact CLI may be refined and documented during implementation. [README.md](README.md) lists executable commands; the following table maps current and future command work to milestones. `runs/example` and similar paths in the spec are placeholders, not files already present.
 
 | Stage | Runnable artifact to establish |
 | --- | --- |
@@ -776,7 +787,7 @@ Run Rust CLI subcommands through `cargo run --release --locked -- ...` after boo
 
 ## Completion evidence ledger - append, do not fabricate
 
-No completion evidence has been recorded at initial handoff. Add one entry per coherent verified change/run; an entry may cover several tightly related task IDs. The template below is not an actual result.
+The entries below are historical evidence and remain append-only. Add one entry per coherent verified change/run; an entry may cover several tightly related task IDs. The template below is not an actual result.
 
 ```text
 Date / agent or session:
@@ -1450,11 +1461,58 @@ Tracker boxes updated: M0-REVIEW checked; M0-GATE retained after re-verification
 Next eligible task: M1-01.
 ```
 
+```text
+Date / agent or session: 2026-09-21 UTC / Codex documentation handoff
+Task IDs: M0-DOCS
+Spec sections: 18–20 (documentation, interfaces, provenance); no scientific changes
+Change and affected files: AGENTS.md, README.md, to-do.md,
+  docs/handoff.md, docs/evidence/README.md, appended docs/decisions.md and
+  docs/experiments.md, analysis/README.md, manifests/README.md and the
+  descriptive note in manifests/development.json; comments only in
+  configs/debug_stationary.toml and src/{lib,config,run}.rs,
+  src/environment/{mod,observation,schedule}.rs, src/logging/mod.rs.
+Code revision / dirty-tree state: base 8216c14 (M0 refined); clean at start,
+  documentation edits uncommitted at handoff.
+Commands actually executed:
+  git status --short; git log -4 --oneline; focused rg/sed/cat inspection
+  Python standard-library document audit: resolve local Markdown links and
+    anchors; parse TOML/JSON; compare Rust text excluding comments and TOML
+    values against HEAD; compare reservation fields excluding the note;
+    assert prior ledger entries and dated logs preserved; verify immutable
+    spec/review/fixtures/evidence and historical source hashes at 8216c14.
+  cargo fmt --all -- --check
+  RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --locked
+  python3 analysis/validate_logs.py analysis/fixtures/valid
+  git diff --check
+Outcome and checks passed: document consistency and preservation checks
+  pass; Rust formatting passes; public Rust docs build with warnings denied;
+  committed fixture audit passes; whitespace check clean. Live docs agree
+  that M0 is verified and M1-01 is next. Claims and ownership released.
+Checks not run / failures / blockers: Initial rustdoc build found a public
+  link to private PhaseState; changed only that documentation link to plain
+  code text, then build passed. Full Rust/Python suites and new simulations
+  not rerun: only docs/comments and a manifest description changed. The prior
+  73 Rust / 14 Python passes remain M0-REVIEW evidence, not new results.
+Configuration and suite hashes: Config values, seed reservation fields,
+  simulator code, dependencies, and scientific spec unchanged. Historical
+  review fingerprints still match source at 8216c14; comment edits explain
+  later source-file hash differences. Archived hashes were not rewritten.
+Seed namespace / outer seeds / lifetime count: Not applicable; no new lifetime.
+Artifact paths: docs/handoff.md (current continuation); generated public
+  API docs at target/doc/cra/index.html (ignored build output). Previous
+  review/evidence files retained. No new experiment bundle required.
+Interpretation and claim limits: Documentation readiness only; no milestone
+  promotion, learning claim, or new performance/throughput evidence.
+Tracker boxes updated: M0-DOCS checked; M0-GATE retained.
+Next eligible task: M1-01; no outstanding blocker.
+```
+
 ## Blockers and decision register - keep current
 
 No blockers. M0-GATE re-verified after the 2026-09-21 UTC owner-requested
 corrective review: 73 Rust tests, 14 Python tests, clean fmt/clippy, four
 original audited runs, and seven fresh bounded runs. Next: M1-01.
+M0-DOCS completed the current continuation guide in `docs/handoff.md`.
 Review findings and remaining milestone scope: `docs/m0-review.md`.
 Scientific decisions remain in the append-only `docs/decisions.md`.
 

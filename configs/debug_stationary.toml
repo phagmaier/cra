@@ -1,10 +1,11 @@
 # `debug_stationary` reference profile (spec 19.2 + M0 seed section)
 #
 # Full continuous clean-task debug configuration. Actor/learning/modulator
-# sections are parsed and validated from M0, but no neural code executes
-# until its milestone: `simulate` at M0 only validates and writes
-# provenance, and refuses to pretend an actor ran. Full environment stepping
-# arrives in M0-07+; actor dynamics in M1; plasticity in M3.
+# sections are parsed and validated from M0. M0 `simulate` rejects this
+# profile before creating artifacts because neural execution is not yet
+# implemented. Use env_smoke.toml for executable baseline lifetimes.
+# M1 introduces a separate no-learning actor profile; later milestones
+# implement plasticity and continuous-learning verification.
 
 schema_version = 1
 profile_name = "debug_stationary"

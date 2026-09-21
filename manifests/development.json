@@ -1,6 +1,9 @@
 {
   "namespace": "development",
   "purpose": "tuning, debugging, and development sweeps; never final confirmation",
-  "outer_seed_range": [1, 9999],
-  "note": "Reserved range only. Concrete development batches are recorded per run in run manifests and docs/experiments.md. No seeds consumed yet (M0)."
+  "outer_seed_range": [
+    1,
+    9999
+  ],
+  "note": "Reservation policy only; M0 development diagnostics and smoke runs have used this namespace. Actual coordinates and evidence are recorded in run manifests, docs/experiments.md, and docs/evidence/m0-review/summary.json. The M0 CLI does not enforce this numeric range."
 }

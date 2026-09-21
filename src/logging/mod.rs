@@ -2,7 +2,9 @@
 //!
 //! Ordinary event data (what the agent could observe) and hidden
 //! annotations (evaluator truth) serialize to separate JSONL streams,
-//! joined offline only by explicit keys (`event_id`, `choice_index`).
+//! joined offline within contiguous lifetime blocks by (`event_id`,
+//! `choice_index`). IDs restart per lifetime; ordinary rows carry lifetime
+//! identity and hidden rows follow the same block order.
 //! Raw output is immutable once written; derived analysis goes elsewhere.
 //! Files are written atomically (temporary file + rename).
 //!

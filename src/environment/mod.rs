@@ -555,7 +555,7 @@ impl Lifetime {
             .ok_or_else(|| SimError::InconsistentCounts("commit with no current cue".to_owned()))
     }
 
-    /// Backstop consumption ledger for the future agent `apply_feedback`
+    /// Backstop consumption ledger used by the ordinary runner's `apply_feedback`
     /// path (spec 9.2): the first confirmation of a delivered id succeeds;
     /// confirming it again fails as [`SimError::DuplicateFeedback`] without
     /// changing state; confirming an id this lifetime never delivered fails
