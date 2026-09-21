@@ -148,3 +148,36 @@ make code or a result look successful.**
   and latch transitions live in the M0-09 block of
   `environment_contract.rs`. Randomized frequency checks (not fixed
   seeds cherry-picked to pass) arrive in M0-12.
+
+## 2026-09-21 — Randomized checks, logging, audit, gate (M0-12–M0-GATE)
+
+- **Statistical plan declared up front (M0-12).** Sample counts and
+  tolerances are constants in `tests/randomized_env.rs` with sigma
+  justification (3.6–4.0σ per check, ~1e-4 false-alarm rate each):
+  2048 births for mapping balance, 1024 presentations for cue frequency,
+  2048 choices for B0 chance correctness (latent, so noise-free by
+  construction), 1024 oracle choices at eps 0.2 for the noise-conditioned
+  expectation. Seeds are fixed (outer 1..=2048, lifetimes 0..32);
+  failures are investigated, never reseeded. The oracle check is
+  two-sided consistency, never a per-run upper bound (spec 13.3).
+- **M0 event schema is minimal by design (M0-13).** `events.jsonl` carries
+  `schema_version = 1` and only M0-available fields; motor margins,
+  eligibility/update norms, and gate statistics arrive under new schema
+  versions with their milestones. Event ids restart per lifetime in M0
+  (globally unique ids arrive with M1 checkpoint/continuation work), so
+  validation is per contiguous lifetime block — enforced identically by
+  the Rust writer and the Python audit.
+- **Run-directory collision was a real bug (M0-13/M0-15).** The retry
+  fallback broke out of its loop on creation success before checking the
+  manifest marker, so same-second runs overwrote each other's provenance.
+  Caught by re-running all four baselines in one second during evidence
+  collection. Fixed (ownership decided by marker absence) with a
+  regression test creating two runs back-to-back; the overwritten runs
+  were deleted and re-executed into distinct `-retryN` directories.
+- **Audit duplicates the accounting in Python (M0-14).** `validate_logs.py`
+  (stdlib only) re-checks everything the Rust writer guarantees plus
+  cross-file identity (manifest vs resolved-config seeds, condition vs
+  manifest, completion counts vs logged events). Six fixtures: one real
+  oracle smoke run plus five single-mutation corrupt variants. A missing
+  or non-completed `completion.json` fails the audit — interrupted runs
+  are never silent zeros.

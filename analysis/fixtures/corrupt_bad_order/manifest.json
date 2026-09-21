@@ -1,0 +1,23 @@
+{
+  "run_id": "env_smoke-root1-outer1-1789962971",
+  "profile_name": "env_smoke",
+  "condition_id": "O1",
+  "schema_version": 1,
+  "created_unix_secs": 1789962971,
+  "code_version": "0.1.0",
+  "git_revision": "77d049de0c80d61be2487afc343ae579805653cd",
+  "git_dirty": true,
+  "platform": "linux-x86_64",
+  "rustc_version": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+  "seed_policy": "(root_seed, namespace, outer_seed, lifetime_index, stream_name) -> SHA-256 -> ChaCha8Rng; namespaces development|training|validation|final_test are disjoint (spec 20.5)",
+  "seeds": {
+    "root_seed": 1,
+    "root_source": "config",
+    "namespace": "development",
+    "namespace_source": "config",
+    "outer_seed": 1,
+    "outer_source": "config"
+  },
+  "rng_policy": "sha2::Sha256 derivation (see Cargo.lock) + rand_chacha::ChaCha8Rng; one RNG instance per stream; no runtime-randomized hashes",
+  "note": "M0 environment run: validation + provenance + ordinary/hidden event streams. Neural/search code in later milestones."
+}

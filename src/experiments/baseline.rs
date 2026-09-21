@@ -25,7 +25,7 @@ use rand_chacha::ChaCha8Rng;
 
 use crate::config::Config;
 use crate::environment::{
-    Agent, Feedback, HiddenState, Lifetime, MotorOutput, SimError, TickOutput,
+    Agent, Feedback, HiddenAnnotation, HiddenState, Lifetime, MotorOutput, SimError, TickOutput,
 };
 use crate::rng::{SeedTuple, rng_for};
 
@@ -140,11 +140,13 @@ pub struct ChoiceRecord {
     pub feedback_tick: u64,
 }
 
-/// Complete-lifetime baseline result.
+/// Complete-lifetime baseline result (evaluator side: joins ordinary
+/// choices with their hidden annotations by explicit keys).
 #[derive(Clone, Debug, PartialEq)]
 pub struct BaselineSummary {
     pub policy: &'static str,
     pub choices: Vec<ChoiceRecord>,
+    pub annotations: Vec<HiddenAnnotation>,
 }
 
 impl BaselineSummary {
@@ -197,6 +199,7 @@ pub fn run_ordinary(
 ) -> Result<BaselineSummary, SimError> {
     let mut lifetime = Lifetime::new(cfg, root_seed, namespace, outer_seed, lifetime_index)?;
     let mut choices = Vec::new();
+    let mut annotations = Vec::new();
     while !lifetime.is_complete() {
         let out = lifetime.advance()?;
         policy.advance(&out.observation.features)?;
@@ -209,6 +212,7 @@ pub fn run_ordinary(
                 &annotation,
                 lifetime.last_action(),
             )?);
+            annotations.push(annotation);
         }
         if out.commitment_due {
             let action = policy.select_action(&out);
@@ -218,6 +222,7 @@ pub fn run_ordinary(
     Ok(BaselineSummary {
         policy: policy_name,
         choices,
+        annotations,
     })
 }
 
@@ -235,6 +240,7 @@ pub fn run_oracle(
     let oracle = Oracle;
     let mut cycle_cue = None;
     let mut choices = Vec::new();
+    let mut annotations = Vec::new();
     while !lifetime.is_complete() {
         let out = lifetime.advance()?;
         if let Some(feedback) = out.observation.feedback {
@@ -246,6 +252,7 @@ pub fn run_oracle(
                 &annotation,
                 lifetime.last_action(),
             )?);
+            annotations.push(annotation);
         }
         if out.cue.is_some() {
             cycle_cue = out.cue;
@@ -260,6 +267,7 @@ pub fn run_oracle(
     Ok(BaselineSummary {
         policy: "oracle",
         choices,
+        annotations,
     })
 }
 

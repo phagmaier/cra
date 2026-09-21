@@ -24,14 +24,14 @@ The checklist follows the specification's **M0-M10 milestone sequence**. Scienti
 
 | Field | Initial value |
 | --- | --- |
-| Current milestone | M0 - M0-11 verified 2026-09-21 |
+| Current milestone | M0-GATE passed 2026-09-21; M1 unblocked |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M0-11 |
+| Last verified task | M0-GATE |
 | Claimed task | None |
-| Next eligible task | M0-12 |
-| Current blocker | None; M0-12 (randomized sanity checks) is unblocked |
+| Next eligible task | M1-01 |
+| Current blocker | None |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | 2026-09-21 M0-01–M0-05 bootstrap (see ledger) |
+| Last evidence record | 2026-09-21 M0 environment evidence bundle (see ledger) |
 
 ### Ownership for parallel agents
 
@@ -40,6 +40,7 @@ The checklist follows the specification's **M0-M10 milestone sequence**. Scienti
 | agent 2026-09-21 | M0-01–M0-05 | src/{lib,main,config,rng,run}.rs, Cargo.toml, rust-toolchain.toml, configs/, manifests/, tests/{seed_streams,config_validation}.rs, README, docs/, analysis/ stub | Done, verified; handoff to M0-06 |
 | agent 2026-09-21 | M0-06–M0-08 | src/environment/*, tests/{environment_contract,leakage}.rs, tests/support/ | Done, verified; handoff to M0-09 |
 | agent 2026-09-21 | M0-09–M0-11 | src/environment/mod.rs (features), src/experiments/*, tests/{environment_contract,event_order,leakage,baselines}.rs | Done, verified; handoff to M0-12 |
+| agent 2026-09-21 | M0-12–M0-GATE | src/logging/*, src/run.rs (runner), src/main.rs (CLI), analysis/*, tests/{randomized_env,event_logging}.rs | Done, verified; M0-GATE passed, handoff to M1-01 |
 
 Parallel work requires settled interfaces and satisfied dependencies. Do not parallelize successive scientific milestones or let two agents independently redefine feedback ordering, RNG policy, or checkpoint schema. Coordinate changes to this tracker through one integrator.
 
@@ -118,23 +119,23 @@ Prove that observations, hidden mappings, timing, and reward accounting are corr
   - Deliver: Populate tests/environment_contract.rs, tests/event_order.rs, and tests/leakage.rs with explicit schedules, mappings, forced noise bits, and expected features/rewards. Include commitment at tick 20 and delay 3.
   - Verify: Tick 23 start delivers exactly one outcome; ticks 21-22 are ordinary transitions. Cover every Section 17.1 item, correct/wrong zero-noise actions, forced noise reversal, and no feedback before commitment.
 
-- [ ] **M0-12 - Add seeded randomized environment sanity checks**
+- [x] **M0-12 - Add seeded randomized environment sanity checks**
   - Deliver: Test cue/mapping/noise frequencies across sufficient randomized births and long schedules. Declare sample counts and statistical tolerances before executing; preserve fixed diagnostic seeds.
   - Verify: Random-action correctness is consistent with chance across randomized mappings, and oracle reward is consistent with its noise-conditioned expectation. Do not use expected oracle reward as a hard finite-run upper bound or rerun seeds until a test passes.
 
-- [ ] **M0-13 - Create minimal provenance and separated event logging**
+- [x] **M0-13 - Create minimal provenance and separated event logging**
   - Deliver: Write run manifest, fully resolved configuration, condition identity, ordinary event records, and evaluator-only annotations. Record code revision, dirty-tree status, platform/tool versions, RNG policy, and interruption/failure state.
   - Verify: Logs can reconstruct reward counts and schedule identity. Hidden truth never returns to the agent. Logging on/off yields identical behavior. Unsupported/nonfinite data and duplicate events produce explicit errors, not successful-looking output.
 
-- [ ] **M0-14 - Expose the first runnable CLI and log audit**
+- [x] **M0-14 - Expose the first runnable CLI and log audit**
   - Deliver: Implement validate-config and environment-only simulate using the smoke profile and documented baseline selection. Add analysis/validate_logs.py using minimal dependencies, with fixtures for valid and deliberately corrupt logs.
   - Verify: A clean checkout can run the smoke command and audit its output. Audit checks order, counts, finite values, duplicate feedback, and missing completion records; unavailable later-stage fields are handled by schema, not fabricated.
 
-- [ ] **M0-15 - Run and save the M0 evidence bundle**
+- [x] **M0-15 - Run and save the M0 evidence bundle**
   - Deliver: Run the deterministic tests, bounded randomized checks, and random/constant/oracle smoke lifetimes. Save exact commands, configuration, seeds, logs, and results; update the tracker ledger and README.
   - Verify: All Section 16/M0 exit conditions have evidence. No neural code, evolution, or renderer is needed to pass this milestone.
 
-- [ ] **M0-GATE - Verify and record milestone exit**
+- [x] **M0-GATE - Verify and record milestone exit**
   - All deterministic environment tests pass; oracle latent accuracy is exactly 1; chance controls pass the declared statistical checks; completed lifetimes have one delivered reward per commitment; hidden data and RNG isolation are verified. Save a runnable smoke command and example output before starting M1.
   - Evidence: add a ledger entry with the executed commands, results, configuration/seed identifiers, and saved artifact paths. Update the current status before beginning the next milestone.
 
@@ -1195,15 +1196,206 @@ Tracker boxes updated: M0-09 through M0-11 checked.
 Next eligible task: M0-12.
 ```
 
+```text
+Date / agent or session: 2026-09-21 / agent (M0 completion session)
+Task IDs: M0-12
+Spec sections: 16/M0 (frequencies/reward accounting), 13.3 (oracle
+  expectation discipline)
+Change and affected files: tests/randomized_env.rs (new: 4 checks with a
+  declared statistical plan — sample counts, null SEs, tolerances, and
+  fixed seeds in the file header).
+Code revision / dirty-tree state: base 10a7ae8; M0 work uncommitted.
+Commands actually executed:
+  cargo test --all-targets --locked (randomized_env 4/4 pass, 0.20s total)
+  cargo fmt --all -- --check (clean)
+  cargo clippy --all-targets --locked -- -D warnings (clean)
+Outcome and checks passed: Birth-mapping balance (2048 births), cue
+  presentation frequency (1024), B0 latent correctness vs chance (2048
+  choices, noise-free by construction), and oracle mean reward at eps 0.2
+  (1024 choices) all inside predeclared 3.6-4.0σ tolerances on first
+  execution — no reseeding, no cherry-picked seeds. Oracle check is
+  two-sided consistency, never a per-run upper bound.
+Checks not run / failures / blockers: None.
+Configuration and suite hashes: Programmatic configs from base_config
+  (validated before birth).
+Seed namespace / outer seeds / lifetime count: development, root 1, outer
+  1..=2048 (births) and lifetimes 0..32, 64 outcomes each.
+Artifact paths and checksums where relevant: tests/randomized_env.rs.
+Interpretation and claim limits: Sanity frequencies only. Passing
+  tolerances is not a learning result and not a fitted model.
+Tracker boxes updated: M0-12 checked.
+Next eligible task: M0-13 (completed same session; see next entry).
+```
+
+```text
+Date / agent or session: 2026-09-21 / agent (M0 completion session)
+Task IDs: M0-13
+Spec sections: 20.1-20.2 (manifest, event/hidden records), 18.3 (error
+  types), AGENTS.md failure behavior
+Change and affected files: src/logging/mod.rs + events.rs (new:
+  OrdinaryEvent schema v1, ConditionInfo, CompletionInfo/RunStatus,
+  LogError, field/stream validation, atomic JSONL/JSON IO); src/run.rs
+  (RunManifest gains condition_id/platform/rustc_version; run_simulation
+  runner with per-lifetime-block validation; interrupted-completion path);
+  src/experiments/baseline.rs (summaries carry hidden annotations for the
+  evaluator stream); tests/event_logging.rs (new: 3 tests).
+Code revision / dirty-tree state: base 10a7ae8; M0 work uncommitted.
+Commands actually executed:
+  cargo test --all-targets --locked (event_logging 3/3; logging unit 2/2)
+  cargo fmt --all -- --check (clean)
+  cargo clippy --all-targets --locked -- -D warnings (clean)
+Outcome and checks passed: 2-lifetime run round-trips exactly (12/12
+  events + hidden, counts reconstruct, condition/manifest identity
+  verified); logging off yields bitwise-identical commitments/outcomes/
+  mean reward with event files absent and completion still written;
+  tampered logs (appended duplicate line) fail validation; NaN rewards,
+  bad actions, bad schema versions, duplicate/unknown feedback ids, and
+  hidden join mismatches are all explicit errors (unit + integration).
+Checks not run / failures / blockers: A same-second provenance-overwrite
+  bug surfaced during M0-15 evidence runs (see M0-15 entry); fixed with a
+  regression test before the gate.
+Configuration and suite hashes: Programmatic configs (validated).
+Seed namespace / outer seeds / lifetime count: development, root 1, outer 1,
+  lifetimes 0-1, 6 outcomes each.
+Artifact paths and checksums where relevant: src/logging/events.rs,
+  tests/event_logging.rs.
+Interpretation and claim limits: Provenance/logging contracts only. Event
+  ids restart per lifetime in M0 (documented; global ids arrive with M1
+  checkpoints).
+Tracker boxes updated: M0-13 checked.
+Next eligible task: M0-14 (completed same session; see next entry).
+```
+
+```text
+Date / agent or session: 2026-09-21 / agent (M0 completion session)
+Task IDs: M0-14
+Spec sections: 18.6 (CLI contracts), 20.6 (log audit)
+Change and affected files: src/main.rs (simulate gains --baseline
+  random|constant-0|constant-1|oracle with B0/B1/O1 condition ids and
+  --lifetimes); analysis/validate_logs.py (new, stdlib-only audit:
+  identity, per-block order/counts, finite 0/1 rewards, duplicates,
+  hidden join, completion); analysis/test_validate_logs.py (new, 6
+  tests); analysis/fixtures/ (valid oracle smoke run + 5 corrupt
+  variants); analysis/README.md.
+Code revision / dirty-tree state: base 10a7ae8; M0 work uncommitted.
+Commands actually executed:
+  python3 analysis/test_validate_logs.py (6/6 pass)
+  python3 analysis/validate_logs.py analysis/fixtures/valid (OK)
+  python3 analysis/validate_logs.py on all 5 corrupt fixtures (each FAILs
+    with the expected error class: duplicate, order, reward, completion,
+    hidden)
+  cargo run --release --locked -- simulate (all 4 baselines x 2 lifetimes;
+    see M0-15 entry) + audit of each run dir (OK x4)
+  cargo fmt/clippy/test (clean; analysis untouched by Rust gates)
+Outcome and checks passed: A clean checkout runs validate-config,
+  simulate with documented baseline selection, and the audit; corrupt
+  fixtures fail loudly; unavailable later-stage fields are absent by
+  schema (v1), never fabricated.
+Checks not run / failures / blockers: None. aggregate.py belongs to M8.
+Configuration and suite hashes: configs/env_smoke.toml via CLI.
+Seed namespace / outer seeds / lifetime count: development, root 1, outer 1,
+  lifetimes 0-1 per smoke run.
+Artifact paths and checksums where relevant: analysis/validate_logs.py,
+  analysis/fixtures/{valid,corrupt_*}/.
+Interpretation and claim limits: Audit tooling only. The audit verifies
+  accounting, not learning.
+Tracker boxes updated: M0-14 checked.
+Next eligible task: M0-15 (completed same session; see next entry).
+```
+
+```text
+Date / agent or session: 2026-09-21 / agent (M0 completion session)
+Task IDs: M0-15
+Spec sections: 16/M0 (exit: runnable command, tests, example output)
+Change and affected files: docs/experiments.md (M0 evidence bundle entry
+  with exact commands/results); README.md (M0-complete status, full
+  command list incl. baselines + audit, run-dir contents, layout).
+Code revision / dirty-tree state: base 10a7ae8; M0 work uncommitted
+  (manifests record git_dirty=true honestly).
+Commands actually executed (release mode):
+  cargo fmt --all -- --check — clean
+  cargo clippy --all-targets --locked -- -D warnings — clean
+  cargo test --all-targets --locked — 62/62 pass (18 lib + 5 baselines +
+    2 config + 17 contract + 3 event_logging + 3 event_order + 5 leakage +
+    4 randomized + 5 seeds)
+  python3 analysis/test_validate_logs.py — 6/6 pass
+  validate-config configs/env_smoke.toml — OK
+  simulate --baseline random --lifetimes 2 — B0 16/16, mean 0.2500
+    (runs/env_smoke-root1-outer1-1789963074/)
+  simulate --baseline constant-0 --lifetimes 2 — B1 16/16, 0.5000 (-retry1)
+  simulate --baseline constant-1 --lifetimes 2 — B1 16/16, 0.5000 (-retry2)
+  simulate --baseline oracle --lifetimes 2 — O1 16/16, 1.0000 (-retry3)
+  validate_logs.py on all four run dirs — OK x4 (16/16 events+hidden,
+    completed, counts agree)
+Outcome and checks passed: Every Section 16/M0 exit condition has
+  runnable-command + test + saved-output evidence. No neural code,
+  evolution, or renderer was needed or added.
+Checks not run / failures / blockers: One real failure found: the
+  run-directory retry logic broke before checking the manifest marker,
+  so the first evidence pass overwrote one directory four times. Fixed
+  (ownership by marker absence) with regression test
+  (same_second_runs_never_share_a_directory), colliding dirs deleted,
+  all four baselines re-executed into distinct directories and
+  re-audited. No failures outstanding.
+Configuration and suite hashes: configs/env_smoke.toml (+
+  debug_stationary.toml validated); resolved copies inside each run dir.
+Seed namespace / outer seeds / lifetime count: development, root 1, outer 1,
+  lifetimes 0-1, 8 outcomes each per smoke run.
+Artifact paths and checksums where relevant: docs/experiments.md (bundle
+  entry); runs/env_smoke-root1-outer1-1789963074*/ (local, git-ignored,
+  4 dirs); analysis/fixtures/valid/ (committed audit fixture).
+Interpretation and claim limits: Milestone-exit evidence. Smoke means are
+  single-run values, not performance claims.
+Tracker boxes updated: M0-15 checked.
+Next eligible task: M0-GATE (completed same session; see next entry).
+```
+
+```text
+Date / agent or session: 2026-09-21 / agent (M0 completion session)
+Task IDs: M0-GATE
+Spec sections: 16/M0 (exit conditions)
+Change and affected files: to-do.md (gate box, status, ownership);
+  README.md (M0-complete status + frozen smoke command).
+Code revision / dirty-tree state: base 10a7ae8; M0 work uncommitted.
+Commands actually executed: Full M0-15 bundle above (nothing additional
+  needed; gate re-verified from saved evidence, no re-execution with
+  different seeds).
+Outcome and checks passed — exit conditions, each with evidence:
+  - All deterministic environment tests pass (contract/event_order/
+    leakage suites, 25 tests).
+  - Oracle latent accuracy is exactly 1.0, incl. hazard-1 tracking
+    (tests/baselines.rs).
+  - Chance controls pass declared statistical checks first try, fixed
+    seeds (tests/randomized_env.rs).
+  - Completed lifetimes deliver one reward per commitment (counts tests
+    + 4 audited smoke runs at 16/16).
+  - Hidden data and RNG isolation verified (leakage suite + stream
+    independence + on/off logging parity).
+  - Runnable smoke command + example output saved (README bundle block;
+    docs/experiments.md M0-15 entry; runs/*/<4 dirs>).
+Checks not run / failures / blockers: None outstanding. The one failure
+  found this session (run-dir overwrite) was fixed and re-evidenced
+  before the gate, with the negative evidence preserved in the ledger
+  and decisions log.
+Configuration and suite hashes: As M0-15.
+Seed namespace / outer seeds / lifetime count: As M0-15. Final-test
+  namespace untouched (no final_test seeds used anywhere).
+Artifact paths and checksums where relevant: Same as M0-15.
+Interpretation and claim limits: M0 proves observations, hidden mappings,
+  timing, and reward accounting are correct. It claims no dynamics,
+  learning, or comparisons — M1 starts here.
+Tracker boxes updated: M0-GATE checked; status M0-GATE passed, next M1-01.
+Next eligible task: M1-01.
+```
+
 ## Blockers and decision register - keep current
 
-No blockers. 2026-09-21: M0-01–M0-11 verified (fmt/clippy clean, full suite
-52/52 pass, both smoke configs validate, scaffold simulate writes
-provenance). Next: M0-12 (seeded randomized sanity checks). Scientific
-ambiguities/decisions for this session are in `docs/decisions.md` (latch
-call-order semantics, B0 tie_break ownership, privilege isolation, shared
-schedule without shared rewards, golden values + probe method, §17.1
-coverage map).
+No blockers. 2026-09-21: M0-GATE passed — full suite 62/62 Rust tests plus
+6/6 Python audit tests, fmt/clippy clean, four audited baseline smoke runs
+at 16/16 outcomes with matching counts. Next: M1-01 (inherited topology
+and structural validation). One failure was found and fixed this session
+(run-directory overwrite on same-second runs; regression tested, evidence
+re-collected). Scientific ambiguities/decisions are in `docs/decisions.md`.
 
 ## First meaningful success
 

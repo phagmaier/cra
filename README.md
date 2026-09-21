@@ -5,15 +5,13 @@ generated gating improve a continuously running recurrent agent's adaptation
 to real changes without damaging stable associations under misleading
 feedback?
 
-Status: **M0 in progress (tasks M0-01–M0-11 verified)**. The environment
-core exists as a library (`src/environment/`: observation boundary, hidden
-state, phase scheduling, K + 6 features, commitments, pending rewards;
-`src/experiments/baseline.rs`: B0/B1/O1 harness) with contract tests
-(`tests/environment_contract.rs`, `tests/event_order.rs`,
-`tests/leakage.rs`, `tests/baselines.rs`). No neural dynamics, plasticity,
-evolution, randomized sanity checks (M0-12), provenance logging (M0-13),
-or log audit (M0-14) exists yet. Anything listed below under
-"Planned" is a target from spec Section 18 / `to-do.md`, not working code.
+Status: **M0 complete (gate passed 2026-09-21)**. The environment core
+exists as a library (`src/environment/`, `src/experiments/baseline.rs`,
+`src/logging/`) with deterministic fixtures, randomized checks, baseline
+runners, and an offline log audit. No neural dynamics, plasticity,
+evolution, or comparison pipeline exists yet — M1 starts from the frozen
+M0 smoke below. Anything listed under "Planned" is a target from spec
+Section 18 / `to-do.md`, not working code.
 
 ## Toolchain (pinned)
 
@@ -39,17 +37,28 @@ cargo test --all-targets --locked
 ```bash
 cargo run --locked -- validate-config configs/env_smoke.toml
 cargo run --locked -- validate-config configs/debug_stationary.toml
-cargo run --locked -- simulate --config configs/env_smoke.toml --seed 1 --outer-seed 1
+cargo run --locked -- simulate --config configs/env_smoke.toml --baseline random --lifetimes 2 --seed 1 --outer-seed 1
+cargo run --locked -- simulate --config configs/env_smoke.toml --baseline oracle --lifetimes 2 --seed 1 --outer-seed 1
+python3 analysis/validate_logs.py runs/<run-id>
+python3 analysis/test_validate_logs.py
 ```
+
+Baselines: `random` (B0), `constant-0` / `constant-1` (B1), `oracle`
+(O1, privileged reference). The audit checks manifest/config/condition
+identity, per-lifetime order and counts, finite 0/1 rewards, duplicate
+feedback, the hidden join, and the completion record; fixtures live in
+`analysis/fixtures/` (one valid run plus five corrupt variants).
 
 Notes:
 
 - `validate-config <file>` parses and validates the TOML against the
   `schema_version = 1` schema (spec 19). Unknown fields and unsupported
   modes are rejected, never silently ignored.
-- `simulate` at M0 still writes provenance only (full lifetime logging and
-  the environment-driven CLI arrive in M0-13/M0-14). Phase scheduling,
-  commitments, and rewards already run in the library and are exercised by
+- `simulate` runs real baseline lifetimes (M0-07–M0-11 contracts) into a
+  fresh run directory with `resolved_config.toml`, `manifest.json`,
+  `seed_streams.json`, `condition.json`, `events.jsonl`, `hidden.jsonl`,
+  and `completion.json`. Same-second runs never share a directory
+  (`-retryN` suffix). Library behavior is also exercised by
   `cargo test --test environment_contract`.
 - Seed namespaces (`development`, `training`, `validation`, `final_test`)
   are disjoint by construction. Final-test seeds must never enter
@@ -60,28 +69,33 @@ Notes:
 
 ## Planned commands (not implemented)
 
-`benchmark`, `evolve`, `evaluate`, `intervene`, and
-`python analysis/validate_logs.py` arrive in their milestone tasks
-(M0-14, M5, M7–M9). Do not treat their absence as a failure of M0.
+`benchmark`, `evolve`, `evaluate`, and `intervene` arrive in their
+milestone tasks (M5, M7–M9). `aggregate.py` arrives with the comparison
+pipeline in M8. Do not treat their absence as a failure of M0.
 
 ## Run directories and artifact policy
 
 - Runs live in `runs/<profile>-root<R>-outer<O>-<unixsecs>[/-retryN]/` and
   are **git-ignored** (see `.gitignore`). Source commits carry code, configs,
   manifests, tests, and docs — never large generated data or build output.
-- Each run directory holds at minimum `resolved_config.toml` (complete
-  effective configuration, not the small override), `manifest.json` (code
-  revision + dirty status, seed policy, RNG policy), and
-  `seed_streams.json` (derived stream seeds for audit).
+- Each run directory holds `resolved_config.toml` (complete effective
+  configuration), `manifest.json` (code revision + dirty status, platform,
+  toolchain, seed/RNG policy, condition), `seed_streams.json` (derived
+  stream seeds), `condition.json`, `events.jsonl` (ordinary records),
+  `hidden.jsonl` (evaluator annotations), and `completion.json` (terminal
+  status + counts).
 - Raw output is immutable; derived analysis goes elsewhere.
   `docs/experiments.md` is append-only, including failures.
 
 ## Layout
 
 `spec.md`, `to-do.md`, `AGENTS.md` at root. `src/` holds `config.rs`
-(versioned TOML schema), `rng.rs` (seed derivation), `run.rs` (provenance),
-and thin `main.rs`. `configs/` holds `env_smoke.toml` (M0 smoke) and
-`debug_stationary.toml` (spec 19.2 reference + seeds). `manifests/` reserves
-disjoint seed ranges per namespace. `analysis/` is stubbed until M0-14.
+(versioned TOML schema), `rng.rs` (seed derivation), `environment/`
+(observation boundary, hidden state, scheduling, features, rewards),
+`experiments/baseline.rs` (B0/B1/O1 harness), `logging/` (event records +
+validation), `run.rs` (provenance + simulation runner), and thin `main.rs`.
+`configs/` holds `env_smoke.toml` (M0 smoke) and `debug_stationary.toml`
+(spec 19.2 reference + seeds). `manifests/` reserves disjoint seed ranges
+per namespace. `analysis/` holds the stdlib-only log audit plus fixtures.
 `docs/decisions.md` records scientific ambiguities/deviations;
 `docs/experiments.md` is the append-only experiment log.

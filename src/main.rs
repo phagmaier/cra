@@ -1,16 +1,17 @@
 //! Thin CLI over the testable library (M0).
 //!
-//! Implemented now: `validate-config`, environment-scaffold `simulate`.
-//! Planned (see README): `benchmark`, `evolve`, `evaluate`, `intervene`,
-//! Python log analysis. The CLI only wires library calls; all behavior is
-//! testable without spawning a process.
+//! Implemented now: `validate-config` and environment-only `simulate`
+//! (baseline lifetimes + provenance + event logs, audited by
+//! `analysis/validate_logs.py`). Planned (see README): `benchmark`,
+//! `evolve`, `evaluate`, `intervene`. The CLI only wires library calls;
+//! all behavior is testable without spawning a process.
 
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 
 use cra::config::load_and_validate;
-use cra::run::{EffectiveSeeds, create_run_dir};
+use cra::run::{BaselineSel, EffectiveSeeds, run_simulation};
 
 #[derive(Debug, Parser)]
 #[command(
@@ -30,9 +31,9 @@ enum Commands {
         /// Path to the TOML config file.
         path: PathBuf,
     },
-    /// M0 scaffold: validate the config, resolve seeds, and write a run
-    /// directory with provenance. Full environment stepping arrives in
-    /// M0-07+; this command never pretends to run an unimplemented actor.
+    /// Run baseline lifetimes into a fresh run directory with provenance
+    /// and event logs. The environment stepping is real (M0-07 through
+    /// M0-11 contracts); neural/search code arrives in later milestones.
     Simulate {
         /// Path to the TOML config file.
         #[arg(long)]
@@ -45,6 +46,13 @@ enum Commands {
         /// Override the config's outer seed (recorded as cli-sourced).
         #[arg(long)]
         outer_seed: Option<u64>,
+        /// Baseline rung: random (B0), constant-0 | constant-1 (B1),
+        /// oracle (O1, privileged reference).
+        #[arg(long, default_value = "random")]
+        baseline: String,
+        /// Number of lifetimes to simulate (indices 0..lifetimes).
+        #[arg(long, default_value_t = 1)]
+        lifetimes: u64,
         /// Base directory for run output (default: runs/).
         #[arg(long)]
         out_dir: Option<PathBuf>,
@@ -74,16 +82,25 @@ fn main() {
             config,
             root_seed,
             outer_seed,
+            baseline,
+            lifetimes,
             out_dir,
         } => match load_and_validate(&config) {
             Ok(cfg) => {
                 let seeds = EffectiveSeeds::from_config(&cfg).with_overrides(root_seed, outer_seed);
                 let base = out_dir.unwrap_or_else(|| PathBuf::from("runs"));
-                match create_run_dir(&cfg, &seeds, &base) {
-                    Ok(dir) => {
-                        println!("run dir: {}", dir.display());
+                match BaselineSel::parse(&baseline)
+                    .and_then(|sel| run_simulation(&cfg, &seeds, sel, lifetimes, &base))
+                {
+                    Ok(report) => {
+                        println!("run dir: {}", report.dir.display());
                         println!(
-                            "M0 scaffold: validated + wrote provenance; full environment stepping arrives in M0-07+."
+                            "condition {}: {} lifetimes, {} commitments, {} outcomes, mean reward {:.4}",
+                            report.condition_id,
+                            report.lifetimes,
+                            report.commitments,
+                            report.outcomes,
+                            report.mean_reward
                         );
                     }
                     Err(e) => {

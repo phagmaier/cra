@@ -1,0 +1,37 @@
+schema_version = 1
+profile_name = "env_smoke"
+
+[simulation]
+dt = 1.0
+precision = "f64"
+warmup_ticks = 4
+outcomes_per_lifetime = 8
+reset_policy = "birth_only"
+feedback_order = "before_neural_transition"
+
+[environment]
+kind = "stationary_clean"
+cue_count = 2
+cue_encoding = "one_hot"
+stable_fraction = 1.0
+feedback_noise_values = [0.0]
+volatile_hazard_values = [0.0]
+hazard_clock = "cue_exposure"
+quiet_ticks = [4, 4]
+cue_ticks = 8
+memory_gap_ticks = [0, 0]
+response_ticks = 4
+reward_delay_ticks = [1, 1]
+feedback_ticks = 1
+max_pending_choices = 1
+
+[logging]
+event_log = true
+trace_every_ticks = 10
+full_trace_lifetimes = 1
+record_raw_and_applied_updates = true
+
+[seeds]
+root_seed = 1
+namespace = "development"
+outer_seed = 1

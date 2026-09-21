@@ -11,5 +11,6 @@
 pub mod config;
 pub mod environment;
 pub mod experiments;
+pub mod logging;
 pub mod rng;
 pub mod run;
