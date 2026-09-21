@@ -1,0 +1,798 @@
+# to-do.md - Learning When to Learn
+
+## Purpose and authority
+
+This is the checkable implementation and research queue for [`spec.md`](spec.md), **version 0.1, prepared September 20, 2026**. Keep this file and [`AGENTS.md`](AGENTS.md) at the repository root beside `spec.md`.
+
+The checklist follows the specification's **M0-M10 milestone sequence**. Scientific equations, information boundaries, and claim limits come from the spec; Section 9 overrides informal descriptions of tick ordering. Task IDs, evidence records, ownership conventions, extra smoke-profile filenames, and the final-study scheduling below are execution choices added for agent coordination, not changes to the scientific model.
+
+**Initial state: no implementation or test execution is asserted. Every checkbox starts unchecked.** Existing code, if any, must be inspected and verified before updating this tracker. A document being written is not evidence that its proposed code or experiment exists.
+
+### Working rules
+
+1. Read `AGENTS.md`, the current status below, and the linked spec sections. Work on the earliest unclaimed eligible task, normally in numerical order. Do not advance past an unchecked milestone gate.
+2. Claim a bounded task and record ownership. Implement it, add tests, run the stated verification, and save evidence. Use `[x]` only after verification; keep blocked/in-progress/deferred work unchecked with a written status.
+3. Separate **implementation completion** from **empirical milestone completion**. M3/M4 require actual learning evidence. M7/M9 can produce legitimate null findings when their implementations and controls are trustworthy.
+4. Record exact commands and outputs in the evidence ledger. For experiments, include run paths, code/configuration identity, seed namespace, sample counts, failures, and interpretation. Never fabricate a test pass or rerun seeds until a statistical check passes.
+5. At handoff, update the status, blockers, last verified task, and next eligible task. Keep stable IDs; add suffixed tasks if a ticket needs splitting rather than renumbering completed work.
+
+**Final-test staging:** M8 builds/rehearses comparisons and M9 builds/rehearses interventions using development/validation data. M10 freezes the complete protocol and executes the untouched test suites. This operational staging protects the spec's train/validation/test separation; it does not change the learning rule or the required comparisons.
+
+**Claim tracks:** the initial `family_only` track studies gates on the tested locally plastic actor family. The conditional B7 track is required before making a stronger comparison against an independently optimized activity-only agent. Leaving B7 deferred limits claims; it is not permission to mislabel B3 as B7.
+
+## Current status - maintain at every handoff
+
+| Field | Initial value |
+| --- | --- |
+| Current milestone | M0 - not started |
+| Claim track | family_only for the first study; broader track not authorized |
+| Last verified task | None |
+| Claimed task | None |
+| Next eligible task | M0-01 |
+| Current blocker | None established; repository inspection is pending |
+| Final-test status | No reserved final-test results inspected |
+| Last evidence record | None |
+
+### Ownership for parallel agents
+
+| Owner/session | Task IDs | Files or interfaces owned | Status / handoff |
+| --- | --- | --- | --- |
+| Unassigned | None | None | No work claimed |
+
+Parallel work requires settled interfaces and satisfied dependencies. Do not parallelize successive scientific milestones or let two agents independently redefine feedback ordering, RNG policy, or checkpoint schema. Coordinate changes to this tracker through one integrator.
+
+## Milestone map
+
+| Milestone | Objective | Required predecessor |
+| --- | --- | --- |
+| M0 | Freeze contracts and build the environment | None. Start here. |
+| M1 | Build a continuous actor with no learning | M0-GATE |
+| M2 | Verify the stochastic score independently | M1-GATE |
+| M3 | Make an ungated local learner learn a clean task | M2-GATE |
+| M4 | Remove artificial trial resets | M3-GATE |
+| M5 | Establish the adaptation/noise trade-off | M4-GATE |
+| M6 | Add gates before evolving them | M5-GATE |
+| M7 | Evolve a small learning-control mechanism | M6-GATE |
+| M8 | Run the primary comparisons | M7-GATE |
+| M9 | Test the mechanism causally | M8-GATE |
+| M10 | Package the research result | M9-GATE; additionally B7-GATE if the broader claim track is selected |
+
+## Completion standard
+
+Every milestone leaves **a runnable command, automated tests, and saved example output**, as required by spec Section 16. Proposed command names and filenames below are targets to implement, not existing functionality. Record actual commands in the README and evidence ledger when they work.
+
+For an implementation task, completion means its behavior and error cases exist, focused tests pass, broader affected regression tests pass, and configuration/checkpoint/logging changes are accounted for. For an empirical task, completion also requires the declared runs and controls, honest uncertainty/failure reporting, and saved raw evidence. A result that does not support a hypothesis is still evidence; missing execution is not.
+
+---
+
+## M0 - Freeze contracts and build the environment
+
+**Spec:** Sections 4-5, 9, 16/M0, 17.1, 18-20.  
+**Prerequisite:** None. Start here..
+
+Prove that observations, hidden mappings, timing, and reward accounting are correct without implementing recurrent neurons or evolution.
+
+- [ ] **M0-01 - Inspect the repository and preserve the specification**
+  - Deliver: Read AGENTS.md and the supplied spec.md; inspect existing files and changes. Confirm the root filename is spec.md, not an upload suffix. Record source version and the actual initial repository state.
+  - Verify: Do not mark existing implementation complete without its tests. Keep the supplied scientific specification unchanged. Set the tracker status and claim the first task.
+
+- [ ] **M0-02 - Bootstrap the minimal Rust project and reproducible toolchain**
+  - Deliver: Create a small Cargo package with a testable library and thin CLI binary. Pin the installed supported toolchain and dependency resolution; keep Cargo.lock. Establish formatting, linting, and test commands.
+  - Verify: A minimal unit test and CLI help run successfully. Record actual toolchain versions. Do not create pretend implementations of future modules or introduce a deep-learning framework.
+
+- [ ] **M0-03 - Establish repository records and artifact conventions**
+  - Deliver: Create README.md, docs/decisions.md, docs/experiments.md, configs/, manifests/, tests/, and analysis/ as needed. Define unique run directories and a policy keeping large generated data/build output out of ordinary source commits.
+  - Verify: Document that decision records, task evidence, and study-plan files are workflow additions. The README distinguishes implemented commands from planned commands; experiment records are append-only, including failures.
+
+- [ ] **M0-04 - Define deterministic seed namespaces and independent streams**
+  - Deliver: Document and implement a stable derivation from root seed, namespace, outer seed, lifetime index, and stream name. Reserve development, training, validation, and test namespaces; separate environment, initialization, actor noise, action ties, and evolution streams.
+  - Verify: Known seed tuples produce golden stream outputs. Namespace separation is auditable. Additional draws in an agent stream do not change cue, change, noise, or timing schedules. Runtime-randomized hashes are not used.
+
+- [ ] **M0-05 - Implement versioned configuration parsing and validation**
+  - Deliver: Implement a resolved TOML schema from Section 19 and an environment-only smoke profile. Record all defaults and the seed source. Reject unknown/unsupported modes at execution rather than silently ignoring them. Add validation incrementally with each feature.
+  - Verify: Table-test invalid probabilities, durations, dt != 1, pending-choice limits, schema versions, and missing seed namespaces. Include dimension, score-noise, reset-policy, and evolution validation as their modules arrive. The environment smoke profile does not pretend to run an unimplemented actor.
+
+- [ ] **M0-06 - Define the public observation boundary and private evaluator types**
+  - Deliver: Implement Feedback, Observation, MotorOutput, and explicit error types following Section 18. Keep hidden state/annotations in separate environment/evaluator modules. Serialize ordinary and hidden streams separately.
+  - Verify: The ordinary agent API has no access to target, correctness, hazard, noise labels, future schedule, or split identity. Feedback IDs are used only for infrastructure; they never enter the feature vector.
+
+- [ ] **M0-07 - Implement birth mappings, cue exposure counters, and phase scheduling**
+  - Deliver: Build the quiet -> cue -> optional gap -> response -> delayed feedback state machine. Initialize binary mappings independently, apply hazard before repeat exposure only, and sample timing through its own stream.
+  - Verify: Table-driven schedules include zero-length memory gaps and exact declared tick counts. Hazard 0 never flips; hazard 1 flips every repeat but not the first exposure. Hazard is not applied on global decisions or quiet ticks.
+
+- [ ] **M0-08 - Implement commitments and one pending reward**
+  - Deliver: At the final response tick, store action and mapping-at-commit, sample/store the reward noise once, and schedule one feedback at start(t_commit + delay). Maintain unique event identity and complete-lifetime outcome counts.
+  - Verify: Delay 1 means next-tick feedback. A later mapping change cannot alter an already pending reward. No second commitment is accepted while unresolved; a completed lifetime has equal commitment/outcome counts and no pending reward.
+
+- [ ] **M0-09 - Build every observable feature and latch transition**
+  - Deliver: Populate K + 6 channels exactly: one-hot cue, cue-present, go, outcome-present, outcome-value, and two previous-action channels. Keep sensory phase flags distinct from evaluator annotations.
+  - Verify: Zero reward sets outcome-present=1 and outcome-value=0. Before first commitment both action channels are zero; afterward the new action appears starting next tick. Cues disappear outside presentation and feedback lasts exactly one tick.
+
+- [ ] **M0-10 - Add B0, B1, and the isolated O1 oracle harness**
+  - Deliver: Implement random action, both constant-action agents, and a researcher-only hidden-state oracle. Route all through the same environment timing and reward accounting. Keep oracle privileges outside ordinary agent code paths.
+  - Verify: The oracle has latent accuracy exactly 1. Random/constant controls use only their permitted information. Reward uses each agent's action and shared noise bit, not a shared forced reward across agents.
+
+- [ ] **M0-11 - Write deterministic environment contract fixtures**
+  - Deliver: Populate tests/environment_contract.rs, tests/event_order.rs, and tests/leakage.rs with explicit schedules, mappings, forced noise bits, and expected features/rewards. Include commitment at tick 20 and delay 3.
+  - Verify: Tick 23 start delivers exactly one outcome; ticks 21-22 are ordinary transitions. Cover every Section 17.1 item, correct/wrong zero-noise actions, forced noise reversal, and no feedback before commitment.
+
+- [ ] **M0-12 - Add seeded randomized environment sanity checks**
+  - Deliver: Test cue/mapping/noise frequencies across sufficient randomized births and long schedules. Declare sample counts and statistical tolerances before executing; preserve fixed diagnostic seeds.
+  - Verify: Random-action correctness is consistent with chance across randomized mappings, and oracle reward is consistent with its noise-conditioned expectation. Do not use expected oracle reward as a hard finite-run upper bound or rerun seeds until a test passes.
+
+- [ ] **M0-13 - Create minimal provenance and separated event logging**
+  - Deliver: Write run manifest, fully resolved configuration, condition identity, ordinary event records, and evaluator-only annotations. Record code revision, dirty-tree status, platform/tool versions, RNG policy, and interruption/failure state.
+  - Verify: Logs can reconstruct reward counts and schedule identity. Hidden truth never returns to the agent. Logging on/off yields identical behavior. Unsupported/nonfinite data and duplicate events produce explicit errors, not successful-looking output.
+
+- [ ] **M0-14 - Expose the first runnable CLI and log audit**
+  - Deliver: Implement validate-config and environment-only simulate using the smoke profile and documented baseline selection. Add analysis/validate_logs.py using minimal dependencies, with fixtures for valid and deliberately corrupt logs.
+  - Verify: A clean checkout can run the smoke command and audit its output. Audit checks order, counts, finite values, duplicate feedback, and missing completion records; unavailable later-stage fields are handled by schema, not fabricated.
+
+- [ ] **M0-15 - Run and save the M0 evidence bundle**
+  - Deliver: Run the deterministic tests, bounded randomized checks, and random/constant/oracle smoke lifetimes. Save exact commands, configuration, seeds, logs, and results; update the tracker ledger and README.
+  - Verify: All Section 16/M0 exit conditions have evidence. No neural code, evolution, or renderer is needed to pass this milestone.
+
+- [ ] **M0-GATE - Verify and record milestone exit**
+  - All deterministic environment tests pass; oracle latent accuracy is exactly 1; chance controls pass the declared statistical checks; completed lifetimes have one delivered reward per commitment; hidden data and RNG isolation are verified. Save a runnable smoke command and example output before starting M1.
+  - Evidence: add a ledger entry with the executed commands, results, configuration/seed identifiers, and saved artifact paths. Update the current status before beginning the next milestone.
+
+---
+
+## M1 - Build a continuous actor with no learning
+
+**Spec:** Sections 3-6, 10, 16/M1, 17.2, 17.7, 18.3-18.5.  
+**Prerequisite:** M0-GATE.
+
+Establish correct, continuously evolving actor dynamics and replay before introducing plasticity.
+
+- [ ] **M1-01 - Implement inherited topology and structural validation**
+  - Deliver: Sample the directed Bernoulli mask, initially with no self-edges; fix a stable edge order and motor assignment. Check cue-driven-to-motor reachability and recurrent cycles. Log rejected structural samples and reasons.
+  - Verify: The same initialization reproduces the same mask. Selection is structural, never based on test performance. Missing edges stay absent. Pair masks and actor inheritance across future gate conditions.
+
+- [ ] **M1-02 - Initialize inherited weights and neuron parameters**
+  - Deliver: Implement W0 row scaling by in-degree, input projection B, zero actor biases, and the starting constants from Sections 6 and 10. Keep W0 separate from future plastic offsets.
+  - Verify: Use standard deviation recurrent_gain/sqrt(in_degree), not the variance as a standard deviation. Handle zero-in-degree rows explicitly. Validate motor capacity, disjoint pools, time constants, finiteness, and dimensions.
+
+- [ ] **M1-03 - Implement the double-buffered f64 actor transition**
+  - Deliver: Compute alpha with -expm1(-1/tau), read only old h/r/a on right-hand sides, accumulate recurrent and sensory drive, add Gaussian noise after leaky integration, and compute new tanh activity.
+  - Verify: One-edge and two-neuron fixtures prove receiver/source orientation and simultaneous updates. Forced perturbations prove the leak factor is not accidentally applied to sigma. No hidden state clipping or inner-loop allocations are introduced.
+
+- [ ] **M1-04 - Verify the perturbation generator and draw schedule**
+  - Deliver: Support a deterministic injected-noise fixture path for tests and a pinned stochastic generator for production. Draw one perturbation per actor neuron per tick, including quiet periods.
+  - Verify: Seeded sample moments match the specified mean/variance within declared tolerances. Extra logging and unused gate changes do not shift draws. Record distribution implementation and RNG state needed for resume.
+
+- [ ] **M1-05 - Implement adaptation but keep its initial strength zero**
+  - Deliver: Update the signed adaptation average from old activity using its separate time constant. Preserve it across all environmental phase boundaries.
+  - Verify: At strength zero adaptation has no influence on actor dynamics. A nonzero-strength unit fixture checks its sign and recurrence, but the initial learner is not simultaneously complicated by enabling this mechanism.
+
+- [ ] **M1-06 - Implement fixed motor pools, filtering, and commitment**
+  - Deliver: Average new activities within the two fixed disjoint motor populations, apply the leaky motor filter, and choose the higher filtered output at commitment with a dedicated fair tie RNG.
+  - Verify: Golden filter recurrences pass. Commitment reads the new q values; exact ties use only the tie stream. No trained decoder, softmax exploration, or epsilon-greedy actor policy is added.
+
+- [ ] **M1-07 - Integrate the nonplastic actor through the common runner**
+  - Deliver: Expose continuously available motor output and the Section 18 agent boundary. Process public reward as sensory input without weight learning. Use an explicit actor-no-learning profile for B3.
+  - Verify: All phases advance the network; no cue/reward/hidden-change boundary resets it. The inherited weights remain identical throughout. Environment scheduling is unchanged from M0.
+
+- [ ] **M1-08 - Add numerical health and selected actor traces**
+  - Deliver: Record sampled activity/adaptation/motor traces, saturation, margins, and state finiteness. Define a conservative watchdog and explicit failure records rather than clipping h.
+  - Verify: A forced nonfinite value fails visibly. Trace selection is stable and does not consume simulation randomness. Diagnostic output is saved without making an interactive notebook mandatory.
+
+- [ ] **M1-09 - Implement the first full lifetime checkpoint**
+  - Deliver: Serialize all state currently present: actor, adaptation, motor, environment phase, pending reward/action latch, bookkeeping, inherited parameters, resolved config, and full RNG state/counters. Add schema, hashes, checksum, and atomic writes.
+  - Verify: Resume at quiet, response, and pending-feedback boundaries reproduces uninterrupted continuation on the recorded reference platform. Reject corrupt/incompatible state; do not restore missing state with silent defaults.
+
+- [ ] **M1-10 - Add actor continuity and replay regression tests**
+  - Deliver: Populate tests/replay.rs and dynamics tests for saved old arrays, exact motor commitment, phase continuity, logging invariance, and checkpoint splits. Record the reference platform and tolerance policy.
+  - Verify: Identical code/config/seeds reproduce the reference trajectory. Test instructions distinguish reference-platform bitwise replay from cross-platform tolerance comparisons.
+
+- [ ] **M1-11 - Run cue observability and bounded long-run smoke tests**
+  - Deliver: Use fixed inputs, alternating cues, long quiet periods, and multiple initializations. Save activity/motor diagnostics and numerical-health summaries.
+  - Verify: Both actions are reachable across initializations; distinct cues produce distinguishable activity; long runs remain finite. These checks establish usable dynamics, not learning or biological realism.
+
+- [ ] **M1-12 - Expose and document the no-learning actor command**
+  - Deliver: Save configs/actor_no_learning.toml and a runnable simulate example using actual generated run paths. Update manifest coverage and the task ledger.
+  - Verify: A reader can reproduce the M1 demo and checkpoint continuation. Any unpassed observability or numerical-health requirement remains a blocker.
+
+- [ ] **M1-GATE - Verify and record milestone exit**
+  - The actor obeys simultaneous-update and noise contracts, continuously preserves state, has usable cue/motor responses across seeds, remains finite in the declared smoke run, and exactly resumes on the reference platform. This milestone is explicitly a dynamical-system demonstration, not learning.
+  - Evidence: add a ledger entry with the executed commands, results, configuration/seed identifiers, and saved artifact paths. Update the current status before beginning the next milestone.
+
+---
+
+## M2 - Verify the stochastic score independently
+
+**Spec:** Sections 7.1-7.2, 7.6, 16/M2, 17.4-17.6.  
+**Prerequisite:** M1-GATE.
+
+Validate the conditional Gaussian score and restricted finite-rollout interpretation without relying on an apparent learning curve.
+
+- [ ] **M2-01 - Implement a pure conditional score function**
+  - Deliver: Implement S[j,i] = alpha_h[j] * r_old[i] * xi[j] / sigma[j]. Keep it independently callable by tests and reusable by the later trace implementation.
+  - Verify: Tests use receiving xi, one alpha_h factor, actual sigma, and no tanh derivative. All incoming edges share their receiver perturbation; zero presynaptic activity yields zero score; active score with sigma <= 0 is rejected.
+
+- [ ] **M2-02 - Implement the fixed-sample conditional log-probability check**
+  - Deliver: For a saved old state and saved h_new, perturb one weight by +/- eps and recompute Gaussian log probability. Compare its central finite difference with the analytical score.
+  - Verify: Test several eps values around 1e-6 and several parameters. The sampled h_new must stay fixed; do not resample it or use the perturbed noise realization as a new observation.
+
+- [ ] **M2-03 - Implement the one-neuron analytical learning-direction test**
+  - Deliver: Use alpha=0.2, input=0.7, weight=0.3, sigma=0.4; compare the mean of (reward-0.5)*score against the closed-form derivative, approximately 0.138862. Save sample count, seed, mean, and standard error.
+  - Verify: Use a tolerance declared before execution, such as five standard errors plus numerical tolerance. Confirm the opposite target reverses the derivative sign. Investigate a failure instead of rerunning until it passes.
+
+- [ ] **M2-04 - Build the exact finite-rollout diagnostic mode**
+  - Deliver: Use weight-independent initial state, fixed weights during a rollout, fixed nonzero noise, no state clipping, no eligibility decay, and a baseline fixed independently of rollout perturbations. Sum local scores and apply at most one terminal update.
+  - Verify: Tests prohibit online updates or running-baseline changes inside this diagnostic. Its resets and no-decay policy are explicit, not hidden meanings of birth_only or a very large finite tau.
+
+- [ ] **M2-05 - Run the short two-neuron recurrent finite-difference check**
+  - Deliver: Implement the Section 17.6 short-horizon test over several weight perturbation magnitudes. Compare sampled expected-reward finite differences with terminal reward times accumulated score and quantify uncertainty.
+  - Verify: Weights stay fixed within each rollout; initial state and baseline obey the diagnostic assumptions. Use adequate samples or report unresolved uncertainty rather than accepting a wide interval as strong evidence.
+
+- [ ] **M2-06 - Package score tests as bounded reproducible diagnostics**
+  - Deliver: Keep deterministic derivative tests in the fast suite and expensive Monte Carlo checks in explicit bounded commands. Save their configuration, analytic expectations, seeds, samples, and results.
+  - Verify: All required diagnostic checks actually run before the milestone gate. Documentation states that these tests do not prove unbiasedness or convergence of the main online learner.
+
+- [ ] **M2-GATE - Verify and record milestone exit**
+  - Deterministic derivative tests pass and Monte Carlo estimates agree with the specified analytical/recurrent checks within prespecified uncertainty tolerances. Save runnable diagnostic commands and evidence. Do not substitute a plotted reward curve for score validation.
+  - Evidence: add a ledger entry with the executed commands, results, configuration/seed identifiers, and saved artifact paths. Update the current status before beginning the next milestone.
+
+---
+
+## M3 - Make an ungated local learner learn a clean task
+
+**Spec:** Sections 7, 10-11, 16/M3, 17.2-17.5, 19.2.  
+**Prerequisite:** M2-GATE.
+
+Demonstrate learning from delayed terminal rewards in a deliberately episodic diagnostic before removing resets.
+
+- [ ] **M3-01 - Add plastic offsets, eligibility, and plastic masks**
+  - Deliver: Store P and E separately from immutable W0. Support motor-afferent-only and all-existing-recurrent-edge plastic masks. Add explicit no-decay diagnostic accumulation and persistent-decay policy as separate configurations.
+  - Verify: Missing/nonplastic edges never acquire updates. Effective weight caches are refreshed in one tested location. All new state participates in checkpoint serialization and compatibility validation.
+
+- [ ] **M3-02 - Implement exactly-once feedback updates and baseline arithmetic**
+  - Deliver: Read old E/gates/P/baseline, compute delta, clamp raw updates per edge, clamp resulting P, and update the baseline once after delta. Fixed mode uses gate 1; the diagnostic baseline follows its declared fixed-rollout policy.
+  - Verify: Duplicate feedback is rejected without changing state. eta=0, gate=0, and delta=0 give zero task-dependent changes. W0 never changes. Tests separate raw, limited, and actual update values at both clipping boundaries.
+
+- [ ] **M3-03 - Pass the hand-calculated golden update fixture**
+  - Deliver: Implement Section 17.3 independently of ordinary configured time constants: score 0.4, new eligibility 0.67, delta 0.4, raw update 0.00067, new P 0.10067, and new baseline 0.64.
+  - Verify: Use tight stated floating-point tolerances. Assert the old baseline is used for delta, and test both clipped and unclipped cases separately. Save the fixture in tests/golden_updates.rs.
+
+- [ ] **M3-04 - Create the explicitly episodic clean-learning runner**
+  - Deliver: Use two unknown cue-action mappings, zero noise, no reversals or blank gap, short delay, reset state/traces between diagnostic rollouts, no trace decay, and one terminal update. Name this profile episodic_stationary, separate from continuous debug_stationary.
+  - Verify: Configuration and logs visibly identify diagnostic resets. Every rollout respects the terminal-credit contract. Do not present this run as the main continuous result.
+
+- [ ] **M3-05 - Add matched no-update and shuffled-reward controls**
+  - Deliver: Run B3 and always-on B4 through matched actor initialization, timing, and task schedules. Define a development shuffled-reward control with its corruption protocol recorded and no hidden information fed to the actor.
+  - Verify: Controls differ only in the declared mechanism; observed environment reward remains separately recorded where diagnostic teaching signals are modified. Check both behavior and actual P changes rather than inferring learning from reward alone.
+
+- [ ] **M3-06 - Declare the development grid and acquisition criterion**
+  - Deliver: Specify a small grid over eta, input scale, recurrent gain, and sigma using development seeds only. Declare number of seeds, sample lengths, acquisition windows, and the learning-vs-control criterion before results.
+  - Verify: Treat the spec's example final-200-choice median accuracy >0.8 in a 2,000-choice run as a proposed debugging target, not a guaranteed benchmark or automatically fixed final-study threshold. Log tuning budget and every outcome.
+
+- [ ] **M3-07 - Demonstrate acquisition with motor-afferent plasticity**
+  - Deliver: Run the smallest diagnostic first with only incoming motor edges plastic. Save early/late exposure accuracy, reward, offset/trace norms, saturation, and seed-by-seed paired controls.
+  - Verify: Several seeds show the declared learning improvement over no-update and shuffled-reward controls without widespread clipping or numerical failure. A single favorable trajectory does not pass.
+
+- [ ] **M3-08 - Extend the verified learner to all recurrent plastic edges**
+  - Deliver: Use the same verified score/update machinery with the full existing-edge plastic mask. Repeat the declared development comparisons and preserve the motor-only run as a diagnostic.
+  - Verify: Show the required learning evidence for the actor family carried into M4. Do not compare different plastic masks later while attributing every difference to gates.
+
+- [ ] **M3-09 - Add the smallest failure-isolation path and negative checks**
+  - Deliver: Provide a one-weight/noisy-motor diagnostic and a documented reduction path for failed acquisition. Add the postsynaptic-perturbation permutation diagnostic and investigate unexpected equivalence without demanding a particular failure magnitude.
+  - Verify: A failing learner is reduced to a sign/order/representation test rather than rescued by evolution. Record whether this troubleshooting path was needed and what was found; do not change the scientific rule invisibly.
+
+- [ ] **M3-10 - Save reproducible learning evidence and updated checkpoints**
+  - Deliver: Archive working and failure configurations, all development grid results, paired controls, actual update summaries, and learned-offset checkpoints. Extend exact replay tests through learning events.
+  - Verify: Checkpoint splitting with nonzero P/E reproduces uninterrupted learning. The evidence distinguishes correct arithmetic, episodic acquisition, and still-unproven continuous acquisition.
+
+- [ ] **M3-GATE - Verify and record milestone exit**
+  - The clean episodic learner demonstrably improves over matched no-update and shuffled-reward controls across several development seeds; score/golden-update tests remain valid and numerical behavior is interpretable. If it does not learn, leave this gate open and debug. Do not start M4 or evolution on the strength of implemented code alone.
+  - Evidence: add a ledger entry with the executed commands, results, configuration/seed identifiers, and saved artifact paths. Update the current status before beginning the next milestone.
+
+---
+
+## M4 - Remove artificial trial resets
+
+**Spec:** Sections 5.7, 7.3-7.9, 8.3, 9-10, 16/M4, 17.2, 19.2.  
+**Prerequisite:** M3-GATE.
+
+Show that the ungated learner still acquires associations with persistent neural state and eligibility.
+
+- [ ] **M4-01 - Implement the authoritative main tick order**
+  - Deliver: Apply any feedback using pre-tick E/gates/baseline before advancing the actor. Then advance actor, optional modulator, eligibility, motor filter, and future gates; commit from new motor output and finish the tick. Until M6, the gate is fixed at 1.
+  - Verify: An event-order fixture proves current feedback-evoked activity cannot contribute to the same outcome's update. The tick-20/delay-3 case uses traces through tick 22 at tick 23 start. There is exactly one feedback application path.
+
+- [ ] **M4-02 - Enable persistent eligibility and the running baseline**
+  - Deliver: Implement E <- exp(-1/tau_e)*E + score every tick, including quiet/delay/feedback transitions, without feedback resets or an extra (1-lambda) factor. Use baseline 0.5 at birth and beta_R per outcome.
+  - Verify: Trace recurrences and baseline event counts pass deterministic fixtures. Scores after commitment remain in the live trace as specified; do not silently replace it with a commitment snapshot.
+
+- [ ] **M4-03 - Enforce birth-only resets and warmup semantics**
+  - Deliver: Instrument reset reasons and allow the primary condition to reset only at independent lifetime birth. Preserve h/a/q/P/E and, once implemented, z/gates across all phase boundaries. Run the optional warmup with live traces.
+  - Verify: Tests detect any reset at cue changes, rewards, hidden reversals, log rotation, or post-warmup. Birth clears acquired state and bookkeeping exactly. Finishing a lifetime includes the final feedback transition.
+
+- [ ] **M4-04 - Create three explicitly distinguished continuity profiles**
+  - Deliver: Keep the episodic diagnostic, persistent activity with event_reset_diagnostic traces, and fully persistent activity/traces as separately named conditions. Create continuous_stationary and the source debug_stationary profile without overloading reset flags.
+  - Verify: Resolved configs and logs identify each policy. Validation rejects a run labeled persistent that clears traces. No comparison mistakes diagnostic resets for an equivalent implementation of the main model.
+
+- [ ] **M4-05 - Introduce variable timing and delayed outcomes gradually**
+  - Deliver: Keep stationary clean mappings while increasing timing variability and reward delay through declared development profiles. Preserve the single-pending-choice rule and identical exogenous schedules for paired comparisons.
+  - Verify: Table tests cover timing endpoints. Measured delay sensitivity is saved together with tau_e, actual trace magnitudes, and update norms; longer traces are not assumed to be strictly better.
+
+- [ ] **M4-06 - Extend checkpoints and replay to continuous learning**
+  - Deliver: Checkpoint during nonzero traces/offsets, just before feedback, and after feedback. Include baseline, consumed-event identity, latches, and any derived caches needed for exact continuation.
+  - Verify: Split runs match uninterrupted continuous runs on the reference platform. Duplicate resume/delivery does not double-apply a reward; missing new fields are incompatible rather than silently reset.
+
+- [ ] **M4-07 - Run the declared continuous acquisition comparison**
+  - Deliver: Compare the three continuity conditions and matched nonplastic controls across development seeds. Use predeclared per-cue exposure windows and report raw/actual updates, bound occupancy, motor saturation, and failures.
+  - Verify: Above-chance acquisition remains measurable in the fully persistent condition and exceeds the declared matched control criterion. Episodic success alone is insufficient.
+
+- [ ] **M4-08 - Audit continuity failures before expanding scope**
+  - Deliver: Use the Section 21 reduction path to inspect cross-choice interference, ordering, baseline drift, trace timescale, and saturation. Record changes to development ranges and rerun affected controls.
+  - Verify: Do not introduce hidden resets, weight decay, membrane clipping, or a trained decoder to pass. If continuous learning remains unverified, leave the milestone blocked and report the negative finding honestly.
+
+- [ ] **M4-09 - Save the M4 continuous-system evidence bundle**
+  - Deliver: Save resolved profiles, reset audit, several-seed acquisition/control results, exact replay evidence, sample traces, and the runnable continuous-clean command.
+  - Verify: The report labels the main learner a heuristic online local system rather than importing the restricted diagnostic's unbiased-gradient interpretation.
+
+- [ ] **M4-GATE - Verify and record milestone exit**
+  - The birth-only-reset learner shows the declared acquisition evidence with persistent traces; no within-lifetime reset hooks fire, replay passes, and trace/update/bound statistics remain interpretable. This is the first core continuous-learning result. An unresolved failure blocks noisy-task and gate-search claims.
+  - Evidence: add a ledger entry with the executed commands, results, configuration/seed identifiers, and saved artifact paths. Update the current status before beginning the next milestone.
+
+---
+
+## M5 - Establish the adaptation/noise trade-off
+
+**Spec:** Sections 5.2-5.3, 5.9, 13.2-13.4, 14.1-14.7, 16/M5, 17.8, 22.  
+**Prerequisite:** M4-GATE.
+
+Characterize a tuned always-on learner and simple references before asking evolution to improve plasticity regulation.
+
+- [ ] **M5-01 - Implement the remaining core environment profiles**
+  - Deliver: Add stationary_noisy, isolated_reversal, mixed_continual, long_life, and uninformative_reward. Keep isolated scheduled reversals separate from the memoryless main hazard process.
+  - Verify: Named profiles do what their resolved configs state. The main process has no unreported minimum dwell time. The noise=0.5 profile is a negative control, not a learnable target.
+
+- [ ] **M5-02 - Counterbalance noise, volatility, and cue identities**
+  - Deliver: Randomize stable/volatile membership at birth and stratify the proposed noise/hazard combinations across lifetimes/batches. Implement noisy stable and reliable volatile cues, with mappings independent of cue roles.
+  - Verify: No cue magnitude, index convention, or frequency encodes volatility. All training combinations are represented across the declared suite; do not assume eight cues can cover every combination within one lifetime. Save realized change/noise counts.
+
+- [ ] **M5-03 - Implement B2, the observable-cue tabular learner**
+  - Deliver: Remember the last observed cue through its delayed outcome, maintain Q[c,action] initialized to 0.5, and implement the specified update with epsilon-greedy exploration. Keep its learning rate/exploration tuning separate and recorded.
+  - Verify: Cue memory comes from sensory input, never an evaluator pointer. Tests check delayed credit, initial values, action selection, and updates. Confirm it learns the clean task before using it as a reference.
+
+- [ ] **M5-04 - Implement O2, the known-parameter belief reference**
+  - Deliver: Implement the binary-flip prior and noisy-label Bayesian update from Section 13.4, with explicit access to true hazard/noise only inside this privileged comparator.
+  - Verify: Hand fixtures verify first-vs-repeat exposure, both actions/rewards, zero-noise cases, and finite probability arithmetic. Impossible dogmatic observations raise checks. Label O2 privileged and distinct from a fair ordinary learner.
+
+- [ ] **M5-05 - Implement primary metrics and per-cue acquisition summaries**
+  - Deliver: Compute observed reward, latent accuracy at commitment, and regret=(1-2*epsilon)*wrong from evaluator data. Aggregate by cue exposure and stable/volatile subgroup, with declared early/late windows.
+  - Verify: Hand-calculated streams validate every metric. Fitness still uses observed reward only; hidden-truth metrics remain analysis-only. Missing/failing records are distinct from valid zero performance.
+
+- [ ] **M5-06 - Implement isolated-reversal recovery and interference metrics**
+  - Deliver: Track changed-cue errors in a declared post-change exposure window, interleaved unchanged-cue performance, and optional recovery thresholds. Record censoring and exclude/censor overlapping events only in the event-aligned analysis.
+  - Verify: Tests include never-recovered events, incomplete windows, repeated flips, and uneven cue frequency. Full-lifetime metrics still include the entire stream. Do not drop unrecovered events or count them as zero errors.
+
+- [ ] **M5-07 - Add learning-health diagnostics and negative controls**
+  - Deliver: Record eligibility and actual-update L1/L2, raw/limited/actual clipping, plastic-bound occupancy, activity saturation, and motor margins. Run uninformative/shuffled-feedback controls with explicit protocols.
+  - Verify: An apparent absence of updates can be distinguished from bound saturation. Feedback independent of correctness does not reliably reveal random mappings across the declared seeds; an anomaly triggers a leakage audit, not a learning claim.
+
+- [ ] **M5-08 - Run the declared eta-by-tau_e development sweep**
+  - Deliver: Start from the spec's proposed eta values {1e-4,3e-4,1e-3,3e-3} and tau_e values {16,32,64,128}, or record a reason for a revised range before using it. Tune fixed plasticity jointly, not one parameter in isolation.
+  - Verify: Save all configurations, seeds, candidate-lifetime/tick counts, failures, recovery, and stable/noisy performance. No final-test information is used to select the fixed baseline.
+
+- [ ] **M5-09 - Characterize whether a meaningful trade-off actually exists**
+  - Deliver: Summarize the fixed-rule performance surface and whether faster recovery is accompanied by noise/interference damage. Include the tuned tabular reference and both clean and noisy stable cues.
+  - Verify: Do not cherry-pick a weak fixed eta to create room for gates. If a single fixed setting works everywhere, record that outcome and a transparent proceed/revise decision rather than claiming the intended trade-off was found.
+
+- [ ] **M5-10 - Benchmark representative complete lifetimes**
+  - Deliver: Add the benchmark command; measure ticks/s, outcomes/s, and output cost for small representative lifetimes with logging off/on. Record hardware, build profile, actual tick counts, and realized reversals.
+  - Verify: Validate debug cycle accounting and the main average-timing arithmetic from Section 22. The 60-neuron/100-generation nominal configuration is not launched merely to obtain a benchmark.
+
+- [ ] **M5-11 - Freeze the development baseline settings for the first gate study**
+  - Deliver: Save chosen actor family, plastic mask, eta/tau_e, task mixture, timing, and selection criteria. Record the fixed baseline's tuning budget and any unresolved task weakness.
+  - Verify: The same base condition can generate fixed/global/targeted variants with explicit overrides. The M5 record distinguishes empirical evidence from proposed future changes.
+
+- [ ] **M5-GATE - Verify and record milestone exit**
+  - The always-on learner has a characterized, reproducible performance surface; tabular and privileged references are verified; metrics and hidden-data separation pass; a trade-off is measured or its absence is explicitly documented with a proceed/revise decision. Do not assert an unobserved trade-off or move directly to a large search.
+  - Evidence: add a ledger entry with the executed commands, results, configuration/seed identifiers, and saved artifact paths. Update the current status before beginning the next milestone.
+
+---
+
+## M6 - Add gates before evolving them
+
+**Spec:** Sections 3.3, 8-9, 16/M6, 17.2, 17.7, 19.5.  
+**Prerequisite:** M5-GATE.
+
+Prove that global and receiving-neuron gates do exactly what the intended architecture says, independently of optimization.
+
+- [ ] **M6-01 - Implement the deterministic recurrent modulator**
+  - Deliver: Add z, the actor-to-modulator C projection, recurrent H, sensory U, biases, and tau_m. Use old actor activity and old modulator state with current ordinary inputs. Do not create an ordinary modulator-to-actor activation pathway.
+  - Verify: One-step golden tests verify old-state use and leaky dynamics. The modulator receives no hidden labels. It advances during every phase and becomes part of birth/reset/checkpoint state.
+
+- [ ] **M6-02 - Implement fixed, global, and targeted gate heads**
+  - Deliver: Fixed mode emits 1; global emits one stable-sigmoid scalar; targeted emits one sigmoid per receiver shared by incoming plastic edges. Validate dimensions and initialize gate heads near half-open as specified.
+  - Verify: Gates stay finite within [0,1]. Check initialization standard deviations from Section 8.5 rather than confusing variance with standard deviation. Fixed eta and half-open gate eta are not automatically treated as equal effective rates.
+
+- [ ] **M6-03 - Test gate arithmetic through controlled injections**
+  - Deliver: In a diagnostic harness, supply all-zero, all-one, all-half, single-receiver, and alternating gate vectors with known E and delta. Keep such injections separate from ordinary learned-gate configurations.
+  - Verify: Zero gates block task-dependent P updates; all-one matches fixed mode; half gates halve unclipped updates; one enabled receiver changes only its incoming plastic edges. Clipping exceptions are measured explicitly.
+
+- [ ] **M6-04 - Prove pre-outcome gate timing**
+  - Deliver: Use sentinel old gates and deliberately different post-feedback gates to test the exact feedback event. Keep old gate/eligibility snapshots distinct from the values logged after the transition.
+  - Verify: Current feedback is gated only by the pre-feedback values. Feedback-tick scores and gates cannot be reused retroactively. Extend the tick-20/delay-3 regression to a nonconstant modulator.
+
+- [ ] **M6-05 - Prove modulation-only causal isolation**
+  - Deliver: With P updates disabled and the actor noise schedule paired, vary modulator parameters or turn modulation off while preserving actor inheritance/input.
+  - Verify: Actor states, motor values, actions, and rewards are unchanged on the reference platform. A difference reveals a forbidden activation pathway, RNG coupling, or another implementation bug.
+
+- [ ] **M6-06 - Extend gate diagnostics and full-state replay**
+  - Deliver: Log event-aligned gate vectors and summaries, near-bound fractions, diversity, and autocorrelation for selected lifetimes. Add z/current gates/caches to exact checkpoint state.
+  - Verify: Resume preserves the gate used at the next reward, not merely a newly recomputed approximate value. Logging records which values were applied versus produced for future feedback.
+
+- [ ] **M6-07 - Generate matched gate-condition configurations**
+  - Deliver: Create mixed_fixed, mixed_global, and mixed_targeted from one shared base and explicit overrides. Pair actor/mask/motor/input/noise settings; record rate tuning and inherited parameter differences.
+  - Verify: A machine-readable comparison identifies every difference. Fixed/global/targeted conditions are not independently edited files that silently diverge. No evolution is enabled until this milestone passes.
+
+- [ ] **M6-08 - Save gate-fixture and regression evidence**
+  - Deliver: Run the complete gate arithmetic, timing, architecture-isolation, replay, and earlier score/environment suites. Save controlled examples without claiming their hand-designed gate patterns are evolved results.
+  - Verify: The tests establish actual update behavior, not just that gate values can be plotted. The milestone evidence includes all required Section 16/M6 checks.
+
+- [ ] **M6-GATE - Verify and record milestone exit**
+  - Zero/one/half/single-receiver/alternating gate checks pass; pre-outcome ordering and modulation-only isolation are proven; full-state replay and paired-condition config audits pass. Only now is evolutionary search eligible.
+  - Evidence: add a ledger entry with the executed commands, results, configuration/seed identifiers, and saved artifact paths. Update the current status before beginning the next milestone.
+
+---
+
+## M7 - Evolve a small learning-control mechanism
+
+**Spec:** Sections 11-12, 16/M7, 17.7, 19.3-19.5, 20, 22.  
+**Prerequisite:** M6-GATE.
+
+Test a small, auditable gate-only search before scaling model size or inherited search dimension.
+
+- [ ] **M7-01 - Define immutable genomes and fresh-birth construction**
+  - Deliver: Serialize inherited parameters separately from acquired state. Initialize each candidate lifetime from birth with P=E=0 and reset dynamic/bookkeeping state. Pair actor inheritance across gate conditions within outer seed.
+  - Verify: Tests show no learned offsets, traces, reward baselines, or neural state leak between evaluation lifetimes or generations. A genome cannot be mistaken for a lifetime checkpoint.
+
+- [ ] **M7-02 - Implement bounded parameter encoding and search spaces**
+  - Deliver: Decode searched weights with weight_limit*tanh(theta); encode valid initialized weights with atanh(weight/limit), redrawing out-of-bound initial samples. Start projection-only with C/H/U fixed; support the later modulator-and-gate space explicitly.
+  - Verify: Round trips and mutation-to-decoded-weight tests pass. Parameter counts match shape formulas, including 560 targeted and 265 global parameters for the main full-modulator parameterization. Initial eta/tau_e/tau_m/sigma are not silently evolved.
+
+- [ ] **M7-03 - Implement the deterministic elitist evolutionary engine**
+  - Deliver: Implement population initialization, fitness sorting with fixed ties, elite preservation, uniform elite-parent choice, and Gaussian genotype mutation. Use a small explicit configuration; the proposed nominal values are not mandatory smoke-run sizes.
+  - Verify: Test population/elite counts, deterministic ties, mutation reproducibility, and bounded decoding. Run a trivial numerical objective with a known optimum before attaching the simulator.
+
+- [ ] **M7-04 - Build stratified common training batches**
+  - Deliver: Generate one fresh training batch per generation, shared by all candidates. Pair initial mappings, cue sequence, changes, timing, and noise bits while computing reward from each candidate's own action.
+  - Verify: A manifest records the exact batch and strata. Altering actor RNG draws leaves exogenous schedules unchanged. The batch contains enough actual changes for the intended fitness signal; a six-lifetime batch is not assumed adequate automatically.
+
+- [ ] **M7-05 - Implement full-lifetime scoring and explicit failure policy**
+  - Deliver: Score total observed reward divided by delivered outcomes, counting acquisition onward. Complete the configured outcome count. Assign failed candidates the predeclared finite worst fitness and a reason.
+  - Verify: No hidden accuracy or gate-shape bonus enters fitness. Candidate-level failure records are saved even when event logs are off. Early failures cannot look favorable because they completed fewer outcomes; missing data stays separately identifiable.
+
+- [ ] **M7-06 - Reevaluate every candidate, including elites, on the fresh batch**
+  - Deliver: Evaluate preserved elites again each generation; aggregate candidate lifetime scores in a deterministic order. Keep candidate IDs independent of scheduling/completion order.
+  - Verify: A regression catches stale elite scores compared with fresh child scores. Every candidate in a generation uses exactly the same batch; lifetime count and scoring denominators are audited.
+
+- [ ] **M7-07 - Implement validation selection and untouched-test safeguards**
+  - Deliver: Use disjoint validation lifetimes at declared intervals and a prespecified selection metric. Save distinct last-generation, best-training, and best-validation candidates. Enforce namespace manifests and hashes.
+  - Verify: Final-test seeds never enter tuning/search/validation. An overlap is a hard audit failure. A visually attractive training trajectory cannot silently replace the validation-selected genome.
+
+- [ ] **M7-08 - Implement atomic resumable search checkpoints**
+  - Deliver: Save population/genotypes, generation position, current scores/batch, evaluation bookkeeping, RNG state/counters, validation history, config/code identifiers, and selection state. Use atomic writes and compatibility checks.
+  - Verify: A split serial search produces the same resumed population, scores, selection, and validation record as an uninterrupted reference run. Partial files are rejected instead of restarted with default values.
+
+- [ ] **M7-09 - Create the small-search budget and launch profile**
+  - Deliver: Start around 16 actor neurons and 2 modulators with gate-projection-only search. Choose bounded candidate-lifetime/tick budgets using measured throughput and realized change counts. Record training, tuning, validation, and failure costs.
+  - Verify: The profile has enough lifetime exposure to test the phenomenon. Do not shorten lifetimes until reversals disappear or launch the nominal 60-neuron search without a recorded budget decision.
+
+- [ ] **M7-10 - Run bounded serial search smoke tests for both gate families**
+  - Deliver: Exercise global and targeted projection search through the same evaluated actor family and tuned fixed baseline. Save complete candidate summaries and selected validation replays.
+  - Verify: The entire search-to-selection-to-fresh-birth evaluation path works with no inherited P or final-test leakage. These smoke runs are integration checks, not proof of a robust advantage.
+
+- [ ] **M7-11 - Run independent small discovery replicates**
+  - Deliver: Use several fresh outer seeds/topologies and report each fixed/global/targeted result. Analyze improvement or null results with mutation behavior, gate saturation, ranking noise, and realized environmental changes.
+  - Verify: A reproducible advantage or a clearly documented valid null result may complete this task. A stalled/broken engine, ineffective base learner, or insufficient fitness signal is diagnosed rather than interpreted as impossibility.
+
+- [ ] **M7-12 - Add bounded parallel evaluation after serial correctness**
+  - Deliver: Parallelize independent candidate/lifetime jobs only; keep each small tick loop single-threaded. Preserve explicit stream ownership and deterministic reduction/selection order.
+  - Verify: Serial and parallel candidate scores/selection match on the reference platform, including deliberately reordered worker completion. Avoid nested oversubscription; record worker count.
+
+- [ ] **M7-13 - Profile and decide whether a sparse kernel is justified**
+  - Deliver: Measure the dense reference and total lifetime bottlenecks. Record whether to retain it or add a stable receiver-grouped sparse edge kernel. If adding sparse execution, keep the dense implementation as an oracle.
+  - Verify: Any sparse kernel agrees with dense intermediate states, scores, updates, and outputs on identical graph/noise fixtures within a declared tolerance. No performance claim replaces measured throughput. A documented decision not to optimize is valid.
+
+- [ ] **M7-14 - Save the discovery report and gate-only claim limits**
+  - Deliver: Package selected inherited genomes, manifests, checkpoint/replay examples, all candidate/failure summaries, budgets, and validation comparisons. Explain which modulator parameters were frozen versus searched.
+  - Verify: Projection-only success is not described as evolution inventing the entire history representation. A fixed-actor gate study is not claimed superior to a separately optimized activity-only architecture.
+
+- [ ] **M7-GATE - Verify and record milestone exit**
+  - The evolutionary engine passes its known-objective and resume tests; candidate evaluation uses fresh births and fresh shared batches; selected genomes are chosen on validation only; multiple outer seeds yield reproducible evidence or an honestly documented null result. No large search proceeds without throughput, event-count, and budget evidence.
+  - Evidence: add a ledger entry with the executed commands, results, configuration/seed identifiers, and saved artifact paths. Update the current status before beginning the next milestone.
+
+---
+
+## M8 - Run the primary comparisons
+
+**Spec:** Sections 13-14, 16/M8, 19.5, 20, 22, 24.  
+**Prerequisite:** M7-GATE.
+
+Build the full comparison/analysis pipeline and rehearse it on development and validation data. The untouched final-test execution is deliberately reserved for M10 after intervention tooling is verified.
+
+- [ ] **M8-01 - Implement the common evaluation suite runner**
+  - Deliver: Load a selected frozen genome, create fresh births with P=0, execute versioned suite manifests, and preserve ordinary lifetime learning unless explicitly testing a frozen-plasticity intervention. Track completed, failed, and interrupted jobs.
+  - Verify: Equivalent conditions use paired environment suites and outer initializations. Interrupted runs cannot be silently treated as completed. Ordinary evaluation freezes evolution, not learning.
+
+- [ ] **M8-02 - Audit the baseline ladder and condition differences**
+  - Deliver: Make B0/B1/B2/B3/B4/B5/B6 and O1/O2 available through common scoring/output contracts. Compare actor topology, W0, B, motor assignment, plastic masks, noise, lifetime length, tuning, and training distributions.
+  - Verify: Report parameter counts and persistent state sizes alongside budgets. B3 is labeled a same-actor no-update control, not a competitively optimized activity-only agent. Oracles remain visibly privileged.
+
+- [ ] **M8-03 - Choose and document the claim track**
+  - Deliver: Record family_only for the initial fixed-actor gate study, or explicitly authorize the conditional B7 track for broader activity-only comparisons. Draft docs/study_plan.md with H1-H5, primary/secondary metrics, controls, and budget.
+  - Verify: A family_only result never claims superiority over the best activity-only architecture. If the broader track is selected, B7-01 through B7-GATE must pass before final selection/evaluation for that claim.
+
+- [ ] **M8-04 - Build and freeze generalization-suite generation rules**
+  - Deliver: Define fresh seeds/mappings/role permutations, interpolation noise 0.15 and hazard 0.01, harder noise 0.30 and/or hazard 0.04, new per-cue combinations, longer delays, and longer uninterrupted lifetimes. Declare the held-out condition for H5.
+  - Verify: Keep one-hot input dimension fixed for a frozen network. Hash suite manifests and ensure namespace disjointness. Development rehearsals use their own namespaces and do not inspect the reserved final-test results.
+
+- [ ] **M8-05 - Implement audited offline aggregation**
+  - Deliver: Extend analysis/validate_logs.py and implement analysis/aggregate.py to join ordinary and hidden streams by explicit keys, compute Section 14 metrics, retain failures/censoring, and write versioned derived outputs.
+  - Verify: Synthetic fixtures have hand-checked reward/accuracy/regret, counts, acquisition, and recovery values. Duplicate/missing records fail audit or appear as explicit missingness; no silent zero filling or selective lifetime omission.
+
+- [ ] **M8-06 - Implement paired outer-seed uncertainty analysis**
+  - Deliver: Average evaluation lifetimes within each outer seed, compute matched condition differences, and summarize across independent outer seeds. Use a declared outer-seed bootstrap or paired analysis; optional hierarchical resampling must preserve nesting.
+  - Verify: Fixtures demonstrate that adding correlated ticks/rewards/lifetimes from one genome does not create more independent discoveries. Report effect sizes, intervals, per-seed values, and analysis RNG/configuration.
+
+- [ ] **M8-07 - Run the motor-afferent-only plasticity diagnostic**
+  - Deliver: Compare full recurrent plasticity with incoming-motor-edge plasticity under matched learning rule/task settings and declared tuning. Keep this separate from the main mask-matched gate comparison.
+  - Verify: If motor-afferent learning matches the full model, report that this task has not established a need for plastic internal recurrent computation. Do not hide the result as an inconvenient control.
+
+- [ ] **M8-08 - Rehearse primary suites on development/validation data**
+  - Deliver: Run fresh-lifetime comparisons, noise/hazard grid, isolated changes, and long-life tests using rehearsal suites. Generate preliminary acquisition, reversal, and generalization tables/figures.
+  - Verify: Every selected genome comes from the declared validation procedure. Report all outer seeds, failures, baseline choices, and measured compute. Do not label rehearsal results untouched final evidence.
+
+- [ ] **M8-09 - Plan confirmation replicates using pilot variability and cost**
+  - Deliver: Use the spec's 3-5 exploratory outer seeds and initial suggestion of 10 or more confirmation seeds as planning guidance, not universal requirements. Declare a minimum effect of interest, precision goal, feasible budget, and stopping rule.
+  - Verify: The number of lifetimes from one genome is not substituted for outer-seed replication. Do not stop at the most favorable interim result. Document any smaller feasible study and its uncertainty honestly.
+
+- [ ] **M8-10 - Make an explicit model-scaling and extra-ablation decision**
+  - Deliver: Use measured throughput to decide whether 60 actor neurons plus 4 modulators are justified or the small study should remain primary. Consider adaptation strength 0 versus a separately named nonzero ablation only after the baseline is established.
+  - Verify: The decision, actor/modulator counts, search space, dynamic-state count, and any ablation budgets are recorded. A larger model or new mechanism does not silently replace the previously characterized comparison.
+
+- [ ] **M8-11 - Draft the required report and representative-example policy**
+  - Deliver: Create reproducible scripts for acquisition/continuous performance, reversal behavior, noise-by-hazard results, intervention result placeholders, and mechanism traces. Declare how ordinary, representative, and failure examples will be selected.
+  - Verify: Figures/tables state condition, units, sample counts, uncertainty, and censoring where applicable. A report template has no fabricated results; missing intervention/final-study outputs are clearly pending.
+
+- [ ] **M8-12 - Freeze comparison choices for intervention rehearsals**
+  - Deliver: Record primary targeted-versus-independently-evolved-global regret comparison, secondary recovery/unchanged-cue measures, proposed mechanism tests, and held-out generalization condition, or document explicit development-stage alternatives.
+  - Verify: Analysis choices are ready to freeze before final test. Changes during M9 development must be recorded and never informed by reserved test results. Save a runnable evaluation and analysis rehearsal bundle.
+
+- [ ] **M8-GATE - Verify and record milestone exit**
+  - All primary comparison runners, baseline/config audits, metrics, outer-seed analysis, and fresh-lifetime rehearsal suites work; the report includes every outer seed/failure and budget; the claim track and final analysis choices are explicit. Final-test results remain uninspected while M9 tooling is validated.
+  - Evidence: add a ledger entry with the executed commands, results, configuration/seed identifiers, and saved artifact paths. Update the current status before beginning the next milestone.
+
+---
+
+## M9 - Test the mechanism causally
+
+**Spec:** Sections 14.5-14.7, 15, 16/M9, 20.4, 24.  
+**Prerequisite:** M8-GATE.
+
+Verify branch-from-checkpoint interventions and their controls, then rehearse the causal analyses without confusing performance, correlation, and mechanism.
+
+- [ ] **M9-01 - Build the intervention branch harness**
+  - Deliver: Choose checkpoint events in advance, clone full state into exact-copy control/intervention branches, and pair future exogenous schedules. Assign branch IDs and intervention metadata without altering ordinary observations.
+  - Verify: Copy-versus-copy branches match exactly on the reference platform. Changing the intended mechanism may diverge activity/actions; do not force trajectories to remain identical afterward.
+
+- [ ] **M9-02 - Implement freezing of future plasticity**
+  - Deliver: Suppress application of P updates while preserving current P, recurrent/adaptation/modulation/motor state, and sensory feedback. Declare whether eligibility keeps evolving and prohibit undefined unfreezing.
+  - Verify: P stays unchanged through probe outcomes while permitted state continues evolving. Baseline and feedback bookkeeping remain exactly once. Measure stable retention separately from adaptation to new changes.
+
+- [ ] **M9-03 - Implement weight erasure, shock control, and weight transfer**
+  - Deliver: Erase P in one branch, retain an exact-copy control, and add a declared norm-matched random weight perturbation control. Transfer learned P into a fresh dynamic state of the same inherited actor for the complementary test.
+  - Verify: Refresh effective-weight caches correctly. Declare settling/probe windows and distinguish immediate dynamical shock from retained useful information. Random control generation has its own evaluator RNG stream.
+
+- [ ] **M9-04 - Implement transient-state reset probes**
+  - Deliver: At a suitable quiet interval, reset h/a/z/q while preserving P; clear E and freeze future plasticity during the memory-location probe. Preserve consistent environment phase and visible action history.
+  - Verify: Cached gates/derived state are consistent with the intervention. No pending reward is lost or reassigned. Interpret together with weight erasure/transfer, not as a complete memory partition from one destructive reset.
+
+- [ ] **M9-05 - Implement validation-calibrated constant gates**
+  - Deliver: Estimate one global mean gate and each receiver's own mean gate on validation lifetimes, then clamp to those constants in probes. Include a separately tuned constant-rate comparator selected on development data.
+  - Verify: Constants are never estimated from final-test outcomes. Tests distinguish removal of both spatial/temporal variation from removal of temporal variation only. Compare actual updates as well as gates.
+
+- [ ] **M9-06 - Implement spatial gate reassignment**
+  - Deliver: Route the generated gate vector through a fixed seeded receiver permutation at a checkpoint while leaving modulator computation and actor topology unchanged. Predeclare several permutation seeds.
+  - Verify: Each event's multiset of gate values is unchanged, but receiver assignment changes. Identity permutation matches control. Report necessity in the trained individual, not universal superiority of one spatial arrangement.
+
+- [ ] **M9-07 - Implement event-indexed temporal gate controls**
+  - Deliver: Support recorded gate replay with a fixed circular event shift and online delayed gates. Include a frozen no-shift replay control; specify recorded sequence source, alignment, delay, and initial-buffer policy in configuration.
+  - Verify: Shifts/delays are chosen without inspecting final-test damage. Separate open-loop replay effects from mistiming. Label replay offline and any boundary/alignment choice explicitly; do not present future-recorded gates as an ordinary online controller.
+
+- [ ] **M9-08 - Implement the mean-gate global control**
+  - Deliver: Replace the targeted vector by its across-receiver mean at each event. Preserve the modulator and apply the resulting scalar through the common update implementation.
+  - Verify: The mean gate matches exactly, but unequal eligibility norms may change total update magnitude. Tests and analysis must not describe this as a sufficient magnitude-matching control.
+
+- [ ] **M9-09 - Implement the raw-L1-update-matched global control**
+  - Deliver: At the identical branch state compute b=abs(eta*delta*E) per plastic edge and scalar g=sum(b*targeted_gate)/sum(b), or zero when the denominator is zero. Keep this global eligibility access evaluator-only.
+  - Verify: Tests prove equality of unclipped L1 update magnitude at that state. Log raw and actual norms; clipping/offset bounds can break actual equality. Report all events and a predeclared clean nonclipping analysis separately.
+
+- [ ] **M9-10 - Implement suppression of one misleading-outcome update**
+  - Deliver: At an evaluator-selected misleading event, deliver the same reward input to both branches but skip only that event's synaptic update in one. Use a declared short subsequent no-learning probe.
+  - Verify: Baseline and sensory feedback still advance consistently in both branches. This separates the synaptic update's behavioral effect from the sensory effect of the misleading reward; not every nonzero update is automatically called damage.
+
+- [ ] **M9-11 - Implement paired unchanged-cue interference branches**
+  - Deliver: Compare continuation after one designated hidden change with a matched no-change continuation, retaining cue sequence and random schedules. Probe unchanged cues using the declared measurement policy.
+  - Verify: Only the intended hidden mapping differs at branch creation. The agent receives no branch/change label, and unchanged-cue performance is measured with aligned exposures and explicit probe counts.
+
+- [ ] **M9-12 - Run intervention regression and development rehearsals**
+  - Deliver: Test every intervention in small hand-checkable states, then run prespecified validation-selected genomes on fresh development/validation lifetimes, including ordinary and unsuccessful outer seeds.
+  - Verify: Each control has a verified identity/no-op case where applicable. Keep acute interventions distinct from separately trained restricted models. A failed mechanism test is retained, not replaced by a favorable individual.
+
+- [ ] **M9-13 - Generate causal-effect summaries and finalize protocols**
+  - Deliver: Implement analysis/plot_interventions.py and mechanism traces with activity, eligibility, applied gates, raw/actual updates, and behavior. Save branch configs, checkpoint references, and paired outer-seed effects.
+  - Verify: The report separates performance advantage from support for timing/targeting, static spatial bias, learning-rate scale, or other simpler explanations. All intervention parameters and analysis choices are ready for the final-study freeze.
+
+- [ ] **M9-GATE - Verify and record milestone exit**
+  - Branch replay and all specified interventions/controls are tested; pilot mechanism results include ordinary/failure cases and appropriate uncertainty; simpler explanations are explicitly considered. The intervention toolkit and protocol are frozen before final-test execution. A causal null is acceptable; an unverified intervention is not.
+  - Evidence: add a ledger entry with the executed commands, results, configuration/seed identifiers, and saved artifact paths. Update the current status before beginning the next milestone.
+
+---
+
+## M10 - Package the research result
+
+**Spec:** Sections 14.8-14.12, 16/M10, 20, 24-25.  
+**Prerequisite:** M9-GATE; additionally B7-GATE if the broader claim track is selected.
+
+Lock the analysis, execute the untouched final study once under the declared protocol, and archive a reproducible result with defensible limitations.
+
+- [ ] **M10-01 - Lock the final study plan and artifacts**
+  - Deliver: Freeze code/configuration identifiers, primary/secondary outcomes, comparisons, selected-genome procedure, budgets, outer seeds, suite hashes, intervention parameters, censoring/failure policy, and representative-example rule.
+  - Verify: All preceding gates pass. Final-test results have not informed these choices. Any remaining uncertainty or reduced scope is explicit; the broader claim track also has the matched B7 evidence.
+
+- [ ] **M10-02 - Complete the declared independent search/selection replicates**
+  - Deliver: Execute any remaining prespecified confirmation searches within the agreed budget, select genomes using validation only, and archive all populations/selections/failures and compute counts.
+  - Verify: The run count follows the declared stopping rule, not favorable interim differences. This is not permission to launch an unbounded campaign. Log any infeasible or interrupted portion as incomplete.
+
+- [ ] **M10-03 - Run the untouched final evaluation and intervention suites**
+  - Deliver: Evaluate frozen selected genomes with fresh births, ordinary learning active where specified, and the reserved test manifests. Execute the predeclared branch interventions and held-out condition without tuning from their outcomes.
+  - Verify: All expected jobs have explicit completion/failure status. No test seed overlaps other namespaces. Inspection ends the untouched status of that suite; later changes require a new exploratory cycle and new independent confirmation data.
+
+- [ ] **M10-04 - Audit final raw data before aggregation**
+  - Deliver: Validate event accounting, no resets/leakage, finite values, bounds, seeds, manifest/code hashes, realized changes/noise, lifetime counts, and failure records. Reproduce selected complete checkpoint continuations.
+  - Verify: An audit failure is investigated and disclosed. Do not fill missing values with convenient scores, omit failed candidates, or combine incompatible schemas as if they were one study.
+
+- [ ] **M10-05 - Generate the five required figure groups or equivalent tables**
+  - Deliver: Produce acquisition/continuous performance; changed/unchanged-cue reversal behavior; noise-by-hazard performance; causal intervention effects across outer seeds; and representative plus failure mechanism traces.
+  - Verify: Scripts reproduce figures from archived raw/derived data. Show observed reward and latent accuracy/regret, effect sizes/intervals, sample counts, censoring, and the predeclared example-selection rule.
+
+- [ ] **M10-06 - Write the result-to-claim interpretation**
+  - Deliver: Address H1-H5 separately with evidence, null results, limitations, and controls. Distinguish activity-mediated memory, synaptic adaptation, inherited specialization, gate timing, spatial assignment, and update-scale explanations.
+  - Verify: Use Section 24 claim limits. Do not assert general intelligence, a realistic brain, biological credit-assignment equivalence, universal superiority, or publication novelty from architectural ingredients alone.
+
+- [ ] **M10-07 - Assemble the reproducibility archive and README**
+  - Deliver: Archive source revision plus dirty-tree evidence when applicable, lockfiles/toolchain, resolved configs, all seed manifests, selected genomes, representative complete checkpoints, event/hidden streams, candidate failures, metrics, figures, and decisions/experiment logs.
+  - Verify: README gives actual implemented commands and real artifact paths. Separate raw evidence from derived outputs. Checksums identify the archive; no private credentials or unrelated local files are included.
+
+- [ ] **M10-08 - Verify clean reconstruction and close the core tracker**
+  - Deliver: From a clean working environment, reproduce at least a small reference simulation, a checkpoint continuation, log audit, and report-generation path using the pinned environment. Record what was and was not rerun.
+  - Verify: Update every core task and gate from evidence, leave deferred extensions unchecked, and write a final handoff. Choose any next research axis only after the core result is interpretable.
+
+- [ ] **M10-GATE - Verify and record milestone exit**
+  - All mandatory tasks for the explicitly frozen core scope have verified evidence; study outputs, failures, analysis, and limitations are archived; reproducibility checks pass. If execution is incomplete, leave this gate unchecked and record the completed subset and blocker. Valid negative results do not prevent completion. Extensions remain separate work.
+  - Evidence: add a ledger entry with the executed commands, results, configuration/seed identifiers, and saved artifact paths. Update the current status before beginning the next milestone.
+
+---
+
+## Conditional B7 track - stronger activity-only comparison
+
+**Spec:** Sections 11.4, 12.10, 13.1, 13.5-13.6, 16/M8, and 24.  
+**Prerequisite:** M8 comparison infrastructure and an explicit broader-claim decision. Complete this track before M10 final selection/evaluation when that claim is in scope.
+
+**Initial status: deferred, not completed.** These checkboxes are outside the initial core milestone gates. A `family_only` report must explicitly state that the stronger comparator was not established. Do not count deferred work as done.
+
+- [ ] **B7-01 - Authorize and freeze the expanded comparison**
+  - Deliver: After the M8 claim-track decision, define the same inherited actor parameterization and optimization opportunity for activity-only and plastic conditions. Predeclare budgets, validation selection, and both capacity variants from Section 13.6.
+  - Verify: The expanded study is a separately named scope, not a hidden replacement for the fixed-actor gate study. Preserve and report the earlier gate-only result.
+
+- [ ] **B7-02 - Implement separately optimized activity-only agents**
+  - Deliver: Keep P fixed at zero throughout all lifetimes while allowing inherited actor/input parameters to be optimized to use cue/action/reward history. Support same-actor-count and same-total-neuron-count variants where the approved study calls for them.
+  - Verify: Ordinary recurrent memory is available. Unused modulator units can become ordinary recurrent units only in the explicitly named total-neuron comparator. Report neuron and full dynamic-state counts; neither variant automatically matches synaptic memory capacity.
+
+- [ ] **B7-03 - Implement matched joint-search plastic conditions**
+  - Deliver: Give fixed/global/targeted plastic models the same actor-search parameterization and opportunity for optimization as the activity-only comparator, while retaining their explicitly different learning mechanisms.
+  - Verify: Pair initializations/task suites and report search dimensions, candidate-lifetime/tick budgets, validation and tuning effort. Failure to optimize one family is recorded as a limitation, not proof that its mechanism cannot work.
+
+- [ ] **B7-04 - Run and integrate the expanded comparison evidence**
+  - Deliver: Train/select the approved models using training/validation only, rehearse matched analysis, and include the expanded study in the frozen final protocol before any reserved-test inspection.
+  - Verify: Report every outer seed, failure, budget, performance interval, and capacity caveat. Do not reuse test-informed settings as untouched confirmation.
+
+- [ ] **B7-GATE - Verify the broader-claim comparator**
+  - Separately optimized activity-only and matched joint-search plastic conditions have verified implementations, declared comparable optimization opportunities, validation-selected genomes, and an auditable analysis plan/evidence. State remaining capacity and search limitations.
+  - Evidence: record the expanded study separately and link it in the final report. Without this gate, keep claims within the initial locally plastic actor family.
+
+---
+
+## Deferred extensions - do not begin automatically
+
+**Prerequisite:** M10-GATE and an explicit next-direction decision. These entries summarize spec Section 23, not requirements for the first result. Pick one major axis at a time, write its separate contract, and rerun the relevant controls. Leave unselected entries unchecked.
+
+- [ ] **X-01 - Remove explicit perturbation access.** Reproduce a separately sourced local rule faithfully before replacing the Gaussian score; hold the task and gate study fixed during the comparison. Source: Section 23.1.
+- [ ] **X-02 - Add outcome-responsive gates.** Use stored pre-feedback eligibility/reward/baseline and one explicitly delayed update; exclude reward-processing scores from stored credit. Compare against pre-outcome and simple reward-dependent scalar gates. Source: Sections 8.4 and 23.2.
+- [ ] **X-03 - Add an internal teaching-signal mechanism.** Specify its own learning rule and observable information boundary; keep fitness grounded in real environmental rewards. Source: Section 23.3.
+- [ ] **X-04 - Permit multiple unresolved choices.** Specify the new credit-assignment protocol without silently giving a reward-to-cue pointer to the agent. Source: Section 23.4.
+- [ ] **X-05 - Use overlapping fixed-dimensional cue representations.** Control norms/similarities and separate representation changes from modulation changes; do not claim perceptual abstraction from random-vector memorization. Source: Section 23.5.
+- [ ] **X-06 - Introduce spiking dynamics.** Derive or faithfully reproduce an appropriate learning rule; do not copy the Gaussian membrane score into a changed transition model. Source: Section 23.6.
+- [ ] **X-07 - Add a small embodied task.** Reestablish simple action/reward/baseline contracts before attributing success to modulation. Source: Section 23.7.
+- [ ] **X-08 - Evolve topology or add structural growth.** Separate inherited topology from within-lifetime change and reestablish matched search controls. Source: Section 23.8.
+
+## Contract and test coverage index
+
+Use this index when modifying a cross-cutting feature. The cited tasks identify where coverage is first established; later changes must keep the corresponding tests passing.
+
+| Spec requirement | Primary work items |
+| --- | --- |
+| Section 17.1: environment unit tests | M0-06 through M0-12 |
+| Source/receiver orientation, old-state actor updates | M1-01 through M1-06; M2-01 |
+| Section 17.2: neural/plasticity invariants | M1-03 through M1-07; M3-01 through M3-03; M4-01 through M4-04; M6-01 through M6-05 |
+| Section 17.3: golden score/eligibility/update | M3-03 |
+| Section 17.4: conditional fixed-sample derivative | M2-02 |
+| Section 17.5: one-neuron closed-form direction | M2-03 |
+| Section 17.6: finite-horizon recurrent derivative | M2-04 through M2-06 |
+| Section 17.7: replay, logging, dense/sparse, serial/parallel | M1-09 through M1-10; M3-10; M4-06; M6-05 through M6-06; M7-08, M7-12, M7-13 |
+| Section 17.8: statistical negative controls | M3-05, M3-09, M5-07 |
+| Sections 5/8/9: information and feedback ordering | M0-06 through M0-11; M4-01; M6-04 through M6-05 |
+| Sections 10/11: birth state versus inherited genome | M1-09; M3-01, M3-10; M4-03, M4-06; M7-01 |
+| Sections 12/13: search, fairness, baselines | M5-03 through M5-04; M5-08 through M5-11; M7; M8-02; B7 track |
+| Section 14: metrics, replication, generalization | M5-05 through M5-07; M8; M10-01 through M10-06 |
+| Section 15: intervention mechanisms and controls | M9-01 through M9-13 |
+| Sections 18-20: CLI/configuration/logging/checkpoints | M0-02 through M0-06; M0-13 through M0-14; M1-09; M3-10; M7-07 through M7-08; M8-05 |
+| Section 22: compute and optimization budgets | M5-10; M7-09, M7-12, M7-13; M8-09 through M8-10; M10-02 |
+| Section 24: honest interpretation and claim scope | M7-14; M8-03; M9-13; M10-06; B7-GATE |
+
+## Initial command milestones
+
+The exact CLI may be refined and documented during implementation. The following contracts come from spec Section 18, with environment/actor diagnostic entry points added as needed. `runs/example` and similar paths are placeholders, not files already present.
+
+| Stage | Runnable artifact to establish |
+| --- | --- |
+| M0 | `cargo test`; `validate-config`; environment-only `simulate`; minimal log audit |
+| M1 | Nonplastic actor `simulate`; full-state checkpoint/resume test |
+| M2 | Deterministic score tests and bounded Monte Carlo diagnostic command |
+| M3 | Explicitly episodic clean-learning diagnostic and paired controls |
+| M4 | `simulate --config configs/continuous_stationary.toml --seed 1` |
+| M5 | `benchmark --config configs/mixed_fixed.toml`; baseline sweep and metrics scripts |
+| M6 | Matched gate-condition configurations and gate arithmetic regression tests |
+| M7 | `evolve --config <small-search-config> --outer-seed 1`; resumable search |
+| M8 | `evaluate --genome <actual-genome-path> --suite <rehearsal-manifest>`; aggregation/plots |
+| M9 | `intervene --checkpoint <actual-checkpoint-path> --config configs/interventions.toml` |
+| M10 | Frozen final evaluation, validated analysis, and archive reconstruction commands |
+
+Run Rust CLI subcommands through `cargo run --release --locked -- ...` after bootstrapping the lockfile. Seed namespace resolution must be explicit in configuration/CLI/manifest and saved with every run. The example seed `1` is not a substitute for the full seed policy. Python commands use the pinned project environment.
+
+## Completion evidence ledger - append, do not fabricate
+
+No completion evidence has been recorded at initial handoff. Add one entry per coherent verified change/run; an entry may cover several tightly related task IDs. The template below is not an actual result.
+
+```text
+Date / agent or session:
+Task IDs:
+Spec sections:
+Change and affected files:
+Code revision / dirty-tree state:
+Commands actually executed:
+Outcome and checks passed:
+Checks not run / failures / blockers:
+Configuration and suite hashes:
+Seed namespace / outer seeds / lifetime count:
+Artifact paths and checksums where relevant:
+Interpretation and claim limits:
+Tracker boxes updated:
+Next eligible task:
+```
+
+For a code-only task, mark experiment-specific fields not applicable with a reason. For empirical tasks, include actual measured values and uncertainty rather than "looks good." Link fuller run records from `docs/experiments.md`; log scientific ambiguities and approved changes in `docs/decisions.md`.
+
+## Blockers and decision register - keep current
+
+No blockers have yet been established because repository inspection has not occurred. When blocked, record the task ID, observed failure, smallest reproducer, relevant spec contract, actions already tried, and the next permissible action. Do not erase prior negative evidence when a fix is found.
+
+## First meaningful success
+
+A tiny recurrent agent learns two initially unknown cue-action associations from delayed outcomes, then continues learning with no within-lifetime neural-state resets. Reach that at M4 before treating modulation or evolution as the main achievement.
