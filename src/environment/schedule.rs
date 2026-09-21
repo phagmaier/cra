@@ -14,6 +14,7 @@
 
 use rand::Rng;
 use rand_chacha::ChaCha8Rng;
+use serde::{Deserialize, Serialize};
 
 use super::observation::SimError;
 
@@ -49,9 +50,11 @@ impl Phase {
 }
 
 /// Driver state: the current phase plus its remaining ticks (remaining is
-/// always >= 1 while the phase is active).
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(super) enum PhaseState {
+/// always >= 1 while the phase is active). Serialized verbatim into
+/// lifetime checkpoints (M1-09); countdowns are validated on restore
+/// rather than trusted.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) enum PhaseState {
     Quiet { remaining: u64 },
     Cue { cue: usize, remaining: u64 },
     Gap { remaining: u64 },

@@ -20,9 +20,21 @@
 //! canonical string documented in [`canonical_string`]. The reference
 //! platform for bitwise replay is recorded in run manifests; cross-platform
 //! comparisons require declared tolerances (see AGENTS.md).
+//!
+//! Checkpoint support (M1-09): [`RngState`] captures one stream as its
+//! 32-byte seed plus the `ChaCha8Rng` word position. Because the actor
+//! perturbation pairing is per-tick-local (M1-04: one fresh `NormalStream`
+//! per tick, no spare crosses a tick boundary), seed bytes plus word
+//! position at a tick boundary reproduce the next tick exactly. The
+//! `init`/`mapping_init` streams are consumed at birth (membership shuffle
+//! plus birth mappings) and leave no further draws, so only the six live
+//! streams (`cue_order`, `mapping_change`, `timing`, `reward_noise`,
+//! `actor_noise`, `tie_break`) are checkpointed; their effects survive in
+//! the stored weights, hidden state, and positions.
 
 use rand_chacha::ChaCha8Rng;
 use rand_core::SeedableRng;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 /// Domain separator for the derivation. Bumped only with a documented,
@@ -146,6 +158,36 @@ pub fn derive_seed_hex(t: &SeedTuple) -> Result<String, SeedError> {
 /// its own instance; never share one RNG across streams.
 pub fn rng_for(t: &SeedTuple) -> Result<ChaCha8Rng, SeedError> {
     Ok(ChaCha8Rng::from_seed(derive_seed_bytes(t)?))
+}
+
+/// Exact continuation state for one live RNG stream (M1-09).
+///
+/// `seed_bytes` re-derives from the checkpoint's seed identity on restore
+/// (a mismatch is an explicit seed-identity error, never a silent reseed);
+/// `word_pos` is the `ChaCha8Rng` word position at the tick boundary, which
+/// seeks in O(1) without replaying draws.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RngState {
+    pub seed_bytes: [u8; 32],
+    pub word_pos: u128,
+}
+
+impl RngState {
+    /// Capture the current position alongside the tuple-derived seed.
+    pub fn capture(rng: &ChaCha8Rng, tuple: &SeedTuple) -> Result<Self, SeedError> {
+        Ok(Self {
+            seed_bytes: derive_seed_bytes(tuple)?,
+            word_pos: rng.get_word_pos(),
+        })
+    }
+
+    /// Rebuild the stream at its captured position (callers verify
+    /// `seed_bytes` against the checkpoint's seed identity first).
+    pub fn restore(&self) -> ChaCha8Rng {
+        let mut rng = ChaCha8Rng::from_seed(self.seed_bytes);
+        rng.set_word_pos(self.word_pos);
+        rng
+    }
 }
 
 fn to_hex(bytes: &[u8]) -> String {

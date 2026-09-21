@@ -36,7 +36,7 @@ use crate::agent::topology::DEFAULT_MAX_STRUCTURAL_ATTEMPTS;
 use crate::agent::weights::{InheritedParams, ParamsError, sample_inherited};
 use crate::config::{Actor, Config};
 use crate::environment::{Feedback, MotorOutput, SimError, feature_dim};
-use crate::rng::{SeedTuple, rng_for};
+use crate::rng::{RngState, SeedTuple, rng_for};
 
 /// Nonplastic actor construction/advance failures. Duplicate feedback uses
 /// [`SimError::DuplicateFeedback`] through the `Agent` trait (state
@@ -93,6 +93,21 @@ pub struct NoLearningActor {
     last_feedback: Option<u64>,
     cue_count: usize,
     ticks_advanced: u64,
+}
+
+/// Serializable dynamic actor snapshot for lifetime checkpoints (M1-09).
+/// Live membranes/adaptation/filters plus RNG positions; inherited
+/// weights travel in the checkpoint body.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub(crate) struct AgentSnapshot {
+    pub h: Vec<f64>,
+    pub a: Vec<f64>,
+    pub q: [f64; 2],
+    pub last_output: MotorOutput,
+    pub last_feedback: Option<u64>,
+    pub ticks_advanced: u64,
+    pub noise_rng: RngState,
+    pub tie_rng: RngState,
 }
 
 impl NoLearningActor {
@@ -251,6 +266,132 @@ impl NoLearningActor {
             self.state.r(),
             self.motor.q(),
         )
+    }
+
+    /// Stream names owned by this actor (spec 5.8): perturbations plus
+    /// commitment ties. The environment never draws either stream.
+    const NOISE_STREAM: &'static str = "actor_noise";
+    const TIE_STREAM: &'static str = "tie_break";
+
+    /// Snapshot the dynamic actor state for a lifetime checkpoint (M1-09):
+    /// membranes, adaptation, filters, readout, feedback bookkeeping, tick
+    /// count, and both RNG positions. Inherited weights travel in the
+    /// checkpoint body, not here.
+    pub(crate) fn snapshot(
+        &self,
+        root_seed: u64,
+        namespace: &str,
+        outer_seed: u64,
+        lifetime_index: u64,
+    ) -> Result<AgentSnapshot, NoLearningError> {
+        let bad = |e: crate::rng::SeedError| NoLearningError::BadSeed(e.to_string());
+        let noise = RngState::capture(
+            &self.noise_rng,
+            &SeedTuple::new(
+                root_seed,
+                namespace,
+                outer_seed,
+                lifetime_index,
+                Self::NOISE_STREAM,
+            ),
+        )
+        .map_err(bad)?;
+        let tie = RngState::capture(
+            &self.tie_rng,
+            &SeedTuple::new(
+                root_seed,
+                namespace,
+                outer_seed,
+                lifetime_index,
+                Self::TIE_STREAM,
+            ),
+        )
+        .map_err(bad)?;
+        Ok(AgentSnapshot {
+            h: self.state.h().to_vec(),
+            a: self.state.a().to_vec(),
+            q: self.motor.q(),
+            last_output: self.last_output,
+            last_feedback: self.last_feedback,
+            ticks_advanced: self.ticks_advanced,
+            noise_rng: noise,
+            tie_rng: tie,
+        })
+    }
+
+    /// Restore dynamic actor state onto already-validated inherited
+    /// parameters, validating shapes, finiteness, and RNG seed identity
+    /// instead of trusting stored bytes. Missing state is an explicit
+    /// error, never a silent default.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn restore(
+        snapshot: AgentSnapshot,
+        actor_cfg: Actor,
+        params: InheritedParams,
+        cue_count: usize,
+        root_seed: u64,
+        namespace: &str,
+        outer_seed: u64,
+        lifetime_index: u64,
+    ) -> Result<Self, NoLearningError> {
+        let invalid = |reason: String| NoLearningError::InvalidConfig(reason);
+        let n = actor_cfg.neuron_count;
+        if params.topology.neuron_count != n {
+            return Err(invalid(format!(
+                "topology has {} neurons but actor config has {n}",
+                params.topology.neuron_count
+            )));
+        }
+        if snapshot.h.len() != n || snapshot.a.len() != n {
+            return Err(invalid(format!(
+                "actor state len ({}/{}) must match {n} neurons",
+                snapshot.h.len(),
+                snapshot.a.len()
+            )));
+        }
+        if !snapshot.h.iter().all(|v| v.is_finite()) || !snapshot.a.iter().all(|v| v.is_finite()) {
+            return Err(invalid("restored actor state must be finite".to_owned()));
+        }
+        if !snapshot.q.iter().all(|v| v.is_finite()) {
+            return Err(invalid("restored motor filters must be finite".to_owned()));
+        }
+        if !snapshot.last_output.action_0.is_finite() || !snapshot.last_output.action_1.is_finite()
+        {
+            return Err(invalid("restored motor readout must be finite".to_owned()));
+        }
+        for (name, state) in [
+            (Self::NOISE_STREAM, &snapshot.noise_rng),
+            (Self::TIE_STREAM, &snapshot.tie_rng),
+        ] {
+            let tuple = SeedTuple::new(root_seed, namespace, outer_seed, lifetime_index, name);
+            let expected = crate::rng::derive_seed_bytes(&tuple)
+                .map_err(|e| NoLearningError::BadSeed(e.to_string()))?;
+            if state.seed_bytes != expected {
+                return Err(invalid(format!(
+                    "rng stream '{name}' seed does not match the checkpoint seed identity"
+                )));
+            }
+        }
+        let input_dim = feature_dim(cue_count);
+        if params.input_dim() != input_dim {
+            return Err(invalid(format!(
+                "sensory width {} must match K + 6 = {input_dim} for {cue_count} cues",
+                params.input_dim()
+            )));
+        }
+        Ok(Self {
+            state: ActorState::from_state(snapshot.h, snapshot.a)
+                .map_err(NoLearningError::Actor)?,
+            motor: MotorState::from_q(snapshot.q).map_err(NoLearningError::Motor)?,
+            last_output: snapshot.last_output,
+            last_feedback: snapshot.last_feedback,
+            ticks_advanced: snapshot.ticks_advanced,
+            noise_rng: snapshot.noise_rng.restore(),
+            tie_rng: snapshot.tie_rng.restore(),
+            actor_cfg,
+            params,
+            cue_count,
+        })
     }
 
     /// Choose the committed action from the newest readout. Strict winners

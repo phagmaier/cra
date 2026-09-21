@@ -36,7 +36,8 @@ use rand_chacha::ChaCha8Rng;
 use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
-use crate::rng::{SeedTuple, rng_for};
+use crate::rng::{RngState, SeedTuple, rng_for};
+use hidden_state::HiddenSnapshot;
 pub use hidden_state::{CueRole, HiddenAnnotation, HiddenState};
 pub use observation::{Agent, Feedback, MotorOutput, Observation, SimError, feature_dim};
 pub use schedule::Phase;
@@ -570,6 +571,267 @@ impl Lifetime {
         self.confirmed.push(event_id);
         Ok(())
     }
+
+    /// Snapshot the full driver state for a lifetime checkpoint (M1-09).
+    /// RNG positions are captured against the caller's seed identity; the
+    /// `init`/`mapping_init` streams are birth-consumed (their effects
+    /// survive in the stored membership/mappings) and need no live state.
+    pub(crate) fn snapshot(
+        &self,
+        root_seed: u64,
+        namespace: &str,
+        outer_seed: u64,
+        lifetime_index: u64,
+    ) -> Result<LifetimeSnapshot, SimError> {
+        let bad = |e: crate::rng::SeedError| {
+            SimError::InvalidConfiguration(format!("bad seed tuple: {e}"))
+        };
+        let stream = |name: &str, rng: &ChaCha8Rng| {
+            RngState::capture(
+                rng,
+                &SeedTuple::new(root_seed, namespace, outer_seed, lifetime_index, name),
+            )
+            .map_err(bad)
+        };
+        Ok(LifetimeSnapshot {
+            cue_count: self.cue_count,
+            cue_ticks: self.cue_ticks,
+            response_ticks: self.response_ticks,
+            quiet_range: self.quiet_range,
+            gap_range: self.gap_range,
+            delay_range: self.delay_range,
+            outcomes_target: self.outcomes_target,
+            hidden: self.hidden.snapshot(),
+            cue_rng: stream("cue_order", &self.cue_rng)?,
+            timing_rng: stream("timing", &self.timing_rng)?,
+            noise_rng: stream("reward_noise", &self.noise_rng)?,
+            change_rng: stream("mapping_change", &self.change_rng)?,
+            tick: self.tick,
+            phase: self.phase.clone(),
+            current_cue: self.current_cue,
+            cycle_gap: self.cycle_gap,
+            cycle_exposure_index: self.cycle_exposure_index,
+            cycle_changed: self.cycle_changed,
+            pending: self.pending.clone(),
+            next_event_id: self.next_event_id,
+            commitments: self.commitments,
+            outcomes: self.outcomes,
+            consumed: self.consumed.clone(),
+            confirmed: self.confirmed.clone(),
+            last_action: self.last_action,
+        })
+    }
+
+    /// Restore a driver from a checkpoint snapshot, validating every
+    /// countdown, index, count, pending-phase consistency rule, and RNG
+    /// seed identity instead of trusting stored bytes.
+    pub(crate) fn restore(
+        snapshot: LifetimeSnapshot,
+        root_seed: u64,
+        namespace: &str,
+        outer_seed: u64,
+        lifetime_index: u64,
+    ) -> Result<Self, SimError> {
+        let inconsistent = |reason: String| SimError::InconsistentCheckpoint(reason);
+        let check_rng = |name: &str, state: &RngState| {
+            let tuple = SeedTuple::new(root_seed, namespace, outer_seed, lifetime_index, name);
+            let expected = crate::rng::derive_seed_bytes(&tuple)
+                .map_err(|e| SimError::InvalidConfiguration(format!("bad seed tuple: {e}")))?;
+            if state.seed_bytes != expected {
+                return Err(inconsistent(format!(
+                    "rng stream '{name}' seed does not match the checkpoint seed identity"
+                )));
+            }
+            Ok(state.restore())
+        };
+        if snapshot.cue_count == 0 {
+            return Err(inconsistent("cue_count must be >= 1".to_owned()));
+        }
+        if snapshot.cue_ticks == 0 {
+            return Err(inconsistent("cue_ticks must be >= 1".to_owned()));
+        }
+        if snapshot.response_ticks == 0 {
+            return Err(inconsistent("response_ticks must be >= 1".to_owned()));
+        }
+        if snapshot.quiet_range[0] > snapshot.quiet_range[1] {
+            return Err(inconsistent("quiet range min exceeds max".to_owned()));
+        }
+        if snapshot.gap_range[0] > snapshot.gap_range[1] {
+            return Err(inconsistent("gap range min exceeds max".to_owned()));
+        }
+        if snapshot.delay_range[0] < 1 || snapshot.delay_range[0] > snapshot.delay_range[1] {
+            return Err(inconsistent(
+                "reward delay must satisfy 1 <= min <= max".to_owned(),
+            ));
+        }
+        if snapshot.outcomes_target == 0 {
+            return Err(inconsistent("outcomes_target must be >= 1".to_owned()));
+        }
+        // Phase countdowns and cue indices must describe a reachable driver
+        // state; a zero remaining or an out-of-range cue is corruption.
+        match &snapshot.phase {
+            PhaseState::Quiet { remaining }
+            | PhaseState::Gap { remaining }
+            | PhaseState::Response { remaining }
+            | PhaseState::Delay { remaining } => {
+                if *remaining == 0 {
+                    return Err(inconsistent("phase remaining must be >= 1".to_owned()));
+                }
+            }
+            PhaseState::Cue { cue, remaining } => {
+                if *remaining == 0 {
+                    return Err(inconsistent("cue remaining must be >= 1".to_owned()));
+                }
+                if *cue >= snapshot.cue_count {
+                    return Err(inconsistent("cue phase index out of range".to_owned()));
+                }
+            }
+            PhaseState::Committed | PhaseState::Feedback | PhaseState::Done => {}
+        }
+        if snapshot
+            .current_cue
+            .is_some_and(|c| c >= snapshot.cue_count)
+        {
+            return Err(inconsistent("current cue out of range".to_owned()));
+        }
+        // Pending-phase consistency: only Delay/Feedback carry an unresolved
+        // reward; every other phase must have none.
+        let needs_pending = matches!(
+            snapshot.phase,
+            PhaseState::Delay { .. } | PhaseState::Feedback
+        );
+        if needs_pending != snapshot.pending.is_some() {
+            return Err(inconsistent(format!(
+                "pending reward presence disagrees with phase {:?}",
+                snapshot.phase.snapshot().name()
+            )));
+        }
+        if let Some(pending) = &snapshot.pending {
+            if pending.action > 1 || pending.target_at_commit > 1 {
+                return Err(inconsistent("pending actions must be 0/1".to_owned()));
+            }
+            if pending.reward != 0.0 && pending.reward != 1.0 || !pending.reward.is_finite() {
+                return Err(inconsistent("pending reward must be 0 or 1".to_owned()));
+            }
+            if pending.cue >= snapshot.cue_count {
+                return Err(inconsistent("pending cue out of range".to_owned()));
+            }
+            if pending.event_id != pending.choice_index {
+                return Err(inconsistent(
+                    "pending event_id must equal its choice_index".to_owned(),
+                ));
+            }
+            if pending.due_tick <= pending.commit_tick {
+                return Err(inconsistent(
+                    "pending due_tick must follow commit_tick".to_owned(),
+                ));
+            }
+            if !pending.epsilon.is_finite() || !(0.0..=0.5).contains(&pending.epsilon) {
+                return Err(inconsistent("pending epsilon out of range".to_owned()));
+            }
+            if !pending.cue_hazard.is_finite() || !(0.0..=1.0).contains(&pending.cue_hazard) {
+                return Err(inconsistent("pending hazard out of range".to_owned()));
+            }
+        }
+        if snapshot.next_event_id != snapshot.commitments {
+            return Err(inconsistent(
+                "next_event_id must equal the commitment count".to_owned(),
+            ));
+        }
+        if snapshot.outcomes > snapshot.commitments {
+            return Err(inconsistent(
+                "outcomes cannot exceed commitments".to_owned(),
+            ));
+        }
+        if snapshot.outcomes != snapshot.consumed.len() as u64 {
+            return Err(inconsistent(
+                "outcomes must equal the delivered-event count".to_owned(),
+            ));
+        }
+        if snapshot.outcomes > snapshot.outcomes_target {
+            return Err(inconsistent(
+                "outcomes exceed the lifetime target".to_owned(),
+            ));
+        }
+        if snapshot
+            .confirmed
+            .iter()
+            .any(|id| !snapshot.consumed.contains(id))
+        {
+            return Err(inconsistent(
+                "confirmed feedback must be a subset of delivered feedback".to_owned(),
+            ));
+        }
+        if snapshot.last_action.is_some_and(|a| a > 1) {
+            return Err(inconsistent("last action must be 0/1".to_owned()));
+        }
+        let hidden = HiddenState::restore(snapshot.hidden)?;
+        if hidden.cue_count() != snapshot.cue_count {
+            return Err(inconsistent(
+                "hidden cue count must match the environment cue count".to_owned(),
+            ));
+        }
+        Ok(Self {
+            cue_count: snapshot.cue_count,
+            cue_ticks: snapshot.cue_ticks,
+            response_ticks: snapshot.response_ticks,
+            quiet_range: snapshot.quiet_range,
+            gap_range: snapshot.gap_range,
+            delay_range: snapshot.delay_range,
+            outcomes_target: snapshot.outcomes_target,
+            hidden,
+            cue_rng: check_rng("cue_order", &snapshot.cue_rng)?,
+            timing_rng: check_rng("timing", &snapshot.timing_rng)?,
+            noise_rng: check_rng("reward_noise", &snapshot.noise_rng)?,
+            change_rng: check_rng("mapping_change", &snapshot.change_rng)?,
+            tick: snapshot.tick,
+            phase: snapshot.phase,
+            current_cue: snapshot.current_cue,
+            cycle_gap: snapshot.cycle_gap,
+            cycle_exposure_index: snapshot.cycle_exposure_index,
+            cycle_changed: snapshot.cycle_changed,
+            pending: snapshot.pending,
+            next_event_id: snapshot.next_event_id,
+            commitments: snapshot.commitments,
+            outcomes: snapshot.outcomes,
+            consumed: snapshot.consumed,
+            confirmed: snapshot.confirmed,
+            last_action: snapshot.last_action,
+        })
+    }
+}
+
+/// Serializable driver snapshot for lifetime checkpoints (M1-09). The
+/// `init`/`mapping_init` streams are birth-consumed and intentionally
+/// absent: their effects survive in `hidden` plus the derived schedule
+/// positions below.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub(crate) struct LifetimeSnapshot {
+    pub cue_count: usize,
+    pub cue_ticks: u64,
+    pub response_ticks: u64,
+    pub quiet_range: [u64; 2],
+    pub gap_range: [u64; 2],
+    pub delay_range: [u64; 2],
+    pub outcomes_target: u64,
+    pub hidden: HiddenSnapshot,
+    pub cue_rng: RngState,
+    pub timing_rng: RngState,
+    pub noise_rng: RngState,
+    pub change_rng: RngState,
+    pub tick: u64,
+    pub phase: PhaseState,
+    pub current_cue: Option<usize>,
+    pub cycle_gap: u64,
+    pub cycle_exposure_index: u64,
+    pub cycle_changed: bool,
+    pub pending: Option<PendingReward>,
+    pub next_event_id: u64,
+    pub commitments: u64,
+    pub outcomes: u64,
+    pub consumed: Vec<u64>,
+    pub confirmed: Vec<u64>,
+    pub last_action: Option<u8>,
 }
 
 #[cfg(test)]

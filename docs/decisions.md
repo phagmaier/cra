@@ -509,3 +509,129 @@ make code or a result look successful.**
   notebook, or dataframe dependency is introduced (analysis stays
   stdlib-only). Runner wiring of watchdog enforcement stays future
   work; M1-08 defines and proves the instrument, M1-11 uses it.
+
+## 2026-09-21 UTC — M1-09 lifetime checkpoint conventions (spec 9, 10.6–10.7, 20)
+
+- **Scope:** exact pause/resume for the nonplastic M1 actor plus the
+  continuous environment. No plastic offsets, eligibility, modulator
+  state, or gates exist yet; files claiming them fail as unknown
+  fields. Affected spec sections: 10.7 (checkpoint contents), 10.6
+  (explicit failures, no clipping), 20 (deterministic streams).
+- **Module placement preserves the information boundary (spec 3.4,
+  18.2).** Snapshots live in their home modules (`LifetimeSnapshot` in
+  `environment`, `AgentSnapshot` in `agent::no_learning`,
+  `HiddenSnapshot` beside `HiddenState`); only the top-level
+  `checkpoint` module holds both halves at once, like
+  `experiments::baseline`. Agent code never reads hidden state: hidden
+  vectors enter the file through `HiddenState::snapshot`, and
+  `NoLearningActor::restore` takes no hidden input. Alternative (one
+  shared struct with the mapping visible to agent code) rejected.
+- **RNG resume is seed bytes plus word position (spec 20.5).** New
+  `RngState` in `rng.rs` captures all six live streams (`cue_order`,
+  `mapping_change`, `timing`, `reward_noise`, `actor_noise`,
+  `tie_break`); `init`/`mapping_init` are birth-consumed and survive as
+  stored weights/mappings. Per-tick-local perturbation pairing (M1-04)
+  means no Box–Muller spare crosses a tick boundary, so nothing more is
+  stored. Restore re-derives each seed from the recorded identity and
+  rejects mismatch instead of reseeding.
+- **Integrity before trust.** File = versioned payload (`schema 1`,
+  code version, full resolved `Config` plus its SHA-256, seed identity,
+  both snapshots, inherited parameters) plus SHA-256 over the canonical
+  payload bytes; writes use temp-plus-atomic-rename. Restore checks
+  schema, checksum, config executability and hash, seed identity,
+  agent/environment tick agreement, countdown/index ranges,
+  pending-phase consistency, count identities
+  (`next_event_id == commitments`, `outcomes == consumed.len`),
+  confirmed-subset bookkeeping, and RNG seeds. Missing fields fail via
+  `deny_unknown_fields`/required-field parsing — never silent defaults.
+- **Scientific-contract bug found and fixed: JSON float parsing silently
+  corrupted weights.** `serde_json` 1.0.151 default parsing mis-rounds
+  rare decimals by 1 ulp (e.g. `0.20856943026379962`), so save/load
+  drifted `W0` and broke bitwise replay with only a checksum mismatch
+  as evidence. Fixed with the `float_roundtrip` feature
+  (correctly-rounded parsing, verified on the pinned version with no
+  `Cargo.lock` change); the save/load `assert_eq` is the regression
+  test. Alternative (binary bincode checkpoint) rejected to keep the
+  repo's JSON inspectability; alternative (hex-bit float encoding)
+  rejected as invasive. Consequence: any future float-bearing JSON
+  output inherits exact round-trips, and any serializer change re-opens
+  this entry.
+- **Resume takes an expected seed identity.** `restore_env`/`restore_actor`
+  require the caller-declared lifetime identity and reject foreign files
+  before trusting state — a runner cannot silently continue lifetime 3
+  as lifetime 5. Health summaries stay out of the file (diagnostics are
+  re-derived identically after resume, proven by continued-summary
+  equality across splits).
+
+## 2026-09-21 UTC — M1-10 replay consolidation (spec 9, 17.7)
+
+- **Scope:** consolidation only — `tests/replay.rs` pins the home-suite
+  contracts together (simultaneity, new-q commitment, continuity,
+  logging invariance, checkpoint splits). No production code changed.
+  Affected spec sections: 9 (ordering across replay), 17.7 (replay and
+  parallelism tests).
+- **Reference platform asserted, not printed.** `REFERENCE_OS/ARCH`
+  (`linux`/`x86_64`) plus checkpoint/health/event schema versions are
+  `assert_eq` constants, so a platform move or schema bump fails loudly
+  instead of silently redefining "bitwise". Toolchain pin stays in
+  `rust-toolchain.toml`/`Cargo.lock` (Rust 1.98.0).
+- **Tolerance policy documented, not executed.** Bitwise `==` on the
+  reference platform; cross-platform work must keep integer bookkeeping
+  exact and compare float trajectories within a declared tolerance after
+  per-platform serial parity. No tolerance was weakened to pass: the
+  suite is exact-equality throughout.
+
+## 2026-09-21 UTC — M1-11 observability smoke (spec 6.5, 10.6)
+
+- **Scope:** usable-dynamics evidence only (`tests/observability.rs`, no
+  production change). Fixed zeros, alternating cue blocks, 8 outer-seed
+  initializations, and 64-tick quiets — all bounded, deterministic, and
+  health-observed.
+- **Distinguishability as across-vs-within.** Alternating 50-tick cue
+  blocks must satisfy mean across-cue block distance > mean within-cue
+  distance (not an absolute threshold that a gain change could strand).
+- **One threshold corrected by arithmetic, not by rerunning.** The
+  long-quiet test first asserted >300 ticks but the exact cycle count is
+  248 (warmup 4 + cue 8 + response 4 + feedback 1, then three 77-tick
+  cycles); the bound moved to >200 with the arithmetic recorded. No
+  seed was changed to pass.
+
+## 2026-09-21 UTC — M1-12 actor command conventions (spec 13.1, 18.6, 19)
+
+- **Scope:** one new rung on the existing command, not a new runner.
+  `BaselineSel::Actor` (`--baseline actor`, condition B3,
+  policy `actor-no-learning`) reuses the tick/commit/record loop via
+  `run_actor_ordinary`; only the execution guard and manifest note
+  differ. `configs/actor_no_learning.toml` pairs env-smoke timing with
+  the debug actor section and omits learning/modulator/evolution —
+  absence is the explicit statement, matching the M1-07 guard.
+- **Guards separate both directions.** Env-only configs reject `actor`
+  (needs `[actor]`); actor configs reject B0/B1/O1 (env-only
+  required). Proven through the CLI, not just the library.
+- **One audit covers all rungs.** B3 event/hidden streams share the M0
+  schema, so `validate_logs.py` needed only the policy map entry
+  (`actor-no-learning` → B3); the pre-fix mismatch failure is the
+  regression demonstration, plus a relabeled-fixture Python test.
+  Checkpoint continuation stays a documented test command
+  (`cargo test --locked --test checkpoint`); a dedicated checkpoint
+  CLI arrives with later milestones.
+
+## 2026-09-21 UTC — M1-GATE milestone exit (spec 16/M1)
+
+- **Exit claim:** verified dynamical-system foundation, not learning.
+  All five exit conditions hold with fresh evidence (173 Rust passes +
+  1 ignored probe, 15 Python passes, clean fmt/clippy, three validated
+  profiles, O1 + B3 smoke runs audited OK): simultaneous-update/noise
+  contracts, continuous state preservation, usable cue/motor responses
+  across seeds, finiteness in the smoke run, bitwise resume on the
+  reference platform (linux/x86_64).
+- **Nothing was weakened to pass.** Two thresholds were corrected by
+  hand arithmetic with the reasoning recorded (M1-11 quiet-tick count
+  300 → 200 for the exact 248-tick total); one real
+  scientific-contract bug was fixed instead of hidden (serde_json
+  1-ulp float mis-rounding → `float_roundtrip`, M1-09). Failing seeds
+  were never rerun for luck: every suite is deterministic on fixed
+  development seeds.
+- **Scope guard for M2.** Plasticity, eligibility, gates, and search
+  do not exist in the tree; B3 stays labeled a same-actor no-update
+  control, never a B7 activity-only optimum. M2-01 is next.

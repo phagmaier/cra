@@ -17,6 +17,10 @@ fn debug_stationary() -> String {
     std::fs::read_to_string("configs/debug_stationary.toml").expect("debug profile exists")
 }
 
+fn actor_no_learning() -> String {
+    std::fs::read_to_string("configs/actor_no_learning.toml").expect("actor profile exists")
+}
+
 fn parse_and_validate(text: &str) -> Result<Config, ConfigError> {
     let cfg: Config = toml::from_str(text).map_err(|e| ConfigError::Parse {
         path: "<test>".to_owned(),
@@ -66,6 +70,7 @@ fn err_kind(e: &ConfigError) -> &'static str {
 fn valid_profiles_pass() {
     parse_and_validate(&env_smoke()).expect("env_smoke validates");
     parse_and_validate(&debug_stationary()).expect("debug_stationary validates");
+    parse_and_validate(&actor_no_learning()).expect("actor_no_learning validates");
 }
 
 #[test]
@@ -189,7 +194,7 @@ fn table_invalid_configs() {
 
 #[test]
 fn supported_schema_is_distinct_from_supported_execution() {
-    use cra::config::validate_baseline_execution;
+    use cra::config::{validate_actor_no_learning_execution, validate_baseline_execution};
     let debug = parse_and_validate(&debug_stationary()).unwrap();
     assert!(matches!(
         validate_baseline_execution(&debug),
@@ -197,6 +202,19 @@ fn supported_schema_is_distinct_from_supported_execution() {
     ));
     let smoke = parse_and_validate(&env_smoke()).unwrap();
     validate_baseline_execution(&smoke).unwrap();
+    // The no-learning actor profile runs as B3 but never as an env-only
+    // baseline, and vice versa: schema validation is distinct from
+    // execution guards on both sides.
+    let actor = parse_and_validate(&actor_no_learning()).unwrap();
+    validate_actor_no_learning_execution(&actor).unwrap();
+    assert!(matches!(
+        validate_baseline_execution(&actor),
+        Err(ConfigError::UnsupportedExecution(_))
+    ));
+    assert!(matches!(
+        validate_actor_no_learning_execution(&smoke),
+        Err(ConfigError::UnsupportedExecution(_))
+    ));
     for kind in ["isolated_reversal", "long_life"] {
         let mut cfg = smoke.clone();
         cfg.environment.kind = kind.to_owned();

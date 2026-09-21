@@ -1,0 +1,66 @@
+# `actor_no_learning` demo profile (M1-12, B3)
+#
+# Runnable no-learning actor configuration: env_smoke timing plus the
+# debug actor section, with no learning/modulator/evolution sections.
+# Absent sections are the explicit statement: plasticity (M3), gates
+# (M6), and search (M7) do not exist yet, so there is nothing to
+# enable. Use with:
+#
+#   cargo run --release --locked -- simulate \
+#     --config configs/actor_no_learning.toml --baseline actor \
+#     --lifetimes 2 --seed 1
+#
+# Then audit the run directory it prints:
+#
+#   python3 analysis/validate_logs.py runs/<run-id>
+
+schema_version = 1
+profile_name = "actor_no_learning"
+
+[simulation]
+dt = 1.0
+precision = "f64"
+warmup_ticks = 4
+outcomes_per_lifetime = 8
+reset_policy = "birth_only"
+feedback_order = "before_neural_transition"
+
+[environment]
+kind = "stationary_clean"
+cue_count = 2
+cue_encoding = "one_hot"
+stable_fraction = 1.0
+feedback_noise_values = [0.0]
+volatile_hazard_values = [0.0]
+hazard_clock = "cue_exposure"
+quiet_ticks = [4, 4]
+cue_ticks = 8
+memory_gap_ticks = [0, 0]
+response_ticks = 4
+reward_delay_ticks = [1, 1]
+feedback_ticks = 1
+max_pending_choices = 1
+
+[actor]
+neuron_count = 16
+motor_neurons_per_action = 2
+edge_probability = 0.25
+self_edges = false
+recurrent_gain = 0.8
+input_scale = 0.3
+tau_h = 5.0
+tau_a = 100.0
+adaptation_strength = 0.0
+noise_sigma = 0.05
+motor_filter_tau = 3.0
+
+[logging]
+event_log = true
+trace_every_ticks = 10
+full_trace_lifetimes = 1
+record_raw_and_applied_updates = true
+
+[seeds]
+root_seed = 1
+namespace = "development"
+outer_seed = 1

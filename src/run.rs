@@ -200,6 +200,24 @@ pub fn create_run_dir(
     condition_id: &str,
     base: &Path,
 ) -> Result<PathBuf, RunError> {
+    create_run_dir_with_note(
+        cfg,
+        seeds,
+        condition_id,
+        base,
+        "M0 environment run: validation + provenance + ordinary/hidden event streams. Neural/search code in later milestones.",
+    )
+}
+
+/// [`create_run_dir`] with an explicit manifest note (M1-12: actor runs
+/// record their own provenance instead of inheriting the M0 wording).
+pub fn create_run_dir_with_note(
+    cfg: &Config,
+    seeds: &EffectiveSeeds,
+    condition_id: &str,
+    base: &Path,
+    note: &str,
+) -> Result<PathBuf, RunError> {
     crate::rng::validate_tuple(&SeedTuple::new(
         seeds.root_seed,
         &seeds.namespace,
@@ -240,7 +258,7 @@ pub fn create_run_dir(
         seed_policy: "(root_seed, namespace, outer_seed, lifetime_index, stream_name) -> SHA-256 -> ChaCha8Rng; namespaces development|training|validation|final_test are disjoint (spec 20.5)".to_owned(),
         seeds: seeds.clone(),
         rng_policy: "sha2::Sha256 derivation (see Cargo.lock) + rand_chacha::ChaCha8Rng; one RNG instance per stream; no runtime-randomized hashes".to_owned(),
-        note: "M0 environment run: validation + provenance + ordinary/hidden event streams. Neural/search code in later milestones.".to_owned(),
+        note: note.to_owned(),
     };
     let manifest_json =
         serde_json::to_string_pretty(&manifest).map_err(|e| RunError::Io(e.to_string()))?;
@@ -293,13 +311,15 @@ fn allocate_run_dir(base: &Path, stem: &str) -> Result<PathBuf, RunError> {
     Ok(dir)
 }
 
-/// Selectable M0 baseline policies with their ladder condition ids
-/// (spec 13.1): `--baseline random` (B0), `constant-0`/`constant-1` (B1),
-/// `oracle` (O1, privileged).
+/// Selectable ladder policies with their condition ids (spec 13.1):
+/// `--baseline random` (B0), `constant-0`/`constant-1` (B1), `actor` (B3,
+/// the same inherited actor with plasticity disabled), `oracle` (O1,
+/// privileged).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BaselineSel {
     Random,
     Constant(u8),
+    Actor,
     Oracle,
 }
 
@@ -309,9 +329,10 @@ impl BaselineSel {
             "random" => Ok(Self::Random),
             "constant-0" => Ok(Self::Constant(0)),
             "constant-1" => Ok(Self::Constant(1)),
+            "actor" => Ok(Self::Actor),
             "oracle" => Ok(Self::Oracle),
             other => Err(RunError::Io(format!(
-                "unknown baseline '{other}'; expected random|constant-0|constant-1|oracle"
+                "unknown baseline '{other}'; expected random|constant-0|constant-1|actor|oracle"
             ))),
         }
     }
@@ -320,6 +341,7 @@ impl BaselineSel {
         match self {
             Self::Random => "B0",
             Self::Constant(_) => "B1",
+            Self::Actor => "B3",
             Self::Oracle => "O1",
         }
     }
@@ -332,6 +354,7 @@ impl BaselineSel {
             // Constant values outside {0, 1} are rejected at construction;
             // this arm is unreachable through the public API.
             Self::Constant(_) => "constant-invalid",
+            Self::Actor => "actor-no-learning",
             Self::Oracle => "oracle",
         }
     }
@@ -350,10 +373,15 @@ pub struct SimulationReport {
     pub event_log: bool,
 }
 
-/// Run `lifetimes` baseline lifetimes (indices 0..lifetimes) into a fresh
-/// run directory with full M0 provenance: manifest, resolved config, seed
+/// Run `lifetimes` ladder lifetimes (indices 0..lifetimes) into a fresh
+/// run directory with full provenance: manifest, resolved config, seed
 /// streams, condition identity, ordinary + hidden event streams (when the
 /// config enables `event_log`), and a terminal completion record.
+///
+/// B0/B1/O1 run under the M0 environment-only guard; B3 (`actor`) runs
+/// the nonplastic actor through the same tick/commit/record loop under
+/// the M1-07 actor guard. Event schemas are identical across rungs, so
+/// one offline audit covers every condition.
 ///
 /// Logging on/off changes nothing about the simulated behavior: the same
 /// seeds always produce the same choices and rewards; only the event files
@@ -365,7 +393,11 @@ pub fn run_simulation(
     lifetimes: u64,
     base: &Path,
 ) -> Result<SimulationReport, RunError> {
-    crate::config::validate_baseline_execution(cfg).map_err(RunError::Config)?;
+    if baseline == BaselineSel::Actor {
+        crate::config::validate_actor_no_learning_execution(cfg).map_err(RunError::Config)?;
+    } else {
+        crate::config::validate_baseline_execution(cfg).map_err(RunError::Config)?;
+    }
     if let BaselineSel::Constant(action) = baseline {
         ConstantBaseline::new(action).map_err(RunError::Sim)?;
     }
@@ -373,7 +405,17 @@ pub fn run_simulation(
         return Err(RunError::Io("lifetimes must be >= 1".to_owned()));
     }
     let condition_id = baseline.condition_id();
-    let dir = create_run_dir(cfg, seeds, condition_id, base)?;
+    let dir = if baseline == BaselineSel::Actor {
+        create_run_dir_with_note(
+            cfg,
+            seeds,
+            condition_id,
+            base,
+            "M1 no-learning actor run (B3): continuous inherited dynamics with plasticity disabled. Ordinary/hidden event streams share the M0 schema.",
+        )?
+    } else {
+        create_run_dir(cfg, seeds, condition_id, base)?
+    };
     let run_id = dir
         .file_name()
         .map(|s| s.to_string_lossy().into_owned())
@@ -572,6 +614,30 @@ fn run_one_lifetime(
             lifetime_index,
         )
         .map_err(RunError::Sim),
+        BaselineSel::Actor => {
+            let mut policy = crate::agent::no_learning::NoLearningActor::new(
+                cfg,
+                seeds.root_seed,
+                &seeds.namespace,
+                seeds.outer_seed,
+                lifetime_index,
+            )
+            .map_err(|e| {
+                RunError::Sim(crate::environment::SimError::InvalidConfiguration(
+                    e.to_string(),
+                ))
+            })?;
+            crate::experiments::baseline::run_actor_ordinary(
+                cfg,
+                seeds.root_seed,
+                &seeds.namespace,
+                seeds.outer_seed,
+                lifetime_index,
+                "actor-no-learning",
+                &mut policy,
+            )
+            .map_err(RunError::Sim)
+        }
     }
 }
 
@@ -708,5 +774,64 @@ outer_seed = 1
             "incomplete original"
         );
         std::fs::remove_dir_all(base).unwrap();
+    }
+
+    fn actor_test_config() -> Config {
+        let mut cfg = test_config();
+        cfg.profile_name = "actor_test".to_owned();
+        cfg.actor = Some(crate::config::Actor {
+            neuron_count: 16,
+            motor_neurons_per_action: 2,
+            edge_probability: 0.25,
+            self_edges: false,
+            recurrent_gain: 0.8,
+            input_scale: 0.3,
+            tau_h: 5.0,
+            tau_a: 100.0,
+            adaptation_strength: 0.0,
+            noise_sigma: 0.05,
+            motor_filter_tau: 3.0,
+        });
+        crate::config::validate(&cfg).expect("actor config validates");
+        cfg
+    }
+
+    #[test]
+    fn baseline_selection_names_the_b3_actor_rung() {
+        assert_eq!(
+            BaselineSel::parse("actor").expect("actor"),
+            BaselineSel::Actor
+        );
+        assert_eq!(BaselineSel::Actor.condition_id(), "B3");
+        assert_eq!(BaselineSel::Actor.policy_name(), "actor-no-learning");
+        assert!(BaselineSel::parse("actor-no-learning").is_err());
+    }
+
+    #[test]
+    fn actor_simulation_writes_b3_provenance_and_streams() {
+        let base = std::env::temp_dir().join(format!("cra-actor-run-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        let cfg = actor_test_config();
+        let seeds = EffectiveSeeds::from_config(&cfg);
+        // An env-only config must not run as the actor rung.
+        assert!(run_simulation(&test_config(), &seeds, BaselineSel::Actor, 1, &base).is_err());
+        let report = run_simulation(&cfg, &seeds, BaselineSel::Actor, 2, &base).expect("actor run");
+        assert_eq!(report.condition_id, "B3");
+        assert_eq!(report.lifetimes, 2);
+        assert_eq!(report.commitments, 2 * cfg.simulation.outcomes_per_lifetime);
+        assert_eq!(report.outcomes, report.commitments);
+        assert!(report.mean_reward.is_finite());
+        let completion = read_completion(&report.dir).expect("completion");
+        assert_eq!(completion.lifetimes_completed, 2);
+        let (events, hidden) = read_run_streams(&report.dir).expect("streams");
+        assert_eq!(events.len() as u64, report.outcomes);
+        assert_eq!(hidden.len(), events.len());
+        assert!(events.iter().all(|e| e.action <= 1));
+        let manifest: serde_json::Value = serde_json::from_str(
+            &std::fs::read_to_string(report.dir.join("manifest.json")).expect("manifest"),
+        )
+        .expect("manifest json");
+        assert_eq!(manifest["condition_id"], "B3");
+        let _ = std::fs::remove_dir_all(&base);
     }
 }

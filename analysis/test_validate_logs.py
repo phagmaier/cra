@@ -112,6 +112,20 @@ class TestAudit(unittest.TestCase):
     def test_valid_run_is_clean(self):
         self.assertEqual(validate_logs.audit_run(FIXTURES / "valid"), [])
 
+    def test_b3_actor_policy_is_audited(self):
+        # Unknown policies are rejected ...
+        self.assertTrue(self.mutated_run(
+            lambda p: self.change_json(p, "condition.json", lambda v: v.update(policy="mystery"))))
+        # ... while the B3 actor rung audits clean on a relabeled fixture
+        # (its rewards/timing follow the same generic accounting).
+        def relabel(run):
+            self.change_json(run, "condition.json",
+                             lambda v: v.update(policy="actor-no-learning", condition_id="B3"))
+            self.change_json(run, "manifest.json", lambda v: v.update(condition_id="B3"))
+            self.change_rows(run, "events.jsonl",
+                             lambda rows: [r.update(condition_id="B3") for r in rows])
+        self.assertEqual(self.mutated_run(relabel), [])
+
     def test_duplicate_event_detected(self):
         errors = validate_logs.audit_run(FIXTURES / "corrupt_dup_event")
         self.assertTrue(any("duplicate event_id" in e for e in errors), errors)

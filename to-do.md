@@ -30,14 +30,14 @@ and [continuation guide](docs/handoff.md).
 
 | Field | Current value |
 | --- | --- |
-| Current milestone | M1 open; M1-08 verified 2026-09-21 UTC, M1-GATE still open |
+| Current milestone | M2 open; M1-GATE passed 2026-09-21 UTC |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M1-08 (numerical health and traces); M0 scope verification remains M0-REVIEW |
+| Last verified task | M1-GATE (M1 milestone exit); M0 scope verification remains M0-REVIEW |
 | Claimed task | None |
-| Next eligible task | M1-09 |
+| Next eligible task | M2-01 |
 | Current blocker | None |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | 2026-09-21 UTC M1-08 ledger entry (this file); M0 simulation evidence in docs/evidence/m0-review/ |
+| Last evidence record | 2026-09-21 UTC M1-GATE ledger entry (this file); M0 simulation evidence in docs/evidence/m0-review/ |
 
 ### Session ownership and handoffs
 
@@ -57,6 +57,11 @@ and [continuation guide](docs/handoff.md).
 | agent 2026-09-21 | M1-06 | src/agent/{mod,motor}.rs, tests/motor.rs, docs/decisions.md | Done, verified; handoff to M1-07 |
 | agent 2026-09-21 | M1-07 | src/agent/{mod,no_learning}.rs, src/config.rs, src/experiments/baseline.rs, src/lib.rs, tests/no_learning.rs, docs/decisions.md | Done, verified; handoff to M1-08 |
 | agent 2026-09-21 | M1-08 | src/agent/{mod,health,no_learning}.rs, src/lib.rs, tests/health.rs, docs/decisions.md | Done, verified; handoff to M1-09 |
+| agent 2026-09-21 | M1-09 | src/checkpoint.rs, src/{lib,rng}.rs, src/agent/no_learning.rs, src/environment/{mod,hidden_state,schedule}.rs, Cargo.toml, tests/checkpoint.rs | Done, verified; handoff to M1-10 |
+| agent 2026-09-21 | M1-10 | tests/replay.rs, docs/decisions.md | Done, verified; handoff to M1-11 |
+| agent 2026-09-21 | M1-11 | tests/observability.rs, docs/decisions.md | Done, verified; handoff to M1-12 |
+| agent 2026-09-21 | M1-12 | configs/actor_no_learning.toml, src/{main,run}.rs, src/run.rs tests, tests/config_validation.rs, analysis/{validate_logs,test_validate_logs}.py, README.md | Done, verified; handoff to M1-GATE |
+| agent 2026-09-21 | M1-GATE | to-do.md, docs/{decisions,handoff}.md, README.md (evidence only; no behavior change) | Done, verified; handoff to M2-01 |
 
 Parallel work requires settled interfaces and satisfied dependencies. Do not parallelize successive scientific milestones or let two agents independently redefine feedback ordering, RNG policy, or checkpoint schema. Coordinate changes to this tracker through one integrator.
 
@@ -204,23 +209,23 @@ Establish correct, continuously evolving actor dynamics and replay before introd
   - Deliver: Record sampled activity/adaptation/motor traces, saturation, margins, and state finiteness. Define a conservative watchdog and explicit failure records rather than clipping h.
   - Verify: A forced nonfinite value fails visibly. Trace selection is stable and does not consume simulation randomness. Diagnostic output is saved without making an interactive notebook mandatory.
 
-- [ ] **M1-09 - Implement the first full lifetime checkpoint**
+- [x] **M1-09 - Implement the first full lifetime checkpoint**
   - Deliver: Serialize all state currently present: actor, adaptation, motor, environment phase, pending reward/action latch, bookkeeping, inherited parameters, resolved config, and full RNG state/counters. Add schema, hashes, checksum, and atomic writes.
   - Verify: Resume at quiet, response, and pending-feedback boundaries reproduces uninterrupted continuation on the recorded reference platform. Reject corrupt/incompatible state; do not restore missing state with silent defaults.
 
-- [ ] **M1-10 - Add actor continuity and replay regression tests**
+- [x] **M1-10 - Add actor continuity and replay regression tests**
   - Deliver: Populate tests/replay.rs and dynamics tests for saved old arrays, exact motor commitment, phase continuity, logging invariance, and checkpoint splits. Record the reference platform and tolerance policy.
   - Verify: Identical code/config/seeds reproduce the reference trajectory. Test instructions distinguish reference-platform bitwise replay from cross-platform tolerance comparisons.
 
-- [ ] **M1-11 - Run cue observability and bounded long-run smoke tests**
+- [x] **M1-11 - Run cue observability and bounded long-run smoke tests**
   - Deliver: Use fixed inputs, alternating cues, long quiet periods, and multiple initializations. Save activity/motor diagnostics and numerical-health summaries.
   - Verify: Both actions are reachable across initializations; distinct cues produce distinguishable activity; long runs remain finite. These checks establish usable dynamics, not learning or biological realism.
 
-- [ ] **M1-12 - Expose and document the no-learning actor command**
+- [x] **M1-12 - Expose and document the no-learning actor command**
   - Deliver: Save configs/actor_no_learning.toml and a runnable simulate example using actual generated run paths. Update manifest coverage and the task ledger.
   - Verify: A reader can reproduce the M1 demo and checkpoint continuation. Any unpassed observability or numerical-health requirement remains a blocker.
 
-- [ ] **M1-GATE - Verify and record milestone exit**
+- [x] **M1-GATE - Verify and record milestone exit**
   - The actor obeys simultaneous-update and noise contracts, continuously preserves state, has usable cue/motor responses across seeds, remains finite in the declared smoke run, and exactly resumes on the reference platform. This milestone is explicitly a dynamical-system demonstration, not learning.
   - Evidence: add a ledger entry with the executed commands, results, configuration/seed identifiers, and saved artifact paths. Update the current status before beginning the next milestone.
 
@@ -2007,6 +2012,308 @@ Interpretation and claim limits: Read-only diagnostics only. No dynamics
   M1-11 judges usability from these summaries. M1-GATE remains open.
 Tracker boxes updated: M1-08 checked.
 Next eligible task: M1-09.
+```
+
+```text
+Date / agent or session: 2026-09-21 UTC / agent (M1-09 checkpoint session)
+Task IDs: M1-09
+Spec sections: 10.7 (full pause/resume contents; genome is not a
+  checkpoint), 10.6 (no silent clipping; explicit failures), 20
+  (deterministic streams resume exactly), 9 (tick/feedback ordering
+  preserved across the split)
+Change and affected files: src/checkpoint.rs (new: CHECKPOINT_SCHEMA_VERSION
+  1, SeedIdentity, versioned payload plus SHA-256 checksum, config hash,
+  atomic temp-plus-rename writes, capture/save/load/restore_env/
+  restore_actor with seed-identity and tick-agreement checks, 4 unit
+  tests); src/rng.rs (new RngState: seed bytes plus ChaCha8Rng word pos,
+  per-tick-local pairing needs nothing more); src/environment/schedule.rs
+  (PhaseState serde); src/environment/hidden_state.rs (HiddenSnapshot with
+  shape/range validation); src/environment/mod.rs (LifetimeSnapshot with
+  countdown/index/pending-phase/count/RNG-identity validation, plus
+  snapshot/restore); src/agent/no_learning.rs (AgentSnapshot with shape/
+  finiteness/seed-identity validation, snapshot/restore, read-only
+  health_check unchanged); src/lib.rs (register checkpoint); Cargo.toml
+  (serde_json float_roundtrip feature: correctly-rounded parsing, no lock
+  change); tests/checkpoint.rs (new, 7 tests); docs/decisions.md (M1-09
+  entry); docs/handoff.md (M1-10 continuation); README.md (layout line).
+Code revision / dirty-tree state: base 3f0f0c6 (m1-07 done) with M1-08
+  changes uncommitted at start; M1-09 files new or modified and
+  uncommitted at handoff (M Cargo.toml, src/agent/no_learning.rs,
+  src/environment/{hidden_state,mod,schedule}.rs, src/lib.rs, src/rng.rs,
+  to-do.md, docs/decisions.md, docs/handoff.md, README.md;
+  ?? src/checkpoint.rs, tests/checkpoint.rs).
+Commands actually executed:
+  cargo test --locked --test checkpoint (7/7 pass)
+  cargo test --all-targets --locked (161 pass, 1 ignored: 32 lib incl. 4
+    new checkpoint unit + 0 bin + 7 actor + 7 actor_noise + 5 adaptation
+    + 7 baselines + 7 checkpoint + 4 config + 20 contract + 5 logging + 3
+    order + 5 leakage + 5 randomized + 5 seeds + 13 topology + 10 weights
+    + 9 health + 10 no_learning)
+  cargo fmt --all -- --check (clean after cargo fmt)
+  cargo clippy --all-targets --locked -- -D warnings (clean after
+    too_many_arguments allow on the explicit snapshot restore signature,
+    is_multiple_of, and two test-lint fixes)
+  python3 analysis/test_validate_logs.py (14/14 pass, unchanged layer)
+  cargo run --release --locked -- validate-config
+    configs/debug_stationary.toml (OK) and
+    cargo run --release --locked -- simulate --config
+    configs/env_smoke.toml --baseline oracle --lifetimes 2 --seed 1
+    (O1 2 lifetimes, 16/16 outcomes, mean 1.0; fresh run dir removed
+    afterward, no new committed artifacts)
+Outcome and checks passed: Resume at quiet, just-committed delay, and
+  pending-feedback boundaries reproduces the uninterrupted reference
+  bitwise (per-tick features/feedback/motor/actions, final h/a/r/q,
+  readout, bookkeeping, hidden mappings/rates/roles/exposures, continued
+  health summaries) with file save/load on every boundary; both halves
+  stay finite; tampered payload, wrong schema, truncation, unknown
+  fields, and missing paths fail explicitly; foreign seed identity,
+  tick skew, config dim drift, and pending/phase mismatch fail as
+  incompatible; non-executable configs cannot capture; failed saves
+  leave no partial target and rewrites stay valid.
+Checks not run / failures / blockers: None. Two findings fixed without
+  weakening: (1) serde_json 1.0.151 default float parsing mis-rounds
+  rare decimals by 1 ulp (e.g. 0.20856943026379962), silently corrupting
+  weights across save/load — fixed with the float_roundtrip feature
+  (verified on the pinned version; no Cargo.lock change); the
+  save/load assert_eq is the regression test. (2) Clippy/test lints
+  fixed as above; one unit-test expectation narrowed from Incompatible
+  to repaired-hash dim drift.
+Configuration and suite hashes: checkpoint_test profile (env_smoke
+  timing with reward_delay [3,3] for a real Delay phase, N=16/m=2/
+  p=0.25, 6 outcomes, no learning/modulator/evolution); development
+  namespace, root/outer 1, lifetime 0; checkpoint temp JSON removed;
+  no suites consumed.
+Artifact paths and checksums where relevant: src/checkpoint.rs,
+  tests/checkpoint.rs (checkpoint JSON only in temp dir, removed; no
+  run directories produced; smoke rerun dir removed).
+Interpretation and claim limits: Exact pause/resume for the nonplastic
+  M1 actor only (no P/E/modulator/gates exist to store; files claiming
+  them are rejected as unknown fields). Bitwise replay promised on this
+  reference platform only. Health summaries stay diagnostic (re-derived,
+  not stored). Runner/CLI wiring for checkpoints stays future work;
+  M1-10 builds replay regression on this. M1-GATE remains open.
+Tracker boxes updated: M1-09 checked.
+Next eligible task: M1-10.
+```
+
+```text
+Date / agent or session: 2026-09-21 UTC / agent (M1-10 replay session)
+Task IDs: M1-10
+Spec sections: 9 (tick ordering across replay), 17.7 (replay and
+  parallelism: identical seeds reproduce, splits continue, logging
+  draws nothing)
+Change and affected files: tests/replay.rs (new, 6 tests: platform
+  record, reference-trajectory bitwise replay, tick-40 split replay with
+  file round-trip, new-q commitment through the runner, all-phase
+  continuity, diagnostics-draw-nothing with throwaway captures);
+  docs/decisions.md (M1-10 entry); docs/handoff.md (M1-11 continuation).
+  No production code change: every contract was proven in its home
+  suite; this task consolidates them.
+Code revision / dirty-tree state: base 4d6aec1 (m1-08 done) with
+  M1-09/M1-10 changes uncommitted at handoff (M Cargo.toml, README.md,
+  docs/*, src/*, to-do.md; ?? src/checkpoint.rs, tests/checkpoint.rs,
+  tests/replay.rs).
+Commands actually executed:
+  cargo test --locked --test replay (6/6 pass)
+  cargo fmt --all -- --check (clean after cargo fmt)
+  cargo clippy --all-targets --locked -- -D warnings (clean)
+  (Full suite plus Python audit rerun at M1-GATE.)
+Outcome and checks passed: Reference platform pinned (linux/x86_64,
+  schema versions 1/1/1) and asserted so a platform move fails loudly;
+  same seeds replay per-tick records plus final states bitwise;
+  tick-40 split with save/load resumes the reference; all 6
+  commitments read new-q argmax (ties: deterministic per seed);
+  Quiet/Cue/Gap/Response/Delay/Feedback all visited with finite
+  features and non-reset membranes over 100+ ticks; getters, health,
+  selection, and unused captures leave the trajectory identical.
+Checks not run / failures / blockers: None. Cross-platform tolerance
+  comparison is documented policy, not an executed claim.
+Configuration and suite hashes: replay_test profile (env_smoke timing
+  with reward_delay [3,3], memory_gap [2,2], N=16/m=2/p=0.25, 6
+  outcomes); development namespace, root/outer 1, lifetime 0; replay
+  temp JSON removed; no suites consumed.
+Artifact paths and checksums where relevant: tests/replay.rs (no run
+  directories produced).
+Interpretation and claim limits: Consolidation only. Bitwise replay
+  promised on the reference platform; cross-platform needs declared
+  tolerances after per-platform parity. No learning claim. M1-GATE
+  remains open.
+Tracker boxes updated: M1-10 checked.
+Next eligible task: M1-11.
+```
+
+```text
+Date / agent or session: 2026-09-21 UTC / agent (M1-11 observability session)
+Task IDs: M1-11
+Spec sections: 6.5 (observability: distinguishable activity, both
+  actions, structural sanity), 10.6 (finiteness, no clipping)
+Change and affected files: tests/observability.rs (new, 4 tests:
+  2000-tick fixed-input finiteness with health, alternating-cue block
+  distinguishability, both-actions reachability over 8 outer seeds with
+  per-init health/traces, 64-tick-quiet lifetime finiteness);
+  docs/decisions.md (M1-11 entry); docs/handoff.md (M1-12 continuation).
+  No production code change.
+Code revision / dirty-tree state: base 4d6aec1 (m1-08 done) with
+  M1-09/M1-10/M1-11 changes uncommitted at handoff (see git status).
+Commands actually executed:
+  cargo test --locked --test observability (4/4 pass; one threshold
+    corrected from >300 to >200 after hand-computing the exact 248-tick
+    cycle arithmetic — no code change)
+  cargo fmt --all -- --check (clean)
+  cargo clippy --all-targets --locked -- -D warnings (clean)
+  (Full suite plus Python audit rerun at M1-GATE.)
+Outcome and checks passed: Fixed zeros finite for 2000 ticks with
+  watchdog-held health and serializable summaries; cue-0 vs cue-1 block
+  means differ more across cues than within (across > within mean
+  distance); actions 0 and 1 both committed across 8 initializations
+  with per-init finite health/margins and non-empty traces; 64-quiet
+  lifetime completes 4/4 outcomes over 248 ticks staying finite.
+Checks not run / failures / blockers: None.
+Configuration and suite hashes: observability_test profile (env_smoke
+  timing, N=16/m=2/p=0.25, 4 outcomes; quiet [64,64] variant for the
+  long-quiet case); development namespace, outer 1..=8; no suites
+  consumed.
+Artifact paths and checksums where relevant: tests/observability.rs
+  (no run directories produced).
+Interpretation and claim limits: Usable dynamics only — the actor is
+  cue-driven, bivalent, and finite. No learning or biological-realism
+  claim. M1-GATE remains open.
+Tracker boxes updated: M1-11 checked.
+Next eligible task: M1-12.
+```
+
+```text
+Date / agent or session: 2026-09-21 UTC / agent (M1-12 command session)
+Task IDs: M1-12
+Spec sections: 13.1 (B3 rung), 18.6 (command interface), 19 (profiles),
+  20 (seed namespaces)
+Change and affected files: configs/actor_no_learning.toml (new: B3 demo
+  profile, env-smoke timing plus debug actor section, no
+  learning/modulator/evolution); src/run.rs (BaselineSel::Actor with
+  B3(actor-no-learning) ids, actor-guarded dispatch in run_simulation,
+  per-lifetime NoLearningActor through run_actor_ordinary, B3 manifest
+  note via create_run_dir_with_note, 2 new tests); src/main.rs (actor
+  help text); tests/config_validation.rs (new profile validates;
+  guard-separation coverage both directions);
+  analysis/validate_logs.py (actor-no-learning/B3 policy map) plus
+  analysis/test_validate_logs.py (new B3 audit test); README.md
+  (commands, B3 rung, guard notes, layout, demo run path).
+Code revision / dirty-tree state: base 4d6aec1 (m1-08 done) with
+  M1-09 through M1-12 changes uncommitted at handoff (see git status).
+Commands actually executed:
+  cargo run --release --locked -- validate-config
+    configs/actor_no_learning.toml (OK: actor_no_learning, cues=2,
+    development)
+  cargo run --release --locked -- simulate --config
+    configs/actor_no_learning.toml --baseline actor --lifetimes 2
+    --seed 1 (run dir runs/actor_no_learning-root1-outer1-1789975911,
+    condition B3: 2 lifetimes, 16 commitments, 16 outcomes, mean
+    reward 0.5000; dir removed after audit, path recorded here)
+  python3 analysis/validate_logs.py
+    runs/actor_no_learning-root1-outer1-1789975911
+    (OK, events + provenance — after adding the B3 policy map; before
+    the fix it failed policy/condition mismatch, which is the
+    regression demonstration)
+  guard probes: env_smoke+actor rejected (needs [actor]); actor
+    profile+random rejected (env-only required) — both explicit
+  cargo test --all-targets --locked (173 pass, 1 ignored)
+  cargo fmt --all -- --check (clean)
+  cargo clippy --all-targets --locked -- -D warnings (clean)
+  python3 analysis/test_validate_logs.py (15/15 pass, incl. new B3 test)
+  cargo test --locked --test checkpoint (7/7, rerun for the record)
+Outcome and checks passed: Reader-reproducible B3 demo (validate +
+  simulate + audit commands above); B3 manifest/condition/event streams
+  share the M0 schema (one audit covers all rungs); execution guards
+  separate env-only from actor profiles in both directions through CLI
+  and library; checkpoint continuation stays documented via
+  cargo test --locked --test checkpoint (dedicated CLI arrives later).
+Checks not run / failures / blockers: None. Observability and health
+  requirements from M1-08/M1-11 all pass, so no blocker carries.
+Configuration and suite hashes: actor_no_learning profile (8 outcomes,
+  seeds root 1/development/outer 1); demo lifetimes 0..1; no suites
+  consumed.
+Artifact paths and checksums where relevant:
+  configs/actor_no_learning.toml (committed); demo run dir removed
+  after audit with path/results recorded here and in README.md.
+Interpretation and claim limits: Runnable B3 demo only. No learning,
+  no gates, no search; B3 is the same-actor control, not B7.
+  M1-GATE remains open.
+Tracker boxes updated: M1-12 checked.
+Next eligible task: M1-GATE.
+```
+
+```text
+Date / agent or session: 2026-09-21 UTC / agent (M1-GATE exit session)
+Task IDs: M1-GATE
+Spec sections: 16/M1 (exit conditions), 6.5 (observability), 10.6
+  (bounds/failures), 17.2/17.7 (unit and replay checks)
+Change and affected files: Evidence only — no behavior change in this
+  entry. Milestone work lives in M1-01 through M1-12 entries below.
+Code revision / dirty-tree state: base 4d6aec1 (m1-08 done) with
+  M1-09 through M1-GATE changes uncommitted at handoff (see git
+  status); behavior code unchanged by the gate entry itself.
+Commands actually executed (fresh gate battery, this session):
+  cargo fmt --all -- --check (clean)
+  cargo clippy --all-targets --locked -- -D warnings (clean)
+  cargo test --all-targets --locked (173 pass, 0 failed, 1 ignored:
+    34 lib + 0 bin + 7 actor + 7 actor_noise + 5 adaptation + 7
+    baselines + 7 checkpoint + 4 config_validation + 20
+    environment_contract + 5 event_logging + 3 event_order + 9 health
+    + 5 leakage + 7 motor + 10 no_learning + 4 observability + 5
+    randomized_env + 6 replay + 5 seed_streams + 13 topology + 10
+    weights)
+  python3 analysis/test_validate_logs.py (15/15 pass)
+  validate-config on configs/env_smoke.toml, debug_stationary.toml,
+    actor_no_learning.toml (all OK, cues=2, development)
+  simulate env_smoke.toml --baseline oracle --lifetimes 2 --seed 1
+    (runs/env_smoke-root1-outer1-1789976257: O1, 16/16 outcomes, mean
+    1.0000; audit OK events + provenance; dir removed after audit)
+  simulate actor_no_learning.toml --baseline actor --lifetimes 2
+    --seed 1 (runs/actor_no_learning-root1-outer1-1789976257: B3,
+    16/16 outcomes, mean 0.5000; audit OK events + provenance; dir
+    removed after audit)
+Outcome and exit-criteria check:
+  - Simultaneous-update and noise contracts obeyed: one-edge /
+    reciprocal fixtures prove receiver orientation and old-state reads;
+    forced perturbations prove post-integration noise; per-tick draws
+    match the reference stream with input/saturation independence
+    (tests/actor.rs, tests/actor_noise.rs).
+  - State continuously preserved: full lifetimes advance every phase
+    with no boundary resets and bit-identical W0; logging/diagnostics
+    draw nothing (tests/no_learning.rs, tests/replay.rs).
+  - Usable cue/motor responses across seeds: alternating cues
+    distinguishable (across > within), actions 0 and 1 both reachable
+    over 8 initializations, per-init finite health/margins/traces
+    (tests/observability.rs).
+  - Finite in the declared smoke run: B3 demo completes 16/16
+    outcomes, watchdog-held, audit-clean; 2000-tick fixed-input and
+    64-quiet runs finite (tests/health.rs, tests/observability.rs).
+  - Exactly resumes on the reference platform: quiet/response/
+    feedback splits plus tick-40 split replay bitwise with file
+    round-trips; corruption/incompatibility explicitly rejected
+    (tests/checkpoint.rs, 4 lib unit tests).
+  - Adaptation inert at strength 0 with signed nonzero fixture;
+    motor golden recurrences with tie-only draws
+    (tests/adaptation.rs, tests/motor.rs).
+  - M0 contracts unchanged: all environment/order/leakage/randomized/
+    baseline/config/logging/seed suites pass; golden topology/weight
+    values pinned.
+Checks not run / failures / blockers: None. No null result to report:
+  this milestone is a dynamical-system demonstration by design, not
+  learning — that interpretation is the exit claim, with B3 labeled a
+  same-actor control (not B7).
+Configuration and suite hashes: env_smoke + actor_no_learning smoke
+  profiles (development, root/outer 1); gate reruns used lifetimes 2,
+  outcomes 8/8 per lifetime; no suites consumed.
+Artifact paths and checksums where relevant: No new artifacts in this
+  entry; runnable demo is configs/actor_no_learning.toml plus the
+  README commands (verified above); replay proof is
+  cargo test --locked --test checkpoint (7/7) and --test replay (6/6).
+Interpretation and claim limits: M1 exits as a verified
+  dynamical-system foundation for M2 (stochastic-score verification).
+  No plasticity, gating, search, or learning is claimed.
+Tracker boxes updated: M1-GATE checked.
+Next eligible task: M2-01.
 ```
 
 ## Blockers and decision register - keep current

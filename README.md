@@ -5,13 +5,15 @@ generated gating improve a continuously running recurrent agent's adaptation
 to real changes without damaging stable associations under misleading
 feedback?
 
-Status: **M0 complete and re-verified; next task M1-01.** The environment core
-exists as a library (`src/environment/`, `src/experiments/baseline.rs`,
-`src/logging/`) with deterministic fixtures, randomized checks, baseline
-runners, and an offline log audit. No neural dynamics, plasticity,
-evolution, or comparison pipeline exists yet — M1 starts from the frozen
-M0 baseline below. Anything listed under "Planned" is a target from spec
-Section 18 / `to-do.md`, not working code.
+Status: **M0 complete and re-verified; M1 complete (continuous
+nonplastic actor demo, bitwise replay on linux/x86_64 — explicitly not
+learning); next task M2-01.** The simulator core exists as a library
+(`src/environment/`, `src/agent/` nonplastic dynamics plus `B3`
+harness, `src/checkpoint/`, `src/logging/`) with deterministic
+fixtures, randomized checks, baseline/actor runners, replay proofs, and
+an offline log audit. No plasticity, gating, evolution, or comparison
+pipeline exists yet. Anything listed under "Planned" is a target from
+spec Section 18 / `to-do.md`, not working code.
 
 M0 was re-reviewed and corrected without changing the original smoke
 trajectories. See [the review](docs/m0-review.md) for findings, verification,
@@ -62,13 +64,15 @@ The last full M0 review recorded **73 Rust tests and 14 Python tests passing**,
 with fmt/clippy clean. See [recorded commands and outputs](docs/evidence/m0-review/commands.json).
 Those counts describe that execution; rerun relevant checks after changes.
 
-## Implemented commands (M0)
+## Implemented commands (M0/M1)
 
 ```bash
 cargo run --release --locked -- validate-config configs/env_smoke.toml
 cargo run --release --locked -- validate-config configs/debug_stationary.toml
+cargo run --release --locked -- validate-config configs/actor_no_learning.toml
 cargo run --release --locked -- simulate --config configs/env_smoke.toml --baseline random --lifetimes 2 --seed 1 --outer-seed 1
 cargo run --release --locked -- simulate --config configs/env_smoke.toml --baseline oracle --lifetimes 2 --seed 1 --outer-seed 1
+cargo run --release --locked -- simulate --config configs/actor_no_learning.toml --baseline actor --lifetimes 2 --seed 1
 python3 analysis/validate_logs.py analysis/fixtures/valid
 ```
 
@@ -76,8 +80,10 @@ To audit a new run, pass the directory printed after `run dir:` to
 `python3 analysis/validate_logs.py`. The last command above audits the
 committed fixture, so it also works when local `runs/` output is absent.
 
-Baselines: `random` (B0), `constant-0` / `constant-1` (B1), `oracle`
-(O1, privileged reference). The audit checks manifest/config/condition
+Baselines: `random` (B0), `constant-0` / `constant-1` (B1), `actor`
+(B3, the same inherited actor with plasticity disabled — needs an
+`[actor]` config such as `configs/actor_no_learning.toml`),
+`oracle` (O1, privileged reference). The audit checks manifest/config/condition
 identity, derived seed streams, declared lifetime lengths, timing,
 finite values, duplicate feedback, hidden reward/change accounting, and
 completion. Fixtures and mutation tests live in `analysis/`.
@@ -92,6 +98,16 @@ Notes:
   sections, diagnostic reset modes, `isolated_reversal`, and `long_life`
   are rejected before creating a run. `debug_stationary.toml` is currently
   a validation reference, not an executable learner.
+- `simulate --baseline actor` (B3) requires an `[actor]` configuration
+  and runs the continuous nonplastic actor through the same tick,
+  commitment, and event-logging loop as the baselines; an env-only
+  config is rejected for `actor`, and an actor config is rejected for
+  the B0/B1/O1 rungs. Example M1 demo (condition B3, 2 lifetimes,
+  16 commitments/outcomes): `runs/actor_no_learning-root1-outer1-1789975911`
+  (mean reward 0.5000, audit `OK (events + provenance)`); rerunning the
+  command prints a fresh directory. Checkpoint pause/resume is exercised
+  by `cargo test --locked --test checkpoint` (dedicated checkpoint CLI
+  arrives with later milestones).
 - `simulate` runs real baseline lifetimes (M0-07–M0-11 contracts) into a
   fresh run directory with `resolved_config.toml`, `manifest.json`,
   `seed_streams.json`, `condition.json`, and `completion.json`, plus
@@ -145,11 +161,14 @@ double-buffered transition, `-expm1` leaks, post-integration noise),
 `agent/motor.rs` (M1-06 pool means, leaky filter, new-q commitment),
 `agent/no_learning.rs` (M1-07 B3 continuous actor through the ordinary
 runner), `agent/health.rs` (M1-08 read-only watchdog, summaries, stable
-traces), `experiments/baseline.rs` (B0/B1/B3/O1 harness),
+traces), `checkpoint.rs` (M1-09 versioned lifetime files, config hash,
+checksum, atomic writes), `experiments/baseline.rs` (B0/B1/B3/O1 harness),
 `logging/` (event records + validation), `run.rs` (provenance + simulation
 runner), and thin `main.rs`.
-`configs/` holds `env_smoke.toml` (M0 smoke) and `debug_stationary.toml`
-(spec 19.2 reference + seeds). `manifests/` reserves disjoint seed ranges
+`configs/` holds `env_smoke.toml` (M0 smoke), `debug_stationary.toml`
+(spec 19.2 reference + seeds), and `actor_no_learning.toml` (M1 B3 demo:
+env-smoke timing plus the debug actor section, no
+learning/modulator/evolution). `manifests/` reserves disjoint seed ranges
 per namespace. `analysis/` holds the stdlib-only log audit plus fixtures.
 `docs/decisions.md` records scientific ambiguities/deviations;
 `docs/experiments.md` is the append-only experiment log.

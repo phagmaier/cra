@@ -14,10 +14,13 @@
 //! continuous actor ([`agent::no_learning`]: B3 through the common ordinary
 //! runner), and M1-08 read-only numerical health plus selected traces
 //! ([`agent::health`]: conservative watchdog, summaries, stable sampling).
+//! M1-09 adds exact lifetime pause/resume ([`checkpoint`]: versioned file,
+//! config hash, checksum, atomic writes).
 //! Plasticity, search, and
 //! comparative analysis remain later milestones.
 
 pub mod agent;
+pub mod checkpoint;
 pub mod config;
 pub mod environment;
 pub mod experiments;

@@ -1,9 +1,9 @@
 # Agent continuation guide
 
-Updated 2026-09-21 UTC after M1-08, from code revision `3f0f0c6`
-(`m1-07 done`) with M1-08 changes uncommitted. This is a working
-handoff. Check the tracker and Git state for newer work before claiming
-a task.
+Updated 2026-09-21 UTC after M1-GATE, from code revision `4d6aec1`
+(`m1-08 done`) with M1-09 through M1-GATE changes uncommitted. This is
+a working handoff. Check the tracker and Git state for newer work
+before claiming a task.
 
 ## Start here
 
@@ -19,17 +19,18 @@ a task.
 
 ## Current position and evidence
 
-**M0-GATE passed and was re-verified. M1-08 verified. Next task: M1-09.**
-There is no outstanding M1-08 blocker. The claim track remains `family_only`.
+**M0-GATE passed and was re-verified. M1-GATE passed. Next task: M2-01.**
+There is no outstanding M1 blocker. The claim track remains `family_only`.
 No reserved final-test outcomes have been inspected.
 
-M1-08 added `src/agent/health.rs` (read-only watchdog at `1e4` for
-`h`/`a`/`q`, saturation at `|r| > 0.9`, running summary, stable
-`[0,1,motor0,motor1]` trace selection, sampled recorder, versioned JSON)
-with 9 tests in `tests/health.rs` plus 1 unit test, and a read-only
-`health_check` on `NoLearningActor`. Full suite is 150 Rust tests
-passing (1 ignored) with clean fmt/clippy and 14 Python tests; see the
-M1-08 tracker ledger entry. All prior results unchanged.
+M1 built a continuous nonplastic actor (M1-01 topology → M1-09
+checkpoints, M1-10 replay consolidation, M1-11 observability smokes,
+M1-12 B3 demo command) and exits as a verified dynamical-system
+foundation — explicitly not learning. Fresh gate battery: 173 Rust
+tests passing (1 ignored probe), 15 Python tests, clean fmt/clippy,
+three validated profiles, O1 + B3 smoke runs audited OK; see the
+M1-GATE tracker ledger entry. Reference platform for bitwise replay:
+linux/x86_64. All prior results unchanged.
 
 The [M0 review](m0-review.md) records 73 Rust tests and 14 Python tests
 passing, clean fmt/clippy, four original runs audited, and seven fresh
@@ -44,35 +45,31 @@ is available for a quick audit. Reproduce missing raw runs using the saved
 commands/configs into new directories; preserve historical evidence paths
 and distinguish reruns from the original execution.
 
-## Next task: M1-09
+## Next task: M2-01
 
-**Deliver:** the first full lifetime checkpoint — serialize all state
-currently present (actor, adaptation, motor, environment phase, pending
-reward/action latch, bookkeeping, inherited parameters, resolved config,
-full RNG state/counters) with schema, hashes, checksum, and atomic
-writes.
+**Deliver:** a pure conditional score function `S[j,i] =
+alpha_h[j] * r_old[i] * xi[j] / sigma[j]` — independently callable by
+tests and reusable by the later trace implementation. Do not build
+plasticity, eligibility decay, or learning updates yet.
 
-Read spec Sections 10.7 and 20 alongside the
-[M1 task queue](../to-do.md#m1---build-a-continuous-actor-with-no-learning).
-Inspect `src/agent/{actor,motor,health,no_learning}.rs` (live arrays,
-`from_state`/`from_q` restore paths, `health_check`), `src/environment/mod.rs`
-(phase, pending reward, latch, consumed/confirmed ledgers),
-`src/rng.rs` (seed bytes plus `ChaCha8Rng` word positions per stream),
-and `src/run.rs` (atomic directory reservation precedent) first. Health
-summaries/traces are diagnostics, not checkpointed lifetime state; the
-checkpoint must carry RNG positions that reproduce the next tick's
-perturbations exactly (M1-04 pairing is per-tick-local).
+Read spec Sections 7.1–7.2 and 7.6 alongside the
+[M2 task queue](../to-do.md#m2---verify-the-stochastic-score-independently).
+Inspect `src/agent/{actor,weights}.rs` (receiving-`xi` buffer, `alpha_h`
+helper, noise-scale contract) and `src/agent/health.rs` (read-only
+observation precedent) first. The score reads the receiving neuron's
+perturbation on all its incoming edges, carries exactly one `alpha_h`
+factor, divides by the actual positive `sigma`, and never multiplies a
+tanh derivative or `1 - lambda_e`.
 
-- Resume at quiet, response, and pending-feedback boundaries and prove
-  uninterrupted continuation on the reference platform; reject
-  corrupt/incompatible state with no silent defaults.
-- Extend the M1-08 health observation across the split (both halves stay
-  finite) without changing the tick loop or stream separation.
+- Keep the actor transition untouched; the score is a pure function
+  beside it (later M2 tasks test it against finite differences and
+  closed-form derivatives).
 - Verify with the stated checks, then run the applicable full quality
   checks and append tracker evidence.
 
-Keep M1-10 replay/continuity tests and later learning/search work in
-their task order. Completing M1-09 alone does not pass M1-GATE.
+M2 validates score arithmetic under restricted diagnostics only — it
+says nothing about continual-learning performance. Do not start M3
+plasticity on the strength of implemented code alone.
 
 ## Implementation map
 
@@ -92,6 +89,10 @@ their task order. Completing M1-09 alone does not pass M1-GATE.
 | Motor readout (M1-06) | `src/agent/motor.rs` | `tests/motor.rs`; golden filters, new-q commitment, tie-only draws |
 | Nonplastic actor (M1-07, B3) | `src/agent/no_learning.rs` | `tests/no_learning.rs`; continuity, W0 invariance, schedule parity, guard separation |
 | Numerical health (M1-08) | `src/agent/health.rs` | `tests/health.rs`; watchdog, summary, stable traces, file round-trip |
+| Lifetime checkpoint (M1-09) | `src/checkpoint.rs` (+ snapshots in `rng`/`environment`/`agent`) | `tests/checkpoint.rs`; 3-boundary bitwise resume, rejection paths |
+| Replay consolidation (M1-10) | — (no production change) | `tests/replay.rs`; platform record, reference/split replay, commitment, continuity |
+| Observability smoke (M1-11) | — (no production change) | `tests/observability.rs`; cue response, bivalence, long-run finiteness |
+| B3 demo command (M1-12) | `src/run.rs` (`BaselineSel::Actor`), `src/main.rs`, `configs/actor_no_learning.toml` | run unit tests, `tests/config_validation.rs`, Python B3 audit test; README demo |
 | Ordinary/hidden event serialization | `src/logging/events.rs` | `tests/event_logging.rs`, `analysis/test_validate_logs.py` |
 | CLI dispatch | `src/main.rs` | `validate-config` and baseline-only `simulate` (actor CLI waits for M1-12) |
 
@@ -103,7 +104,7 @@ their task order. Completing M1-09 alone does not pass M1-GATE.
 | Agent feedback | Ordinary runners call `apply_feedback` once before `advance(features)`; B3 dedups without learning; selection reads policy state only. | Keep this ordering and information boundary for plasticity (M3) and gates (M6). `TickOutput` belongs to the driver/evaluator. |
 | Warmup | Replaces the first quiet interval; zero starts directly at cue presentation. | Preserve the documented M0 convention; use measured ticks for budgets. An additive-warmup change needs an explicit decision and new evidence. |
 | Noise/hazard assignment | Stable membership shuffled at birth; noise rates cycle by cue index. | M5-02 owns factorial counterbalancing; current assignment is not a completed training-distribution implementation. |
-| Event identity | IDs/choice indices restart per lifetime. Ordinary records carry lifetime identity; hidden rows align within contiguous lifetime blocks. | M1-09 must preserve exactly-once continuation and explicitly specify any schema change. A bare event ID is not a cross-lifetime join key. |
+| Event identity | IDs/choice indices restart per lifetime. Ordinary records carry lifetime identity; hidden rows align within contiguous lifetime blocks. | Checkpoint resume preserves exactly-once delivery (pending plus consumed/confirmed ledgers round-trip); M1-10 records the tolerance policy. A bare event ID is not a cross-lifetime join key. |
 | Logging | `event_log=false` omits event streams; audit coverage then stops at provenance/completion. Actor/health reads draw nothing (M1-07/M1-08 logging invariance). | Extend Rust validation, Python audit, fixtures, and versioning together when adding quantities (health JSON uses `HEALTH_SCHEMA_VERSION = 1`; checkpoint schema arrives in M1-09). |
 | Execution guards | M0 still rejects neural/search sections for baselines; M1-07 adds `validate_actor_no_learning_execution` (actor required, learning disabled/absent, modulator absent/fixed, evolution disabled/absent). | Enable plasticity (M3), gates (M6), and search (M7) with their implementations/tests; never bypass guards to make a future config appear runnable. |
 | Performance | Tick observations allocate; run logs are buffered. Simulation is serial. | Measure before scaling. M1 preallocates actor buffers; broader profiling/budget work remains in its queued milestones. |

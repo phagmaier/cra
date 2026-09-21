@@ -14,7 +14,10 @@ path = "src/main.rs"
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+# float_roundtrip: correctly-rounded JSON float parsing, required for
+# bitwise checkpoint replay (M1-09). The default parser mis-rounds rare
+# decimals by 1 ulp, which silently corrupts weights across save/load.
+serde_json = { version = "1.0", features = ["float_roundtrip"] }
 toml = "0.8"
 thiserror = "2.0"
 rand = "0.9"

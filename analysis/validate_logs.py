@@ -156,7 +156,8 @@ def audit_run(run_dir):
             errors.append(f"condition.json: {key} disagrees with manifest")
     if resolved.get("profile_name") != manifest["profile_name"] or resolved.get("schema_version") != 1:
         errors.append("resolved config profile/schema disagrees with manifest")
-    policy_ids = {"random": "B0", "constant-0": "B1", "constant-1": "B1", "oracle": "O1"}
+    policy_ids = {"random": "B0", "constant-0": "B1", "constant-1": "B1",
+                  "actor-no-learning": "B3", "oracle": "O1"}
     if policy_ids.get(condition["policy"]) != condition["condition_id"]:
         errors.append("condition.json: policy/condition mismatch")
     if condition["outcomes_per_lifetime"] != resolved["simulation"]["outcomes_per_lifetime"]:

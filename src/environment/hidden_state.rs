@@ -192,6 +192,92 @@ impl HiddenState {
         self.changed_before_presentation[cue] = changed;
         Ok((self.exposures[cue], changed))
     }
+
+    /// Snapshot the full hidden mapping state for a lifetime checkpoint
+    /// (M1-09). Evaluator-side data; agent code must never call this.
+    pub(crate) fn snapshot(&self) -> HiddenSnapshot {
+        HiddenSnapshot {
+            mapping: self.mapping.clone(),
+            epsilon: self.epsilon.clone(),
+            hazard: self.hazard.clone(),
+            role: self.role.clone(),
+            exposures: self.exposures.clone(),
+            changed_before_presentation: self.changed_before_presentation.clone(),
+        }
+    }
+
+    /// Restore hidden state from a checkpoint snapshot, validating shapes
+    /// and value ranges instead of trusting stored bytes.
+    pub(crate) fn restore(snapshot: HiddenSnapshot) -> Result<Self, SimError> {
+        let inconsistent = |reason: String| SimError::InconsistentCheckpoint(reason);
+        let n = snapshot.mapping.len();
+        if n == 0 {
+            return Err(inconsistent("hidden mapping must be non-empty".to_owned()));
+        }
+        for name in [
+            "epsilon",
+            "hazard",
+            "role",
+            "exposures",
+            "changed_before_presentation",
+        ] {
+            let len = match name {
+                "epsilon" => snapshot.epsilon.len(),
+                "hazard" => snapshot.hazard.len(),
+                "role" => snapshot.role.len(),
+                "exposures" => snapshot.exposures.len(),
+                _ => snapshot.changed_before_presentation.len(),
+            };
+            if len != n {
+                return Err(inconsistent(format!(
+                    "hidden {name} len {len} must match mapping len {n}"
+                )));
+            }
+        }
+        if snapshot.mapping.iter().any(|&y| y > 1) {
+            return Err(inconsistent(
+                "hidden mapping must hold actions 0/1".to_owned(),
+            ));
+        }
+        if snapshot
+            .epsilon
+            .iter()
+            .any(|v| !v.is_finite() || !(0.0..=0.5).contains(v))
+        {
+            return Err(inconsistent(
+                "hidden epsilon must be finite in [0, 0.5]".to_owned(),
+            ));
+        }
+        if snapshot
+            .hazard
+            .iter()
+            .any(|v| !v.is_finite() || !(0.0..=1.0).contains(v))
+        {
+            return Err(inconsistent(
+                "hidden hazard must be finite in [0, 1]".to_owned(),
+            ));
+        }
+        Ok(Self {
+            mapping: snapshot.mapping,
+            epsilon: snapshot.epsilon,
+            hazard: snapshot.hazard,
+            role: snapshot.role,
+            exposures: snapshot.exposures,
+            changed_before_presentation: snapshot.changed_before_presentation,
+        })
+    }
+}
+
+/// Serializable hidden-state snapshot for lifetime checkpoints (M1-09).
+/// Stored inside the checkpoint file only; never delivered to an agent.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub(crate) struct HiddenSnapshot {
+    pub mapping: Vec<u8>,
+    pub epsilon: Vec<f64>,
+    pub hazard: Vec<f64>,
+    pub role: Vec<CueRole>,
+    pub exposures: Vec<u64>,
+    pub changed_before_presentation: Vec<bool>,
 }
 
 /// Evaluator-only per-outcome annotation (spec 20.2 hidden stream). Joined

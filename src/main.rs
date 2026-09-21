@@ -1,7 +1,7 @@
-//! Thin CLI over the testable library (M0).
+//! Thin CLI over the testable library (M0 environment, M1-12 actor demo).
 //!
-//! Implemented now: `validate-config` and environment-only `simulate`
-//! (baseline lifetimes + provenance + event logs, audited by
+//! Implemented now: `validate-config` and `simulate` (baseline lifetimes
+//! plus B3 actor lifetimes with provenance + event logs, audited by
 //! `analysis/validate_logs.py`). Planned (see README): `benchmark`,
 //! `evolve`, `evaluate`, `intervene`. The CLI only wires library calls;
 //! all behavior is testable without spawning a process.
@@ -17,7 +17,7 @@ use cra::run::{BaselineSel, EffectiveSeeds, run_simulation};
 #[command(
     name = "cra",
     version,
-    about = "Learning When to Learn simulator (M0 environment)"
+    about = "Learning When to Learn simulator (M0 environment, M1 nonplastic actor)"
 )]
 struct Cli {
     #[command(subcommand)]
@@ -31,9 +31,10 @@ enum Commands {
         /// Path to the TOML config file.
         path: PathBuf,
     },
-    /// Run baseline lifetimes into a fresh run directory with provenance
+    /// Run lifetimes into a fresh run directory with provenance
     /// and event logs. The environment stepping is real (M0-07 through
-    /// M0-11 contracts); neural/search code arrives in later milestones.
+    /// M0-11 contracts); the nonplastic actor runs its inherited dynamics
+    /// on every tick (M1-07) when the config carries an `[actor]` section.
     Simulate {
         /// Path to the TOML config file.
         #[arg(long)]
@@ -47,7 +48,9 @@ enum Commands {
         #[arg(long)]
         outer_seed: Option<u64>,
         /// Baseline rung: random (B0), constant-0 | constant-1 (B1),
-        /// oracle (O1, privileged reference).
+        /// actor (B3, needs an `[actor]` config such as
+        /// configs/actor_no_learning.toml), oracle (O1, privileged
+        /// reference).
         #[arg(long, default_value = "random")]
         baseline: String,
         /// Number of lifetimes to simulate (indices 0..lifetimes).
