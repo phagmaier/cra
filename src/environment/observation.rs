@@ -80,7 +80,7 @@ pub enum SimError {
     #[error("inconsistent checkpoint: {0}")]
     InconsistentCheckpoint(String),
     /// `commit` was called outside the final response tick.
-    #[error("commit at tick {tick} outside the final response tick (phase {phase}")]
+    #[error("commit at tick {tick} outside the final response tick (phase {phase})")]
     CommitOutOfPhase { tick: u64, phase: &'static str },
     /// `commit` was called with an action outside {0, 1}.
     #[error("invalid action {0}; the first environment supports actions 0 and 1")]

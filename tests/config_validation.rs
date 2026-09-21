@@ -32,6 +32,7 @@ fn expect_err(text: &str) -> ConfigError {
 
 fn err_kind(e: &ConfigError) -> &'static str {
     match e {
+        ConfigError::UnsupportedExecution(_) => "execution",
         ConfigError::Io { .. } => "io",
         ConfigError::Parse { .. } => "parse",
         ConfigError::UnsupportedSchemaVersion { .. } => "schema",
@@ -184,4 +185,34 @@ fn table_invalid_configs() {
         let err = expect_err(&text);
         assert_eq!(err_kind(&err), want, "case '{name}': got {err}");
     }
+}
+
+#[test]
+fn supported_schema_is_distinct_from_supported_execution() {
+    use cra::config::validate_baseline_execution;
+    let debug = parse_and_validate(&debug_stationary()).unwrap();
+    assert!(matches!(
+        validate_baseline_execution(&debug),
+        Err(ConfigError::UnsupportedExecution(_))
+    ));
+    let smoke = parse_and_validate(&env_smoke()).unwrap();
+    validate_baseline_execution(&smoke).unwrap();
+    for kind in ["isolated_reversal", "long_life"] {
+        let mut cfg = smoke.clone();
+        cfg.environment.kind = kind.to_owned();
+        assert!(validate_baseline_execution(&cfg).is_err());
+    }
+    let mut cfg = smoke;
+    cfg.simulation.reset_policy = "episodic_diagnostic".to_owned();
+    assert!(validate_baseline_execution(&cfg).is_err());
+}
+
+#[test]
+fn oversized_motor_assignment_is_an_error_not_an_overflow() {
+    let mut cfg = parse_and_validate(&debug_stationary()).unwrap();
+    cfg.actor.as_mut().unwrap().motor_neurons_per_action = usize::MAX;
+    assert!(matches!(
+        validate(&cfg),
+        Err(ConfigError::InvalidActorDimensions { .. })
+    ));
 }

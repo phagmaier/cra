@@ -570,3 +570,73 @@ fn cues_vanish_outside_presentation_and_feedback_lasts_one_tick() {
     assert_eq!(cue_ticks, 16);
     assert_eq!(present_ticks, 2);
 }
+
+#[test]
+fn rejected_commits_do_not_shift_reward_noise_or_timing() {
+    let mut cfg = base_config();
+    cfg.environment.feedback_noise_values = vec![0.2];
+    cfg.environment.reward_delay_ticks = [1, 5];
+    cfg.simulation.outcomes_per_lifetime = 64;
+    let mut clean = birth(&cfg);
+    let mut probed = birth(&cfg);
+    // Out-of-phase calls used to consume reward RNG before returning an error.
+    for _ in 0..5 {
+        assert!(probed.commit(0).is_err());
+    }
+    while !clean.is_complete() {
+        let a = clean.advance().unwrap();
+        let b = probed.advance().unwrap();
+        assert_eq!(a, b);
+        if a.commitment_due {
+            assert!(matches!(probed.commit(2), Err(SimError::InvalidAction(2))));
+            clean.commit(0).unwrap();
+            probed.commit(0).unwrap();
+            assert_eq!(clean.pending(), probed.pending());
+            assert!(probed.commit(1).is_err());
+        }
+    }
+}
+
+#[test]
+fn library_birth_rejects_invalid_config_before_simulation() {
+    let cfg = base_config();
+    let mut cases = Vec::new();
+    let mut bad = cfg.clone();
+    bad.simulation.dt = 0.5;
+    cases.push(bad);
+    let mut bad = cfg.clone();
+    bad.environment.stable_fraction = f64::NAN;
+    cases.push(bad);
+    let mut bad = cfg.clone();
+    bad.environment.feedback_noise_values = vec![f64::NAN];
+    cases.push(bad);
+    let mut bad = cfg.clone();
+    bad.environment.reward_delay_ticks = [0, 0];
+    cases.push(bad);
+    let mut bad = cfg.clone();
+    bad.environment.reward_delay_ticks = [1, u64::MAX];
+    cases.push(bad);
+    let mut bad = cfg.clone();
+    bad.environment.cue_count = usize::MAX;
+    cases.push(bad);
+    for bad in cases {
+        assert!(cra::environment::Lifetime::new(&bad, 1, "development", 1, 0).is_err());
+    }
+}
+
+#[test]
+fn hidden_birth_rejects_invalid_membership_and_probabilities() {
+    use cra::environment::HiddenState;
+    let mut rng = rng_for(&SeedTuple::new(1, "development", 1, 0, "mapping_init")).unwrap();
+    for (membership, stable, noise, hazard) in [
+        (vec![0, 0], 1, 0.0, 0.0),
+        (vec![0, 2], 1, 0.0, 0.0),
+        (vec![0, 1], 3, 0.0, 0.0),
+        (vec![0, 1], 1, f64::NAN, 0.0),
+        (vec![0, 1], 1, 0.0, 2.0),
+    ] {
+        assert!(
+            HiddenState::at_birth(2, &membership, stable, &[noise], &[hazard], &mut rng).is_err()
+        );
+    }
+}

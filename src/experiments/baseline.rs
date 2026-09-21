@@ -6,7 +6,7 @@
 //! - B0/B1 implement the ordinary [`Agent`] trait: they receive only
 //!   `Observation`s and their own state. Their `advance` ignores features
 //!   (no motor circuit exists at M0; the harness commits their
-//!   `select_action`), and `apply_feedback` keeps no reward history. This
+//!   `select_action`), and `apply_feedback` only deduplicates events. This
 //!   type-level conformance is the proof they use only permitted
 //!   information.
 //! - O1 deliberately does *not* implement `Agent`. It reads [`HiddenState`]
@@ -25,15 +25,27 @@ use rand_chacha::ChaCha8Rng;
 
 use crate::config::Config;
 use crate::environment::{
-    Agent, Feedback, HiddenAnnotation, HiddenState, Lifetime, MotorOutput, SimError, TickOutput,
+    Agent, Feedback, HiddenAnnotation, HiddenState, Lifetime, MotorOutput, SimError,
 };
 use crate::rng::{SeedTuple, rng_for};
 
-/// Ordinary (non-privileged) commitment policy: sees the current tick
-/// output — including the publicly shown cue — and its own state. Never
-/// hidden mappings, correctness, noise, hazards, or future schedules.
+/// Ordinary commitment policy. All input arrives through `Agent`; action
+/// selection reads only its own state, never the evaluator's TickOutput.
 pub trait OrdinaryPolicy: Agent {
-    fn select_action(&mut self, tick: &TickOutput) -> u8;
+    fn select_action(&mut self) -> u8;
+}
+
+fn consume_feedback(last: &mut Option<u64>, event: Feedback) -> Result<(), SimError> {
+    if last.is_some_and(|id| event.event_id <= id) {
+        return Err(SimError::DuplicateFeedback(event.event_id));
+    }
+    if event.reward != 0.0 && event.reward != 1.0 {
+        return Err(SimError::InvalidConfiguration(
+            "feedback reward must be 0 or 1".to_owned(),
+        ));
+    }
+    *last = Some(event.event_id);
+    Ok(())
 }
 
 /// B0: random action. Draws come from the action-selection (`tie_break`)
@@ -41,6 +53,7 @@ pub trait OrdinaryPolicy: Agent {
 /// never touches, so B0 draws cannot perturb exogenous schedules.
 pub struct RandomBaseline {
     rng: ChaCha8Rng,
+    last_feedback: Option<u64>,
 }
 
 impl RandomBaseline {
@@ -58,13 +71,16 @@ impl RandomBaseline {
             "tie_break",
         ))
         .map_err(|e| SimError::InvalidConfiguration(format!("bad seed tuple: {e}")))?;
-        Ok(Self { rng })
+        Ok(Self {
+            rng,
+            last_feedback: None,
+        })
     }
 }
 
 impl Agent for RandomBaseline {
-    fn apply_feedback(&mut self, _event: Feedback) -> Result<(), SimError> {
-        Ok(())
+    fn apply_feedback(&mut self, event: Feedback) -> Result<(), SimError> {
+        consume_feedback(&mut self.last_feedback, event)
     }
 
     fn advance(&mut self, _features: &[f64]) -> Result<MotorOutput, SimError> {
@@ -77,26 +93,32 @@ impl Agent for RandomBaseline {
 }
 
 impl OrdinaryPolicy for RandomBaseline {
-    fn select_action(&mut self, _tick: &TickOutput) -> u8 {
+    fn select_action(&mut self) -> u8 {
         u8::from(self.rng.random_bool(0.5))
     }
 }
 
 /// B1: constant action (always 0 or always 1). Draws no randomness.
-pub struct ConstantBaseline(pub u8);
+pub struct ConstantBaseline {
+    action: u8,
+    last_feedback: Option<u64>,
+}
 
 impl ConstantBaseline {
     pub fn new(action: u8) -> Result<Self, SimError> {
         if action > 1 {
             return Err(SimError::InvalidAction(action));
         }
-        Ok(Self(action))
+        Ok(Self {
+            action,
+            last_feedback: None,
+        })
     }
 }
 
 impl Agent for ConstantBaseline {
-    fn apply_feedback(&mut self, _event: Feedback) -> Result<(), SimError> {
-        Ok(())
+    fn apply_feedback(&mut self, event: Feedback) -> Result<(), SimError> {
+        consume_feedback(&mut self.last_feedback, event)
     }
 
     fn advance(&mut self, _features: &[f64]) -> Result<MotorOutput, SimError> {
@@ -108,8 +130,8 @@ impl Agent for ConstantBaseline {
 }
 
 impl OrdinaryPolicy for ConstantBaseline {
-    fn select_action(&mut self, _tick: &TickOutput) -> u8 {
-        self.0
+    fn select_action(&mut self) -> u8 {
+        self.action
     }
 }
 
@@ -197,13 +219,16 @@ pub fn run_ordinary(
     policy_name: &'static str,
     policy: &mut dyn OrdinaryPolicy,
 ) -> Result<BaselineSummary, SimError> {
+    crate::config::validate_baseline_execution(cfg)
+        .map_err(|e| SimError::InvalidConfiguration(e.to_string()))?;
     let mut lifetime = Lifetime::new(cfg, root_seed, namespace, outer_seed, lifetime_index)?;
     let mut choices = Vec::new();
     let mut annotations = Vec::new();
     while !lifetime.is_complete() {
         let out = lifetime.advance()?;
-        policy.advance(&out.observation.features)?;
         if let Some(feedback) = out.observation.feedback {
+            policy.apply_feedback(feedback)?;
+            lifetime.note_feedback_consumed(feedback.event_id)?;
             let annotation = out.annotation.clone().ok_or_else(|| {
                 SimError::InconsistentCounts("feedback without annotation".to_owned())
             })?;
@@ -214,8 +239,9 @@ pub fn run_ordinary(
             )?);
             annotations.push(annotation);
         }
+        policy.advance(&out.observation.features)?;
         if out.commitment_due {
-            let action = policy.select_action(&out);
+            let action = policy.select_action();
             lifetime.commit(action)?;
         }
     }
@@ -236,6 +262,8 @@ pub fn run_oracle(
     outer_seed: u64,
     lifetime_index: u64,
 ) -> Result<BaselineSummary, SimError> {
+    crate::config::validate_baseline_execution(cfg)
+        .map_err(|e| SimError::InvalidConfiguration(e.to_string()))?;
     let mut lifetime = Lifetime::new(cfg, root_seed, namespace, outer_seed, lifetime_index)?;
     let oracle = Oracle;
     let mut cycle_cue = None;

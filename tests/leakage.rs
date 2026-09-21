@@ -185,12 +185,12 @@ fn agent_trait_path_carries_only_ordinary_data() {
     let mut ticks = 0;
     while !lt.is_complete() {
         let out = lt.advance().expect("advance");
-        agent
-            .advance(&out.observation.features)
-            .expect("agent step");
         if let Some(feedback) = out.observation.feedback {
             agent.apply_feedback(feedback).expect("agent feedback");
         }
+        agent
+            .advance(&out.observation.features)
+            .expect("agent step");
         if out.commitment_due {
             lt.commit(0).expect("commit");
         }

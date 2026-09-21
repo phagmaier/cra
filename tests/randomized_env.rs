@@ -128,3 +128,24 @@ fn oracle_reward_matches_its_noise_conditioned_expectation() {
         "oracle mean reward {mean} outside tolerance of 0.8"
     );
 }
+
+#[test]
+fn birth_mapping_pairs_are_independent() {
+    // Predeclared: 2048 independent births, four pairs with probability .25.
+    // Each binomial SE is .00957; absolute tolerance .04 is >4 SE.
+    // This catches shared mappings that pass both marginal balance checks.
+    let cfg = base_config();
+    let mut pairs = [0u64; 4];
+    for outer in 1..=2048 {
+        let lt = cra::environment::Lifetime::new(&cfg, 1, "development", outer, 0).unwrap();
+        let pair = 2 * lt.hidden().mapping(0) + lt.hidden().mapping(1);
+        pairs[usize::from(pair)] += 1;
+    }
+    for count in pairs {
+        assert!(
+            (count as f64 / 2048.0 - 0.25).abs() <= 0.04,
+            "mapping pair counts: {pairs:?}"
+        );
+    }
+    println!("mapping pair counts (00,01,10,11): {pairs:?}");
+}

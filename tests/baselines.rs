@@ -151,3 +151,95 @@ fn paired_lifetimes_share_noise_bits_but_not_rewards() {
         "constant-0 disagrees with the oracle somewhere"
     );
 }
+
+#[test]
+fn ordinary_runner_delivers_feedback_before_the_transition() {
+    use cra::environment::{Agent, Feedback, MotorOutput, SimError};
+    use cra::experiments::baseline::OrdinaryPolicy;
+    struct Recorder {
+        received: u64,
+        stepped: u64,
+    }
+    impl Agent for Recorder {
+        fn apply_feedback(&mut self, event: Feedback) -> Result<(), SimError> {
+            assert_eq!(event.event_id, self.received);
+            self.received += 1;
+            Ok(())
+        }
+        fn advance(&mut self, features: &[f64]) -> Result<MotorOutput, SimError> {
+            if features[4] == 1.0 {
+                self.stepped += 1;
+                assert_eq!(
+                    self.received, self.stepped,
+                    "feedback must precede sensory transition"
+                );
+            }
+            Ok(MotorOutput {
+                action_0: 0.0,
+                action_1: 0.0,
+            })
+        }
+    }
+    impl OrdinaryPolicy for Recorder {
+        fn select_action(&mut self) -> u8 {
+            0
+        }
+    }
+    let cfg = base_config();
+    let mut agent = Recorder {
+        received: 0,
+        stepped: 0,
+    };
+    run_ordinary(&cfg, 1, "development", 1, 0, "recorder", &mut agent).expect("run");
+    assert_eq!(agent.received, cfg.simulation.outcomes_per_lifetime);
+    assert_eq!(
+        agent.stepped, agent.received,
+        "includes final feedback transition"
+    );
+}
+
+#[test]
+fn baselines_reject_duplicate_and_invalid_feedback_without_consuming_it() {
+    use cra::environment::{Agent, Feedback, SimError};
+    let mut agents: Vec<Box<dyn Agent>> = vec![
+        Box::new(ConstantBaseline::new(0).unwrap()),
+        Box::new(RandomBaseline::new(1, "development", 1, 0).unwrap()),
+    ];
+    for agent in &mut agents {
+        assert!(
+            agent
+                .apply_feedback(Feedback {
+                    event_id: 0,
+                    reward: f64::NAN
+                })
+                .is_err()
+        );
+        agent
+            .apply_feedback(Feedback {
+                event_id: 0,
+                reward: 1.0,
+            })
+            .unwrap();
+        assert!(matches!(
+            agent.apply_feedback(Feedback {
+                event_id: 0,
+                reward: 0.0
+            }),
+            Err(SimError::DuplicateFeedback(0))
+        ));
+        agent
+            .apply_feedback(Feedback {
+                event_id: 1,
+                reward: 0.0,
+            })
+            .unwrap();
+        assert!(
+            agent
+                .apply_feedback(Feedback {
+                    event_id: 0,
+                    reward: 1.0
+                })
+                .is_err()
+        );
+    }
+}

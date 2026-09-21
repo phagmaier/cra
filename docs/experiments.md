@@ -51,3 +51,33 @@ interrupted runs — missing data is not a zero score.
   `cargo run --release --locked -- simulate --config
   configs/env_smoke.toml --baseline random --seed 1` then
   `python3 analysis/validate_logs.py runs/<run-id>`.
+
+## 2026-09-21 UTC — M0 corrective review and re-verification
+
+- Scope: owner-requested review of completed M0, base `57b6870`, corrections
+  in a dirty tree. No new scientific experiment or change to `spec.md`.
+- Found and reproduced a false audit pass for a seven-of-eight truncated
+  lifetime with matching shortened completion counts. Corrected audit,
+  runner feedback/interface, run-directory ownership, execution validation,
+  and invalid-input RNG handling; details in `docs/m0-review.md` and the
+  appended decision record. Original outputs were preserved.
+- Full checks: 73 Rust tests, 14 Python tests, fmt, and clippy pass. Existing
+  timing/RNG goldens retained. The mapping-pair diagnostic used 2,048 births
+  and a tolerance declared before execution: counts 516/502/520/510 pass.
+- All four original smoke runs pass the stricter audit. Seven fresh runs
+  (development/root 1/outer 1, two lifetimes each) also pass, including
+  noisy variable timing and logging disabled. Every original clean smoke
+  event is reproduced apart from run identity. The noisy oracle is 32/32
+  latently correct with 27 rewards, five flipped outcomes, four changes,
+  and 602 ticks; its logging-disabled counterpart reports the same results.
+- Evidence: `docs/evidence/m0-review/commands.json` (exact commands/outputs),
+  `summary.json` (code/binary/artifact hashes and counts), two diagnostic
+  configs, and raw directories under `runs/m0-review/`. Logged-off audit
+  coverage is explicitly limited to provenance/completion.
+- Failure during audit development: the original duplicate-event fixture
+  initially reported only a count mismatch; independent duplicate checking
+  restored the diagnostic and all tests pass. No seeds or golden values
+  changed to obtain a pass. The intentionally unsupported neural simulation
+  exits 1 as expected and is recorded in the evidence.
+- Result: M0-GATE re-verified. These are correctness checks, not evidence of
+  learning or relative performance. Next eligible task remains M1-01.

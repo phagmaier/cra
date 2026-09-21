@@ -63,10 +63,35 @@ impl HiddenState {
         hazard_values: &[f64],
         mapping_init_rng: &mut ChaCha8Rng,
     ) -> Result<Self, SimError> {
-        if membership.len() != cue_count || noise_values.is_empty() || hazard_values.is_empty() {
+        if cue_count == 0
+            || n_stable > cue_count
+            || membership.len() != cue_count
+            || noise_values.is_empty()
+            || hazard_values.is_empty()
+        {
             return Err(SimError::InvalidConfiguration(
                 "hidden-state birth needs full membership and nonempty noise/hazard lists"
                     .to_owned(),
+            ));
+        }
+        let mut seen = vec![false; cue_count];
+        for &cue in membership {
+            if cue >= cue_count || seen[cue] {
+                return Err(SimError::InvalidConfiguration(
+                    "membership must be a permutation of all cue ids".to_owned(),
+                ));
+            }
+            seen[cue] = true;
+        }
+        if noise_values
+            .iter()
+            .any(|v| !v.is_finite() || !(0.0..=0.5).contains(v))
+            || hazard_values
+                .iter()
+                .any(|v| !v.is_finite() || !(0.0..=1.0).contains(v))
+        {
+            return Err(SimError::InvalidConfiguration(
+                "hidden-state noise must be in [0, 0.5] and hazard in [0, 1]".to_owned(),
             ));
         }
         let mapping: Vec<u8> = (0..cue_count)

@@ -1,3 +1,3 @@
 # No third-party Python dependencies yet (M0).
-# Analysis scripts arrive in M0-14. Add numpy/matplotlib pins here only when
-# an implemented script imports them.
+# The log auditor uses only Python 3.14.7's standard library. Introduce a
+# dependency lock alongside the first external dependency; none are resolved now.

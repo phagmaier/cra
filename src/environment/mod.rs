@@ -129,18 +129,10 @@ impl Lifetime {
         outer_seed: u64,
         lifetime_index: u64,
     ) -> Result<Self, SimError> {
+        crate::config::validate_environment_execution(cfg)
+            .map_err(|e| SimError::InvalidConfiguration(e.to_string()))?;
         let env = &cfg.environment;
         let cue_count = env.cue_count;
-        if cue_count == 0
-            || env.cue_ticks == 0
-            || env.response_ticks == 0
-            || cfg.simulation.outcomes_per_lifetime == 0
-        {
-            return Err(SimError::InvalidConfiguration(
-                "cue_count, cue_ticks, response_ticks, and outcomes_per_lifetime must be >= 1"
-                    .to_owned(),
-            ));
-        }
         let stream = |name: &str| {
             rng_for(&SeedTuple::new(
                 root_seed,
@@ -467,6 +459,7 @@ impl Lifetime {
     /// unresolved (the phase machine only admits `Committed` with nothing
     /// pending) and any action outside {0, 1}.
     pub fn commit(&mut self, action: u8) -> Result<CommitReceipt, SimError> {
+        self.validate_commit(action)?;
         let epsilon = self.epsilon_for_current_cue()?;
         let noise_bit = Bernoulli::new(epsilon)
             .map(|d| d.sample(&mut self.noise_rng))
@@ -482,6 +475,12 @@ impl Lifetime {
         action: u8,
         noise_bit: bool,
     ) -> Result<CommitReceipt, SimError> {
+        self.validate_commit(action)?;
+        self.store_commit(action, noise_bit)
+    }
+
+    /// Check all caller errors before consuming any simulation randomness.
+    fn validate_commit(&self, action: u8) -> Result<(), SimError> {
         if !matches!(self.phase, PhaseState::Committed) {
             return Err(SimError::CommitOutOfPhase {
                 tick: self.tick,
@@ -496,6 +495,10 @@ impl Lifetime {
                 "commit with an unresolved pending reward".to_owned(),
             ));
         }
+        Ok(())
+    }
+
+    fn store_commit(&mut self, action: u8, noise_bit: bool) -> Result<CommitReceipt, SimError> {
         let cue = self
             .current_cue
             .ok_or_else(|| SimError::InconsistentCounts("commit with no current cue".to_owned()))?;

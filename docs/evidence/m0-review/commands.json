@@ -1,0 +1,379 @@
+[
+  {
+    "command": [
+      "cargo",
+      "fmt",
+      "--all",
+      "--",
+      "--check"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": ""
+  },
+  {
+    "command": [
+      "cargo",
+      "clippy",
+      "--all-targets",
+      "--locked",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "    Checking cra v0.1.0 (/home/phagmaier/Code/cra)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.46s\n"
+  },
+  {
+    "command": [
+      "cargo",
+      "test",
+      "--all-targets",
+      "--locked"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "   Compiling cra v0.1.0 (/home/phagmaier/Code/cra)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.21s\n     Running unittests src/lib.rs (target/debug/deps/cra-7cb6b836c237f188)\n\nrunning 19 tests\ntest environment::hidden_state::tests::annotation_serializes_separately_from_observation ... ok\ntest environment::observation::tests::feature_dim_is_k_plus_six ... ok\ntest environment::schedule::tests::fixed_range_is_exact ... ok\ntest environment::observation::tests::boundary_types_round_trip_through_json ... ok\ntest environment::schedule::tests::inverted_range_is_an_explicit_error ... ok\ntest environment::hidden_state::tests::hazard_one_flips_every_repeat_but_not_the_first ... ok\ntest experiments::baseline::tests::constant_baseline_rejects_actions_outside_zero_one ... ok\ntest environment::hidden_state::tests::hazard_zero_never_flips_and_first_presentation_is_clean ... ok\ntest logging::events::tests::valid_stream_passes ... ok\ntest environment::schedule::tests::sampled_lengths_stay_in_range ... ok\ntest logging::events::tests::field_and_order_violations_are_explicit ... ok\ntest rng::tests::reserved_namespaces_and_streams_validate ... ok\ntest rng::tests::canonical_format_is_stable ... ok\ntest run::tests::run_dir_name_is_unique_per_seed_and_time ... ok\ntest config::tests::minimal_smoke_profile_validates ... ok\ntest run::tests::allocation_preserves_incomplete_runs_and_is_atomic ... ok\ntest environment::tests::bad_namespace_rejected_at_birth ... ok\ntest environment::tests::birth_samples_mappings_and_first_quiet_is_warmup ... ok\ntest run::tests::same_second_runs_never_share_a_directory ... ok\n\ntest result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s\n\n     Running unittests src/main.rs (target/debug/deps/cra-252b282ffe143949)\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n     Running tests/baselines.rs (target/debug/deps/baselines-0a0cf603ef4046ba)\n\nrunning 7 tests\ntest baselines_reject_duplicate_and_invalid_feedback_without_consuming_it ... ok\ntest oracle_latent_accuracy_is_exactly_one ... ok\ntest oracle_tracks_hidden_flips ... ok\ntest ordinary_runner_delivers_feedback_before_the_transition ... ok\ntest paired_lifetimes_share_noise_bits_but_not_rewards ... ok\ntest constant_baselines_commit_only_their_action ... ok\ntest random_baseline_reproduces_its_action_sequence_from_seeds ... ok\n\ntest result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n     Running tests/config_validation.rs (target/debug/deps/config_validation-15a00e71ddc657c7)\n\nrunning 4 tests\ntest oversized_motor_assignment_is_an_error_not_an_overflow ... ok\ntest supported_schema_is_distinct_from_supported_execution ... ok\ntest valid_profiles_pass ... ok\ntest table_invalid_configs ... ok\n\ntest result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s\n\n     Running tests/environment_contract.rs (target/debug/deps/environment_contract-86fe45aecd1d8296)\n\nrunning 20 tests\ntest completed_lifetime_has_equal_counts_and_no_pending_reward ... ok\ntest consumption_ledger_rejects_duplicates_and_unknown_ids ... ok\ntest correct_action_scores_one_and_wrong_scores_zero_without_noise ... ok\ntest cues_vanish_outside_presentation_and_feedback_lasts_one_tick ... ok\ntest event_ids_are_unique_and_each_commitment_delivers_once ... ok\ntest feature_channels_follow_phase_flags ... ok\ntest exact_cycle_counts_with_zero_gap_and_delay_one ... ok\ntest forced_noise_bit_reverses_either_reward ... ok\ntest double_commit_invalid_action_and_missing_commit_are_errors ... ok\ntest hidden_birth_rejects_invalid_membership_and_probabilities ... ok\ntest library_birth_rejects_invalid_config_before_simulation ... ok\ntest hazard_one_flips_every_repeat_but_not_the_first ... ok\ntest gap_and_delay_three_shape ... ok\ntest hazard_zero_never_flips_across_cycles ... ok\ntest pending_reward_uses_mapping_saved_at_commit ... ok\ntest previous_action_latch_changes_starting_next_tick ... ok\ntest quiet_ticks_never_mutate_hidden_mappings ... ok\ntest zero_reward_is_distinguishable_from_no_outcome ... ok\ntest rejected_commits_do_not_shift_reward_noise_or_timing ... ok\ntest agent_stream_draws_do_not_alter_the_exogenous_schedule ... ok\n\ntest result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n     Running tests/event_logging.rs (target/debug/deps/event_logging-81714240f928bd1b)\n\nrunning 5 tests\ntest rejected_execution_creates_no_successful_looking_artifacts ... ok\ntest hidden_accounting_and_overlapping_choices_are_rejected ... ok\ntest tampered_logs_fail_validation ... ok\ntest round_trip_reconstructs_counts_and_schedule ... ok\ntest logging_off_yields_identical_behavior ... ok\n\ntest result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s\n\n     Running tests/event_order.rs (target/debug/deps/event_order-c16e647bb5265cae)\n\nrunning 3 tests\ntest birth_goldens ... ok\ntest forced_wrong_action_at_20_delivers_zero_through_the_envelope ... ok\ntest commit_at_20_delay_3_delivers_exactly_at_23 ... ok\n\ntest result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n     Running tests/leakage.rs (target/debug/deps/leakage-6286fe7892f73338)\n\nrunning 5 tests\ntest ordinary_types_serialize_with_exactly_their_public_fields ... ok\ntest feedback_ids_never_enter_the_feature_vector ... ok\ntest pinned_fixture_ordinary_log_matches_expected_public_values ... ok\ntest agent_trait_path_carries_only_ordinary_data ... ok\ntest hidden_annotations_serialize_to_a_separate_stream ... ok\n\ntest result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n     Running tests/randomized_env.rs (target/debug/deps/randomized_env-f1fc5a87ebb72b6a)\n\nrunning 5 tests\ntest oracle_reward_matches_its_noise_conditioned_expectation ... ok\ntest cue_presentations_are_balanced ... ok\ntest random_action_correctness_is_chance ... ok\ntest birth_mapping_pairs_are_independent ... ok\ntest birth_mappings_are_balanced ... ok\n\ntest result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s\n\n     Running tests/seed_streams.rs (target/debug/deps/seed_streams-dccb81507e1cd88a)\n\nrunning 5 tests\ntest namespaces_are_disjoint ... ok\ntest golden_stream_outputs ... ok\ntest unknown_namespace_and_bad_stream_rejected ... ok\ntest reserved_streams_are_pairwise_distinct ... ok\ntest agent_draws_do_not_shift_environment_streams ... ok\n\ntest result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n"
+  },
+  {
+    "command": [
+      "python3",
+      "analysis/test_validate_logs.py"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "..............\n----------------------------------------------------------------------\nRan 14 tests in 0.061s\n\nOK\n"
+  },
+  {
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--test",
+      "randomized_env",
+      "birth_mapping_pairs_are_independent",
+      "--",
+      "--nocapture"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.03s\n     Running tests/randomized_env.rs (target/debug/deps/randomized_env-f1fc5a87ebb72b6a)\n\nrunning 1 test\nmapping pair counts (00,01,10,11): [516, 502, 520, 510]\ntest birth_mapping_pairs_are_independent ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.20s\n\n"
+  },
+  {
+    "command": [
+      "cargo",
+      "run",
+      "--release",
+      "--locked",
+      "--",
+      "--help"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "   Compiling cra v0.1.0 (/home/phagmaier/Code/cra)\n    Finished `release` profile [optimized] target(s) in 3.48s\n     Running `target/release/cra --help`\nLearning When to Learn simulator (M0 environment)\n\nUsage: cra <COMMAND>\n\nCommands:\n  validate-config  Parse and validate a TOML config; print the resolved profile summary\n  simulate         Run baseline lifetimes into a fresh run directory with provenance and event logs. The environment stepping is real (M0-07 through M0-11 contracts); neural/search code arrives in later milestones\n  help             Print this message or the help of the given subcommand(s)\n\nOptions:\n  -h, --help     Print help\n  -V, --version  Print version\n"
+  },
+  {
+    "command": [
+      "cargo",
+      "run",
+      "--release",
+      "--locked",
+      "--",
+      "validate-config",
+      "configs/env_smoke.toml"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "    Finished `release` profile [optimized] target(s) in 0.03s\n     Running `target/release/cra validate-config configs/env_smoke.toml`\nOK: profile 'env_smoke' schema_version=1 kind='stationary_clean' cues=2 namespace='development'\n"
+  },
+  {
+    "command": [
+      "cargo",
+      "run",
+      "--release",
+      "--locked",
+      "--",
+      "validate-config",
+      "configs/debug_stationary.toml"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "    Finished `release` profile [optimized] target(s) in 0.03s\n     Running `target/release/cra validate-config configs/debug_stationary.toml`\nOK: profile 'debug_stationary' schema_version=1 kind='stationary_clean' cues=2 namespace='development'\n"
+  },
+  {
+    "command": [
+      "cargo",
+      "run",
+      "--release",
+      "--locked",
+      "--",
+      "simulate",
+      "--config",
+      "configs/debug_stationary.toml",
+      "--seed",
+      "1"
+    ],
+    "exit_code": 1,
+    "expected_exit_code": 1,
+    "output": "    Finished `release` profile [optimized] target(s) in 0.03s\n     Running `target/release/cra simulate --config configs/debug_stationary.toml --seed 1`\nERROR: run config error: unsupported execution: M0 baseline simulation requires an environment-only config (use configs/env_smoke.toml); neural/search sections are not executed\n"
+  },
+  {
+    "command": [
+      "cargo",
+      "run",
+      "--release",
+      "--locked",
+      "--",
+      "simulate",
+      "--seed",
+      "1",
+      "--outer-seed",
+      "1",
+      "--lifetimes",
+      "2",
+      "--out-dir",
+      "runs/m0-review",
+      "--config",
+      "configs/env_smoke.toml",
+      "--baseline",
+      "random"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "    Finished `release` profile [optimized] target(s) in 0.03s\n     Running `target/release/cra simulate --seed 1 --outer-seed 1 --lifetimes 2 --out-dir runs/m0-review --config configs/env_smoke.toml --baseline random`\nrun dir: runs/m0-review/env_smoke-root1-outer1-1789964497\ncondition B0: 2 lifetimes, 16 commitments, 16 outcomes, mean reward 0.2500\n"
+  },
+  {
+    "command": [
+      "python3",
+      "analysis/validate_logs.py",
+      "runs/m0-review/env_smoke-root1-outer1-1789964497"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "OK runs/m0-review/env_smoke-root1-outer1-1789964497 (events + provenance)\n"
+  },
+  {
+    "command": [
+      "cargo",
+      "run",
+      "--release",
+      "--locked",
+      "--",
+      "simulate",
+      "--seed",
+      "1",
+      "--outer-seed",
+      "1",
+      "--lifetimes",
+      "2",
+      "--out-dir",
+      "runs/m0-review",
+      "--config",
+      "configs/env_smoke.toml",
+      "--baseline",
+      "constant-0"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "    Finished `release` profile [optimized] target(s) in 0.03s\n     Running `target/release/cra simulate --seed 1 --outer-seed 1 --lifetimes 2 --out-dir runs/m0-review --config configs/env_smoke.toml --baseline constant-0`\nrun dir: runs/m0-review/env_smoke-root1-outer1-1789964497-retry1\ncondition B1: 2 lifetimes, 16 commitments, 16 outcomes, mean reward 0.5000\n"
+  },
+  {
+    "command": [
+      "python3",
+      "analysis/validate_logs.py",
+      "runs/m0-review/env_smoke-root1-outer1-1789964497-retry1"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "OK runs/m0-review/env_smoke-root1-outer1-1789964497-retry1 (events + provenance)\n"
+  },
+  {
+    "command": [
+      "cargo",
+      "run",
+      "--release",
+      "--locked",
+      "--",
+      "simulate",
+      "--seed",
+      "1",
+      "--outer-seed",
+      "1",
+      "--lifetimes",
+      "2",
+      "--out-dir",
+      "runs/m0-review",
+      "--config",
+      "configs/env_smoke.toml",
+      "--baseline",
+      "constant-1"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "    Finished `release` profile [optimized] target(s) in 0.03s\n     Running `target/release/cra simulate --seed 1 --outer-seed 1 --lifetimes 2 --out-dir runs/m0-review --config configs/env_smoke.toml --baseline constant-1`\nrun dir: runs/m0-review/env_smoke-root1-outer1-1789964497-retry2\ncondition B1: 2 lifetimes, 16 commitments, 16 outcomes, mean reward 0.5000\n"
+  },
+  {
+    "command": [
+      "python3",
+      "analysis/validate_logs.py",
+      "runs/m0-review/env_smoke-root1-outer1-1789964497-retry2"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "OK runs/m0-review/env_smoke-root1-outer1-1789964497-retry2 (events + provenance)\n"
+  },
+  {
+    "command": [
+      "cargo",
+      "run",
+      "--release",
+      "--locked",
+      "--",
+      "simulate",
+      "--seed",
+      "1",
+      "--outer-seed",
+      "1",
+      "--lifetimes",
+      "2",
+      "--out-dir",
+      "runs/m0-review",
+      "--config",
+      "configs/env_smoke.toml",
+      "--baseline",
+      "oracle"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "    Finished `release` profile [optimized] target(s) in 0.03s\n     Running `target/release/cra simulate --seed 1 --outer-seed 1 --lifetimes 2 --out-dir runs/m0-review --config configs/env_smoke.toml --baseline oracle`\nrun dir: runs/m0-review/env_smoke-root1-outer1-1789964497-retry3\ncondition O1: 2 lifetimes, 16 commitments, 16 outcomes, mean reward 1.0000\n"
+  },
+  {
+    "command": [
+      "python3",
+      "analysis/validate_logs.py",
+      "runs/m0-review/env_smoke-root1-outer1-1789964497-retry3"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "OK runs/m0-review/env_smoke-root1-outer1-1789964497-retry3 (events + provenance)\n"
+  },
+  {
+    "command": [
+      "cargo",
+      "run",
+      "--release",
+      "--locked",
+      "--",
+      "simulate",
+      "--seed",
+      "1",
+      "--outer-seed",
+      "1",
+      "--lifetimes",
+      "2",
+      "--out-dir",
+      "runs/m0-review",
+      "--config",
+      "docs/evidence/m0-review/noisy_variable.toml",
+      "--baseline",
+      "random"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "    Finished `release` profile [optimized] target(s) in 0.03s\n     Running `target/release/cra simulate --seed 1 --outer-seed 1 --lifetimes 2 --out-dir runs/m0-review --config docs/evidence/m0-review/noisy_variable.toml --baseline random`\nrun dir: runs/m0-review/m0_review_noisy-root1-outer1-1789964497\ncondition B0: 2 lifetimes, 32 commitments, 32 outcomes, mean reward 0.5938\n"
+  },
+  {
+    "command": [
+      "python3",
+      "analysis/validate_logs.py",
+      "runs/m0-review/m0_review_noisy-root1-outer1-1789964497"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "OK runs/m0-review/m0_review_noisy-root1-outer1-1789964497 (events + provenance)\n"
+  },
+  {
+    "command": [
+      "cargo",
+      "run",
+      "--release",
+      "--locked",
+      "--",
+      "simulate",
+      "--seed",
+      "1",
+      "--outer-seed",
+      "1",
+      "--lifetimes",
+      "2",
+      "--out-dir",
+      "runs/m0-review",
+      "--config",
+      "docs/evidence/m0-review/noisy_variable.toml",
+      "--baseline",
+      "oracle"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "    Finished `release` profile [optimized] target(s) in 0.03s\n     Running `target/release/cra simulate --seed 1 --outer-seed 1 --lifetimes 2 --out-dir runs/m0-review --config docs/evidence/m0-review/noisy_variable.toml --baseline oracle`\nrun dir: runs/m0-review/m0_review_noisy-root1-outer1-1789964497-retry1\ncondition O1: 2 lifetimes, 32 commitments, 32 outcomes, mean reward 0.8438\n"
+  },
+  {
+    "command": [
+      "python3",
+      "analysis/validate_logs.py",
+      "runs/m0-review/m0_review_noisy-root1-outer1-1789964497-retry1"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "OK runs/m0-review/m0_review_noisy-root1-outer1-1789964497-retry1 (events + provenance)\n"
+  },
+  {
+    "command": [
+      "cargo",
+      "run",
+      "--release",
+      "--locked",
+      "--",
+      "simulate",
+      "--seed",
+      "1",
+      "--outer-seed",
+      "1",
+      "--lifetimes",
+      "2",
+      "--out-dir",
+      "runs/m0-review",
+      "--config",
+      "docs/evidence/m0-review/noisy_logging_off.toml",
+      "--baseline",
+      "oracle"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "    Finished `release` profile [optimized] target(s) in 0.03s\n     Running `target/release/cra simulate --seed 1 --outer-seed 1 --lifetimes 2 --out-dir runs/m0-review --config docs/evidence/m0-review/noisy_logging_off.toml --baseline oracle`\nrun dir: runs/m0-review/m0_review_noisy-root1-outer1-1789964498\ncondition O1: 2 lifetimes, 32 commitments, 32 outcomes, mean reward 0.8438\n"
+  },
+  {
+    "command": [
+      "python3",
+      "analysis/validate_logs.py",
+      "runs/m0-review/m0_review_noisy-root1-outer1-1789964498"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "OK runs/m0-review/m0_review_noisy-root1-outer1-1789964498 (provenance/completion only; event logging disabled)\n"
+  },
+  {
+    "command": [
+      "python3",
+      "analysis/validate_logs.py",
+      "runs/env_smoke-root1-outer1-1789963074",
+      "runs/env_smoke-root1-outer1-1789963074-retry1",
+      "runs/env_smoke-root1-outer1-1789963074-retry2",
+      "runs/env_smoke-root1-outer1-1789963074-retry3"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "output": "OK runs/env_smoke-root1-outer1-1789963074 (events + provenance)\nOK runs/env_smoke-root1-outer1-1789963074-retry1 (events + provenance)\nOK runs/env_smoke-root1-outer1-1789963074-retry2 (events + provenance)\nOK runs/env_smoke-root1-outer1-1789963074-retry3 (events + provenance)\n"
+  }
+]

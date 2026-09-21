@@ -13,13 +13,17 @@ evolution, or comparison pipeline exists yet — M1 starts from the frozen
 M0 smoke below. Anything listed under "Planned" is a target from spec
 Section 18 / `to-do.md`, not working code.
 
+M0 was re-reviewed and corrected without changing the original smoke
+trajectories. See [the review](docs/m0-review.md) for findings, verification,
+and the remaining M1 integration work.
+
 ## Toolchain (pinned)
 
 - Rust `1.98.0` (see `rust-toolchain.toml`), Cargo `1.98.0`, resolution in
   `Cargo.lock` (committed).
-- Python `3.14.7` for the offline analysis layer; no third-party Python deps
-  yet (see `analysis/requirements.txt`). NumPy/Matplotlib arrive when log
-  analysis needs them (M0-14).
+- Python `3.14.7` (see `.python-version`) for the offline analysis layer;
+  no third-party Python dependencies (see `analysis/requirements.txt`).
+  Add a dependency lock when analysis first needs external packages.
 - Key Rust deps (pinned in `Cargo.lock`): `clap 4.6.7`, `serde 1.0.229`,
   `serde_json`, `toml 0.8.23`, `thiserror 2.0`, `rand 0.9.5`,
   `rand_chacha 0.9.0`, `sha2 0.10.9`. No deep-learning framework.
@@ -45,20 +49,26 @@ python3 analysis/test_validate_logs.py
 
 Baselines: `random` (B0), `constant-0` / `constant-1` (B1), `oracle`
 (O1, privileged reference). The audit checks manifest/config/condition
-identity, per-lifetime order and counts, finite 0/1 rewards, duplicate
-feedback, the hidden join, and the completion record; fixtures live in
-`analysis/fixtures/` (one valid run plus five corrupt variants).
+identity, derived seed streams, declared lifetime lengths, timing,
+finite values, duplicate feedback, hidden reward/change accounting, and
+completion. Fixtures and mutation tests live in `analysis/`.
+With `event_log=false`, it reports reduced provenance/completion coverage.
 
 Notes:
 
 - `validate-config <file>` parses and validates the TOML against the
   `schema_version = 1` schema (spec 19). Unknown fields and unsupported
-  modes are rejected, never silently ignored.
+  modes are rejected; known future profiles may validate without being executable.
+- M0 `simulate` requires an environment-only configuration. Neural/search
+  sections, diagnostic reset modes, `isolated_reversal`, and `long_life`
+  are rejected before creating a run. `debug_stationary.toml` is currently
+  a validation reference, not an executable learner.
 - `simulate` runs real baseline lifetimes (M0-07–M0-11 contracts) into a
   fresh run directory with `resolved_config.toml`, `manifest.json`,
   `seed_streams.json`, `condition.json`, `events.jsonl`, `hidden.jsonl`,
   and `completion.json`. Same-second runs never share a directory
-  (`-retryN` suffix). Library behavior is also exercised by
+  (`-retryN` suffix, atomic directory reservation). Existing incomplete
+  runs are preserved. Library behavior is also exercised by
   `cargo test --test environment_contract`.
 - Seed namespaces (`development`, `training`, `validation`, `final_test`)
   are disjoint by construction. Final-test seeds must never enter
@@ -75,7 +85,7 @@ pipeline in M8. Do not treat their absence as a failure of M0.
 
 ## Run directories and artifact policy
 
-- Runs live in `runs/<profile>-root<R>-outer<O>-<unixsecs>[/-retryN]/` and
+- Runs live in `runs/<profile>-root<R>-outer<O>-<unixsecs>[-retryN]/` and
   are **git-ignored** (see `.gitignore`). Source commits carry code, configs,
   manifests, tests, and docs — never large generated data or build output.
 - Each run directory holds `resolved_config.toml` (complete effective

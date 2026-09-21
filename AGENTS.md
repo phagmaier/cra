@@ -4,7 +4,7 @@
 
 This repository implements **Learning When to Learn**, specified in [`spec.md`](spec.md), version 0.1. The research question is whether internally generated learning gates improve a continuously running recurrent agent's adaptation to real changes without unnecessarily damaging stable associations under misleading feedback.
 
-Read this as project guidance for coding agents, not as a report of implemented features or successful experiments. At initial handoff, only planning documents are assumed to exist.
+Read this as project guidance for coding agents, not as a report of implemented features or successful experiments. Milestone status lives in `to-do.md`: M0-GATE has passed (environment, baselines, logging, and audit implemented and verified), so never assume a task is unimplemented — inspect the repository, the tracker, and recent decision/experiment records first.
 
 - **`spec.md`** defines the scientific model, information boundaries, equations, experimental controls, and claim limits. Section 9 is authoritative for tick ordering. Required contracts, proposed defaults, and hypotheses are different things.
 - **`to-do.md`** defines the ordered work queue, milestone gates, ownership, and completion evidence. Keep it current as work is verified.
@@ -20,7 +20,7 @@ Do not silently revise a scientific contract to make code or a result look succe
 4. Claim one small task or an explicitly bounded related group. Preserve other agents' and the user's work. Do not perform unrelated refactors, destructive Git operations, or broad dependency upgrades.
 5. State the task ID, intended change, and verification scope. Work from the smallest relevant test to the milestone smoke run.
 
-If no task has been completed, start at **M0-01**. Do not jump to neural code, evolution, dashboards, or the nominal main search.
+If no task has been completed, start at **M0-01**. Otherwise start at the tracker's next eligible task (M1-01 once M0-GATE has passed). Do not jump to evolution, dashboards, or the nominal main search ahead of the milestone gates.
 
 ## Task selection, completion, and handoff
 
@@ -38,6 +38,8 @@ At handoff, update the current milestone, claimed task, last verified task, bloc
 
 Use the ownership table in `to-do.md` to record owner, task IDs, and files before parallel work. Agree on shared interfaces first. One integrator owns shared API changes and the tracker merge. Avoid concurrent edits to the same files. Shared-file changes require coordination; all integration tests must pass after merging, even if individual branches passed. Do not use worker completion order to define scientific ordering.
 
+Parallel sessions drift: re-read the status/ownership block and `git status` at the start of every session, since another agent may have committed, claimed tasks, or left uncommitted work. The evidence ledger in `to-do.md` is append-only — add entries, never rewrite or delete another agent's. Coordinate through the integrator before touching shared interfaces (tick ordering, RNG policy, checkpoint schema, event schemas).
+
 ## Language and architecture decisions
 
 **Rust is the authoritative simulator and runner.** Implement environment scheduling, actor/modulator transitions, eligibility, learning, motor commitment, baselines, evolution, replay, checkpoints, and intervention branching in Rust. Use `f64` for the first reference implementation.
@@ -46,7 +48,7 @@ Use the ownership table in `to-do.md` to record owner, task IDs, and files befor
 
 Use TOML for human-edited configuration and JSON/JSONL for manifests and initial portable output streams. Treat these as file formats, not additional implementation languages. Keep the first language boundary file-based: Rust produces versioned data; Python reads it. Do not create a second production simulator in Python or introduce FFI before a demonstrated need. Tiny independent numerical fixtures are fine.
 
-Pin the Rust toolchain, Python interpreter version, and dependency resolutions when bootstrapping. Keep `Cargo.lock` and a reproducible Python dependency lock. Record actual versions; do not invent version numbers or assume that a floating `stable` channel is a reproducibility pin. Use ordinary configuration/serialization/RNG libraries. A deep-learning framework, autograd engine, GPU backend, and browser frontend are not needed for the initial model.
+Pin the Rust toolchain, Python interpreter version, and dependency resolutions when bootstrapping. Keep `Cargo.lock`. The Python layer is currently standard-library-only (see `analysis/requirements.txt`; interpreter pinned in `.python-version`); introduce a pinned Python dependency lock together with the first third-party analysis dependency. Record actual versions; do not invent version numbers or assume that a floating `stable` channel is a reproducibility pin. Use ordinary configuration/serialization/RNG libraries. A deep-learning framework, autograd engine, GPU backend, and browser frontend are not needed for the initial model.
 
 Maintain four responsibilities:
 
@@ -57,7 +59,7 @@ Maintain four responsibilities:
 | Search | Genomes, complete-lifetime fitness, selection | Carry acquired lifetime state into offspring |
 | Evaluator | Hidden-truth metrics and explicit interventions | Feed privileged information into a normal running agent |
 
-Keep the CLI thin and the simulation code testable without spawning a process. Prefer one crate with a library and binary initially. Follow the target layout in spec Section 18; add modules only when their milestone needs them. `docs/decisions.md`, `docs/experiments.md`, and the tracker evidence ledger are workflow additions.
+Keep the CLI thin and the simulation code testable without spawning a process. Prefer one crate with a library and binary initially. Follow the target layout in spec Section 18; add modules only when their milestone needs them. The README's layout section describes the modules as actually implemented. `docs/decisions.md`, `docs/experiments.md`, and the tracker evidence ledger are workflow additions.
 
 ## Non-negotiable scientific contracts
 
@@ -153,7 +155,22 @@ B3 (the same actor with learning disabled) is not B7 (a separately optimized act
 
 ## Verification and commands
 
-These are target commands, not a claim that the repository already implements them. Establish the relevant files first. A missing command or environment is a blocker to report, not a reason to pretend it passed.
+`README.md` is the runnable-command source of truth; the contracts below
+are targets to implement progressively. A missing command or environment
+is a blocker to report, not a reason to pretend it passed.
+
+Implemented and covered by tests (M0-GATE passed):
+
+```bash
+cargo run --release --locked -- validate-config configs/debug_stationary.toml
+cargo run --release --locked -- simulate --config configs/env_smoke.toml --baseline oracle --lifetimes 2 --seed 1
+python3 analysis/validate_logs.py runs/<run-id>
+python3 analysis/test_validate_logs.py
+```
+
+Baselines for `simulate --baseline`: `random` (B0), `constant-0` /
+`constant-1` (B1), `oracle` (O1, privileged reference). Still planned:
+`benchmark`, `evolve`, `evaluate`, `intervene`, and `aggregate.py`.
 
 After a Rust task, use the relevant focused tests and these checks once bootstrapped:
 
@@ -164,14 +181,6 @@ cargo test --all-targets --locked
 ```
 
 Keep expensive Monte Carlo and empirical experiments in explicitly invoked, bounded suites. Pin statistical-test seeds and tolerances before running. Record ignored or unavailable tests and invoke relevant slow diagnostics separately when a milestone requires them.
-
-Representative spec CLI contracts to implement progressively:
-
-```bash
-cargo run --release --locked -- validate-config configs/debug_stationary.toml
-cargo run --release --locked -- simulate --config configs/debug_stationary.toml --seed 1
-cargo run --release --locked -- benchmark --config configs/mixed_fixed.toml
-```
 
 Search, evaluation, intervention, and Python analysis command contracts are listed in `to-do.md` and spec Section 18. The resolved seed namespace must come from a documented CLI/config/manifest source; never silently use test seeds. Run analysis tests when changing analysis code, and audit logs before aggregating them.
 

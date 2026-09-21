@@ -156,13 +156,24 @@ pub fn validate_stream(
         }
         if position > 0 {
             let prev = &events[position - 1];
+            if event.run_id != prev.run_id
+                || event.condition_id != prev.condition_id
+                || event.namespace != prev.namespace
+                || event.outer_seed != prev.outer_seed
+                || event.lifetime_index != prev.lifetime_index
+            {
+                return Err(LogError::InvalidField {
+                    event_id: event.event_id,
+                    reason: "run/seed/lifetime identity changes within a lifetime".to_owned(),
+                });
+            }
             if event.event_id == prev.event_id {
                 return Err(LogError::DuplicateEventId(event.event_id));
             }
             if event.event_id < prev.event_id {
                 return Err(LogError::UnorderedEventId { position });
             }
-            if event.outcome_tick <= prev.outcome_tick {
+            if event.commit_tick <= prev.outcome_tick {
                 return Err(LogError::UnorderedTicks { position });
             }
         }
@@ -177,7 +188,12 @@ pub fn validate_stream(
         });
     }
     for (event, annotation) in events.iter().zip(hidden.iter()) {
-        if annotation.event_id != event.event_id || annotation.choice_index != event.choice_index {
+        if annotation.event_id != event.event_id
+            || annotation.choice_index != event.choice_index
+            || annotation.cue_id != event.cue_index
+            || annotation.commit_tick != event.commit_tick
+            || annotation.outcome_tick != event.outcome_tick
+        {
             return Err(LogError::HiddenMismatch {
                 reason: format!(
                     "join mismatch at choice {}: event ({}, {}) vs hidden ({}, {})",
@@ -186,6 +202,27 @@ pub fn validate_stream(
                     event.choice_index,
                     annotation.event_id,
                     annotation.choice_index
+                ),
+            });
+        }
+        if annotation.target_at_commit > 1
+            || annotation.latent_correctness != (event.action == annotation.target_at_commit)
+            || event.reward != f64::from(annotation.latent_correctness ^ annotation.noise_bit)
+            || !annotation.epsilon.is_finite()
+            || !(0.0..=0.5).contains(&annotation.epsilon)
+            || !annotation.cue_hazard.is_finite()
+            || !(0.0..=1.0).contains(&annotation.cue_hazard)
+            || annotation.cue_exposure_index == 0
+            || (annotation.stable_or_volatile == crate::environment::CueRole::Stable
+                && annotation.cue_hazard != 0.0)
+            || (annotation.epsilon == 0.0 && annotation.noise_bit)
+            || (annotation.hidden_change_before_presentation
+                && (annotation.cue_hazard == 0.0 || annotation.cue_exposure_index == 1))
+        {
+            return Err(LogError::HiddenMismatch {
+                reason: format!(
+                    "invalid hidden values or reward accounting at choice {}",
+                    event.choice_index
                 ),
             });
         }

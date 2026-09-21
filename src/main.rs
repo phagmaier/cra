@@ -17,7 +17,7 @@ use cra::run::{BaselineSel, EffectiveSeeds, run_simulation};
 #[command(
     name = "cra",
     version,
-    about = "Learning When to Learn simulator (M0 scaffold)"
+    about = "Learning When to Learn simulator (M0 environment)"
 )]
 struct Cli {
     #[command(subcommand)]

@@ -1,0 +1,176 @@
+{
+  "created_utc": "2026-09-21T04:21:38.128824+00:00",
+  "base_revision": "57b6870eb0fc42c86a7b562db7d5f847a93d3532",
+  "git_dirty": true,
+  "namespace": "development",
+  "root_seed": 1,
+  "outer_seed": 1,
+  "lifetimes_per_run": 2,
+  "runs": [
+    {
+      "config": "configs/env_smoke.toml",
+      "policy": "random",
+      "dir": "runs/m0-review/env_smoke-root1-outer1-1789964497",
+      "artifact_sha256": {
+        "completion.json": "dcad226d5bfa5f96caa3b7eeb88a7d84c88dca4a92d165eca80a1a07bfd15713",
+        "condition.json": "2f02d37bd0faeec7ee8094e1a69f4a287ce3186250d36a32aecd8abc744e6226",
+        "events.jsonl": "3561f194e76a0566419134d789a70304e8ec95146f5b6f2134eef441f96dd77d",
+        "hidden.jsonl": "133349e8d56a35b119079579af94e41a8e2383503295a09e7273012ebf828c89",
+        "manifest.json": "87fd2161596b29695daa9290d6bcf4cbb4d64d094c05424842aa279e33f0a4de",
+        "resolved_config.toml": "bec32af4149d6ccb6bb6549ab47226492aeda684728fd21b612c3b521dca1756",
+        "seed_streams.json": "745af822bedcfea80acd65586be87d9c1aa11087b3bc3f3d43a14f2db48adefc"
+      },
+      "outcomes": 16,
+      "reward_sum": 4.0,
+      "latent_correct": 4,
+      "noisy_outcomes": 0,
+      "changes": 0,
+      "ticks": 272
+    },
+    {
+      "config": "configs/env_smoke.toml",
+      "policy": "constant-0",
+      "dir": "runs/m0-review/env_smoke-root1-outer1-1789964497-retry1",
+      "artifact_sha256": {
+        "completion.json": "233e85a9c7eafcde21e4de0216f34a9733c76e81b1bb950a81db75b67151dbf0",
+        "condition.json": "e4c5b548adc610ceb50993d2cf3adb50fb866adf62adf71eb185d38fe446579c",
+        "events.jsonl": "d9ed32135c7929dfd79c07c5785fc33e0fa1bf1b9cfb9e7fb0edf33effb63984",
+        "hidden.jsonl": "05549ecf1ed9bde87875f6fbd98b2ba070f3600a16483d05dbba21c244369ebe",
+        "manifest.json": "5bab2962e05a3d05a22d0f9d2aaadaffabfacdfc421b7aa9d4ffd3a31a0ce019",
+        "resolved_config.toml": "bec32af4149d6ccb6bb6549ab47226492aeda684728fd21b612c3b521dca1756",
+        "seed_streams.json": "745af822bedcfea80acd65586be87d9c1aa11087b3bc3f3d43a14f2db48adefc"
+      },
+      "outcomes": 16,
+      "reward_sum": 8.0,
+      "latent_correct": 8,
+      "noisy_outcomes": 0,
+      "changes": 0,
+      "ticks": 272
+    },
+    {
+      "config": "configs/env_smoke.toml",
+      "policy": "constant-1",
+      "dir": "runs/m0-review/env_smoke-root1-outer1-1789964497-retry2",
+      "artifact_sha256": {
+        "completion.json": "22f360b9960dd2b0863bee256d90a519857b9873ce3d230f434938d7454672fd",
+        "condition.json": "b1307fc180316d9db79150dee96924142d0023ac74a0710b5a7647dd7696b795",
+        "events.jsonl": "79050ccd3e4af66a6d7ed8eccd5e27066025965ca30f5cb46ebcb605d5352589",
+        "hidden.jsonl": "3a8b31abd15ea4f24de9ec0a95c0d17bf8406e4769c96ad1a36c860cf8d73f03",
+        "manifest.json": "08cea0e32de2c1b9597f4a2743ed6d1dcdd869e8200c3f4858d7e3b4287821dd",
+        "resolved_config.toml": "bec32af4149d6ccb6bb6549ab47226492aeda684728fd21b612c3b521dca1756",
+        "seed_streams.json": "745af822bedcfea80acd65586be87d9c1aa11087b3bc3f3d43a14f2db48adefc"
+      },
+      "outcomes": 16,
+      "reward_sum": 8.0,
+      "latent_correct": 8,
+      "noisy_outcomes": 0,
+      "changes": 0,
+      "ticks": 272
+    },
+    {
+      "config": "configs/env_smoke.toml",
+      "policy": "oracle",
+      "dir": "runs/m0-review/env_smoke-root1-outer1-1789964497-retry3",
+      "artifact_sha256": {
+        "completion.json": "72e4e0a310f19885ec8315ad28246642819b927b86bf785b37d9b8324f2aef51",
+        "condition.json": "3106b320adad085ee69420dd3a2e0ad614fa8a9714d310f1be92899d6d26c635",
+        "events.jsonl": "900adf3c166884abf9c56dfe47f2b423375cba286f2f7f43b6b83bb687d68233",
+        "hidden.jsonl": "54799cc0e797762181368345d3b4bf546c54aad69a20225d4c359533b1f436d2",
+        "manifest.json": "204592025307f76469068f8f0e9d65b6253aeb2a7acdd646207802440dc1f915",
+        "resolved_config.toml": "bec32af4149d6ccb6bb6549ab47226492aeda684728fd21b612c3b521dca1756",
+        "seed_streams.json": "745af822bedcfea80acd65586be87d9c1aa11087b3bc3f3d43a14f2db48adefc"
+      },
+      "outcomes": 16,
+      "reward_sum": 16.0,
+      "latent_correct": 16,
+      "noisy_outcomes": 0,
+      "changes": 0,
+      "ticks": 272
+    },
+    {
+      "config": "docs/evidence/m0-review/noisy_variable.toml",
+      "policy": "random",
+      "dir": "runs/m0-review/m0_review_noisy-root1-outer1-1789964497",
+      "artifact_sha256": {
+        "completion.json": "b8a68044ae0b8add92b5e2bbc1dc78f14419024f98bb088ae56e62de029df460",
+        "condition.json": "cd76960bea1b5d25383cad94e3c8370a8c12d727058b02f0a44c848580bdcebb",
+        "events.jsonl": "8dc36e9b16dbb19fe4f09738633590c3860e3cc88d8c0651158f4866d0337f4d",
+        "hidden.jsonl": "b0523fe64ecc7db05bb395af0eda32fe444cd50eee298f4f0400ea823e8a5467",
+        "manifest.json": "3c29ba0a1cc6d011445c4b1429a4770d4df408814e88a4eee95d57590fb6a915",
+        "resolved_config.toml": "4293c6a50fd7e5df237bad263f56e9b73ab27e2fbcba020585ec8860a39290f2",
+        "seed_streams.json": "745af822bedcfea80acd65586be87d9c1aa11087b3bc3f3d43a14f2db48adefc"
+      },
+      "outcomes": 32,
+      "reward_sum": 19.0,
+      "latent_correct": 14,
+      "noisy_outcomes": 5,
+      "changes": 4,
+      "ticks": 602
+    },
+    {
+      "config": "docs/evidence/m0-review/noisy_variable.toml",
+      "policy": "oracle",
+      "dir": "runs/m0-review/m0_review_noisy-root1-outer1-1789964497-retry1",
+      "artifact_sha256": {
+        "completion.json": "fb669ca2f358c4e9327885aa015cc05068b97fd29ea44fb68116f2424bea0721",
+        "condition.json": "21a68ef3ab0b44448568ad1772860d7a527778796d565538e5200a88b2cea320",
+        "events.jsonl": "2b1b20ddca7c833759be923561292eb72b79d1426dd1cfc2be1bcb0c248210cb",
+        "hidden.jsonl": "ec868e24b3fe96a8fe3fe66a3abd9fc02527053fed2e370f9730575af5afd409",
+        "manifest.json": "ea2cdfaa6436632e811baab2a9334d2132f339511c83a3d6cef410758079aa40",
+        "resolved_config.toml": "4293c6a50fd7e5df237bad263f56e9b73ab27e2fbcba020585ec8860a39290f2",
+        "seed_streams.json": "745af822bedcfea80acd65586be87d9c1aa11087b3bc3f3d43a14f2db48adefc"
+      },
+      "outcomes": 32,
+      "reward_sum": 27.0,
+      "latent_correct": 32,
+      "noisy_outcomes": 5,
+      "changes": 4,
+      "ticks": 602
+    },
+    {
+      "config": "docs/evidence/m0-review/noisy_logging_off.toml",
+      "policy": "oracle",
+      "dir": "runs/m0-review/m0_review_noisy-root1-outer1-1789964498",
+      "artifact_sha256": {
+        "completion.json": "346988c2c7ff9e680aea93d26582d36ed336255b683426e4b37e55ada0bc98a1",
+        "condition.json": "80c33d9264c254cfdb45d997ffdd08563ee4b22ac88197bb4ced193d31237b7c",
+        "manifest.json": "2bc0b28f0382e5902f3d9835374edec8feb76c5da5735d30937db2f5166d67b8",
+        "resolved_config.toml": "4232d4e475fdefbb6ff7c804842dcf7aed295866ca661649d4e78e5b554a202d",
+        "seed_streams.json": "745af822bedcfea80acd65586be87d9c1aa11087b3bc3f3d43a14f2db48adefc"
+      }
+    }
+  ],
+  "source_sha256": {
+    ".python-version": "922fe0c3de073b01988e23348ea184456161678c5e329e6f34be89be24383f93",
+    "Cargo.lock": "6b394c6e527bfdeb15c117a9b0eafa8875b8725a26ea07f7a5902e9a2a1822b6",
+    "Cargo.toml": "d005f369378f983460373d8bfe5db0b42c885c15fb24b22ef4d8f05ad3f547ec",
+    "analysis/test_validate_logs.py": "8593a4c393b67442ccca9b77d9403063be002b791fa9b3e46f3b97c9d7434011",
+    "analysis/validate_logs.py": "bdf3c9892c43fc8d40616d0f45257a30912214f4e74bc8bd89549b19ff0f39bb",
+    "configs/env_smoke.toml": "bec32af4149d6ccb6bb6549ab47226492aeda684728fd21b612c3b521dca1756",
+    "rust-toolchain.toml": "07487db9d6b45de2f308f9fb578c9c46041381c3ee44ef782eca64150a394772",
+    "src/config.rs": "d0a64e10251e4473d88172e3aec25ab2ef6aa4e0dd89857fc875ec943fe0b894",
+    "src/environment/hidden_state.rs": "04583a52ccb1c2931e1df864fd3b62328df1eee584b3efc20bd97656a7873952",
+    "src/environment/mod.rs": "509b19cf8a81bfcd9a2484745df0313f4ee43c2f178df9e5a384cc3c7b43301e",
+    "src/environment/observation.rs": "e68432d56e4c5538a20e22bce9b93e1e6a4170a68956bddfc48ecda0e8b91f02",
+    "src/environment/schedule.rs": "9663c65468953a0d165c4277fba165b5dc29a73aa3a5f79244eff2bf82210f0b",
+    "src/experiments/baseline.rs": "4cf01f9ad409225bed4e8cd29ddefadbf4c9100dac86b77dc2f01652f172cc03",
+    "src/experiments/mod.rs": "fb1d30848bb45f33f672f3d098524703fb7b082155c76dec0df27dda232c2ea9",
+    "src/lib.rs": "caf3a8a65c29773ee7b2286b33e2f2bd2c168828375d6a47d773c9936ceff629",
+    "src/logging/events.rs": "06820f42e25f18eb33bacdd6d5c92b8a5d040481164138d5a2519435edbff7c4",
+    "src/logging/mod.rs": "2a7dffcb8dd271714774641e1350fa89675b1f98570fcf3af8fac80c94ec3997",
+    "src/main.rs": "ce8bc44f396cfce20967e3fe633c38607505f5a4063179977fc60a58288701af",
+    "src/rng.rs": "bfc0fde4e657e3ee8648e15f4518b5c88088b7c253f15f3a46674426cd4bf58d",
+    "src/run.rs": "f43d2452e8b7e9f4d116066e01463dddca833db6bfd38d501d1439cae0b74513",
+    "tests/baselines.rs": "a3ceef3d4e6bdc01b466e0e402b6d0ba701199da16c68b027c6c04ab81886872",
+    "tests/config_validation.rs": "3f3baefeff7826bb02fa5a96b631162346abe04ef2653bc2a7da1b4066ead499",
+    "tests/environment_contract.rs": "2a6c5979cf633554ba169f999db20ce1d40b4ab425fb8d5ca65ad3368e224b50",
+    "tests/event_logging.rs": "8fc511deb1081de5f448c50be9498fcce4fb172bb7ea338f96b38c56cca2b2ab",
+    "tests/event_order.rs": "157ee4331f2923185b7f03a561555968d58afa5085cc08f3eaf5df7b57451a20",
+    "tests/leakage.rs": "fce00189eba77142ebc528279ebae7cb8b4c6eed4fa17f95af4aac8300e867c2",
+    "tests/randomized_env.rs": "c57e05beb9923485f88b9778c40cae25bd424b8153ea118637bb16a7d838e7fa",
+    "tests/seed_streams.rs": "ce1bf51875c77cf5912d8a20f1f4dcb482e65939d99c01d981a59b9b8dc0c2e5",
+    "tests/support/mod.rs": "647f265f1ae0d907d8f128c045ffc731cd1a8fffcc6071cc4b91f0fcc87023ee"
+  },
+  "binary_sha256": "2514639cbbf9b20ff3e95a38aa429f47a170f685d88cc6ad4136abc693b6cd02",
+  "original_event_parity": "All four smoke baselines match every original ordinary/hidden field, excluding run_id."
+}

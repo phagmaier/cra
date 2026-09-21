@@ -211,31 +211,7 @@ pub fn create_run_dir(
 
     let ts = now_unix_secs();
     let stem = run_dir_name(&cfg.profile_name, seeds, ts);
-    let mut dir = base.join(&stem);
-    // create_dir_all succeeds for existing directories, so the marker
-    // check below — not creation success — decides ownership. Two runs
-    // must never share a directory (provenance overwrite).
-    let mut owned = false;
-    for retry in 0..100 {
-        if retry > 0 {
-            dir = base.join(format!("{stem}-retry{retry}"));
-        }
-        if let Err(e) = std::fs::create_dir_all(&dir) {
-            if retry == 99 {
-                return Err(RunError::Io(e.to_string()));
-            }
-            continue;
-        }
-        if !dir.join("manifest.json").exists() {
-            owned = true;
-            break;
-        }
-    }
-    if !owned {
-        return Err(RunError::Io(
-            "cannot allocate a unique run directory".to_owned(),
-        ));
-    }
+    let dir = allocate_run_dir(base, &stem)?;
 
     // Resolved config with effective seeds baked in.
     let mut effective = cfg.clone();
@@ -285,6 +261,34 @@ pub fn create_run_dir(
     .map_err(|e| RunError::Io(e.to_string()))?;
     std::fs::write(dir.join("seed_streams.json"), streams_json)
         .map_err(|e| RunError::Io(e.to_string()))?;
+
+    Ok(dir)
+}
+
+fn allocate_run_dir(base: &Path, stem: &str) -> Result<PathBuf, RunError> {
+    std::fs::create_dir_all(base).map_err(|e| RunError::Io(e.to_string()))?;
+    let mut dir = base.join(stem);
+    // Atomic creation claims ownership, even if another process has not
+    // written its manifest yet. Existing incomplete runs remain untouched.
+    let mut owned = false;
+    for retry in 0..100 {
+        if retry > 0 {
+            dir = base.join(format!("{stem}-retry{retry}"));
+        }
+        match std::fs::create_dir(&dir) {
+            Ok(()) => {
+                owned = true;
+                break;
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(e) => return Err(RunError::Io(e.to_string())),
+        }
+    }
+    if !owned {
+        return Err(RunError::Io(
+            "cannot allocate a unique run directory".to_owned(),
+        ));
+    }
 
     Ok(dir)
 }
@@ -361,6 +365,10 @@ pub fn run_simulation(
     lifetimes: u64,
     base: &Path,
 ) -> Result<SimulationReport, RunError> {
+    crate::config::validate_baseline_execution(cfg).map_err(RunError::Config)?;
+    if let BaselineSel::Constant(action) = baseline {
+        ConstantBaseline::new(action).map_err(RunError::Sim)?;
+    }
     if lifetimes == 0 {
         return Err(RunError::Io("lifetimes must be >= 1".to_owned()));
     }
@@ -505,8 +513,8 @@ fn validate_per_lifetime(
         // Rebase choice ids to the block for the contiguity check: M0
         // lifetimes restart choice_index at 0, so each block is checked
         // as its own stream.
-        let block_events: Vec<OrdinaryEvent> = events[start..end].to_vec();
-        validate_stream(&block_events, &hidden[start..end], cue_count).map_err(RunError::Log)?;
+        validate_stream(&events[start..end], &hidden[start..end], cue_count)
+            .map_err(RunError::Log)?;
         start = end;
     }
     Ok(())
@@ -667,5 +675,38 @@ outer_seed = 1
         assert!(first.join("manifest.json").exists());
         assert!(second.join("manifest.json").exists());
         let _ = std::fs::remove_dir_all(&base);
+    }
+    #[test]
+    fn allocation_preserves_incomplete_runs_and_is_atomic() {
+        let base = std::env::temp_dir().join(format!("cra-atomic-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        std::fs::create_dir_all(base.join("fixed")).unwrap();
+        std::fs::write(
+            base.join("fixed/resolved_config.toml"),
+            "incomplete original",
+        )
+        .unwrap();
+        let barrier = std::sync::Barrier::new(8);
+        let dirs = std::thread::scope(|scope| {
+            let workers: Vec<_> = (0..8)
+                .map(|_| {
+                    scope.spawn(|| {
+                        barrier.wait();
+                        allocate_run_dir(&base, "fixed").unwrap()
+                    })
+                })
+                .collect();
+            workers
+                .into_iter()
+                .map(|worker| worker.join().unwrap())
+                .collect::<std::collections::BTreeSet<_>>()
+        });
+        assert_eq!(dirs.len(), 8);
+        assert!(!dirs.contains(&base.join("fixed")));
+        assert_eq!(
+            std::fs::read_to_string(base.join("fixed/resolved_config.toml")).unwrap(),
+            "incomplete original"
+        );
+        std::fs::remove_dir_all(base).unwrap();
     }
 }

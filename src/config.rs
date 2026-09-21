@@ -60,6 +60,8 @@ pub const SUPPORTED_SEARCH_SPACES: &[&str] = &["gate_projection_only", "modulato
 /// Configuration load/validation errors.
 #[derive(Clone, Debug, PartialEq, thiserror::Error)]
 pub enum ConfigError {
+    #[error("unsupported execution: {0}")]
+    UnsupportedExecution(String),
     #[error("cannot read config '{path}': {message}")]
     Io { path: String, message: String },
     #[error("cannot parse config '{path}': {message}")]
@@ -329,6 +331,24 @@ pub fn validate(cfg: &Config) -> Result<(), ConfigError> {
     }
 
     validate_environment(&cfg.environment)?;
+    // Bound the entire lifetime, including the clock increment after its
+    // final feedback. Reject overflow before allocating or drawing RNG.
+    let env = &cfg.environment;
+    let cycle = env
+        .cue_ticks
+        .checked_add(env.memory_gap_ticks[1])
+        .and_then(|n| n.checked_add(env.response_ticks))
+        .and_then(|n| n.checked_add(env.reward_delay_ticks[1]));
+    let max_ticks = cycle
+        .and_then(|n| n.checked_add(env.quiet_ticks[1]))
+        .and_then(|n| n.checked_mul(cfg.simulation.outcomes_per_lifetime - 1))
+        .and_then(|n| n.checked_add(cycle?))
+        .and_then(|n| n.checked_add(cfg.simulation.warmup_ticks));
+    if max_ticks.is_none() {
+        return Err(ConfigError::InvalidTiming {
+            reason: "maximum lifetime tick count overflows u64".to_owned(),
+        });
+    }
     validate_seeds(&cfg.seeds)?;
 
     if let Some(actor) = &cfg.actor {
@@ -348,13 +368,49 @@ pub fn validate(cfg: &Config) -> Result<(), ConfigError> {
     Ok(())
 }
 
+/// Validate the environment modes actually implemented by the tick driver.
+/// Parsing a future profile does not authorize silently substituting a mode.
+pub fn validate_environment_execution(cfg: &Config) -> Result<(), ConfigError> {
+    validate(cfg)?;
+    if matches!(
+        cfg.environment.kind.as_str(),
+        "isolated_reversal" | "long_life"
+    ) {
+        return Err(ConfigError::UnsupportedExecution(format!(
+            "environment '{}' is reserved for a later milestone",
+            cfg.environment.kind
+        )));
+    }
+    if cfg.simulation.reset_policy != "birth_only" {
+        return Err(ConfigError::UnsupportedExecution(
+            "M0 supports only birth_only lifetimes".to_owned(),
+        ));
+    }
+    Ok(())
+}
+
+/// Baseline simulation must not pretend to execute neural/search sections.
+pub fn validate_baseline_execution(cfg: &Config) -> Result<(), ConfigError> {
+    validate_environment_execution(cfg)?;
+    if cfg.actor.is_some()
+        || cfg.learning.is_some()
+        || cfg.modulator.is_some()
+        || cfg.evolution.is_some()
+    {
+        return Err(ConfigError::UnsupportedExecution(
+            "M0 baseline simulation requires an environment-only config (use configs/env_smoke.toml); neural/search sections are not executed".to_owned(),
+        ));
+    }
+    Ok(())
+}
+
 fn validate_environment(env: &Environment) -> Result<(), ConfigError> {
     if !SUPPORTED_ENVIRONMENT_KINDS.contains(&env.kind.as_str()) {
         return Err(ConfigError::UnknownEnvironmentKind {
             found: env.kind.clone(),
         });
     }
-    if env.cue_count < 1 {
+    if env.cue_count < 1 || env.cue_count.checked_add(6).is_none() {
         return Err(ConfigError::InvalidCueCount {
             found: env.cue_count,
         });
@@ -469,7 +525,7 @@ fn validate_actor(actor: &Actor) -> Result<(), ConfigError> {
             ),
         });
     }
-    if actor.neuron_count < 2 * actor.motor_neurons_per_action {
+    if actor.motor_neurons_per_action > actor.neuron_count / 2 {
         return Err(ConfigError::InvalidActorDimensions {
             reason: format!(
                 "neuron_count ({}) must hold two disjoint motor pools of {} each",

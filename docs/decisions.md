@@ -181,3 +181,45 @@ make code or a result look successful.**
   oracle smoke run plus five single-mutation corrupt variants. A missing
   or non-completed `completion.json` fails the audit — interrupted runs
   are never silent zeros.
+
+## 2026-09-21 UTC — M0 corrective review (M0-REVIEW)
+
+- **Ordinary runner boundary/order (spec 3.4, 5.6, 9, 18.3).** The
+  baseline harness never called `apply_feedback`, and `OrdinaryPolicy`
+  accepted evaluator `TickOutput`. B0/B1 ignored that argument, so there
+  is no evidence their recorded actions used hidden truth. Nevertheless,
+  that API could not enforce the advertised boundary. Selection now reads
+  only policy state; feedback is delivered/deduplicated before advancing
+  ordinary features, including the last feedback transition. The existing
+  M0 environment `advance` API remains; its observe/finish split is still
+  M1-07 work. No neural behavior was implemented.
+- **Execution versus schema validation (M0-05/14, spec 19).** The public
+  runner accepted neural profiles and ignored their sections. It now
+  rejects them, diagnostic reset modes, and unimplemented isolated-reversal
+  and long-life modes before writing artifacts. Future profiles can still
+  be parsed and validated. Environment birth also validates direct library
+  callers; hidden-state construction rejects malformed membership/rates.
+  Checked tick arithmetic prevents wraparound. Rejected commitments are
+  checked before drawing noise, preserving paired schedules after errors.
+- **Run ownership (M0-03/13).** This supersedes the prior marker-absence
+  fix: checking for `manifest.json` is not an atomic claim and overwrites
+  incomplete runs. Exclusive `create_dir` now owns a run; only an existing
+  path triggers a suffix retry. A fixed-name regression reserves an
+  incomplete run and races eight independent directory allocations.
+  Simulation itself remains serial.
+- **Audit acceptance (M0-13/14, spec 20.6).** Reproduced an incorrect pass
+  after truncating an eight-outcome lifetime to seven and matching the
+  completion count. Audits now require declared lifetime counts/lengths,
+  contiguous lifetime identities, consistent run/seed/config identity,
+  recomputed SHA-256 stream seeds, valid field types, configured timing,
+  and hidden reward/change/exposure consistency. Rust stream validation
+  also checks overlap, identity, and hidden arithmetic. Old valid fixtures
+  and original raw runs remain unchanged. Logging-disabled runs receive
+  explicitly limited provenance/completion checks, not event verification.
+- **Reproducibility and scope.** Added the missing `.python-version` pin
+  for the actually installed 3.14.7; Python remains dependency-free. Existing
+  RNG and tick golden values are unchanged. The documented warmup-as-first-
+  quiet choice and provisional noise assignment are preserved. The former
+  differs from the illustrative additive-warmup arithmetic in spec 22.2;
+  use measured ticks in M1/M5 budgets. M5-02 still owns factorial assignment.
+  No change to `spec.md`, distribution algorithms, or scientific equations.

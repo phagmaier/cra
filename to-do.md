@@ -24,19 +24,20 @@ The checklist follows the specification's **M0-M10 milestone sequence**. Scienti
 
 | Field | Initial value |
 | --- | --- |
-| Current milestone | M0-GATE passed 2026-09-21; M1 unblocked |
+| Current milestone | M0-GATE re-verified 2026-09-21 UTC after corrective review; M1 unblocked |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M0-GATE |
+| Last verified task | M0-REVIEW / M0-GATE re-verification |
 | Claimed task | None |
 | Next eligible task | M1-01 |
 | Current blocker | None |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | 2026-09-21 M0 environment evidence bundle (see ledger) |
+| Last evidence record | 2026-09-21 UTC M0 corrective review; docs/evidence/m0-review/ |
 
 ### Ownership for parallel agents
 
 | Owner/session | Task IDs | Files or interfaces owned | Status / handoff |
 | --- | --- | --- | --- |
+| Codex review | M0-REVIEW | M0 Rust/Python implementation, regression tests, evidence and documentation | Done; M0-GATE re-verified, handoff to M1-01 |
 | agent 2026-09-21 | M0-01–M0-05 | src/{lib,main,config,rng,run}.rs, Cargo.toml, rust-toolchain.toml, configs/, manifests/, tests/{seed_streams,config_validation}.rs, README, docs/, analysis/ stub | Done, verified; handoff to M0-06 |
 | agent 2026-09-21 | M0-06–M0-08 | src/environment/*, tests/{environment_contract,leakage}.rs, tests/support/ | Done, verified; handoff to M0-09 |
 | agent 2026-09-21 | M0-09–M0-11 | src/environment/mod.rs (features), src/experiments/*, tests/{environment_contract,event_order,leakage,baselines}.rs | Done, verified; handoff to M0-12 |
@@ -138,6 +139,10 @@ Prove that observations, hidden mappings, timing, and reward accounting are corr
 - [x] **M0-GATE - Verify and record milestone exit**
   - All deterministic environment tests pass; oracle latent accuracy is exactly 1; chance controls pass the declared statistical checks; completed lifetimes have one delivered reward per commitment; hidden data and RNG isolation are verified. Save a runnable smoke command and example output before starting M1.
   - Evidence: add a ledger entry with the executed commands, results, configuration/seed identifiers, and saved artifact paths. Update the current status before beginning the next milestone.
+
+- [x] **M0-REVIEW - Owner-requested corrective review**
+  - Reviewed implementation/results against M0 contracts; corrected runner feedback/boundaries, unsupported execution, invalid-input determinism, atomic run ownership, and audit acceptance.
+  - Verified: 73 Rust tests, 14 Python tests, fmt/clippy, four unchanged original runs and seven fresh bounded runs. See `docs/m0-review.md` and the appended evidence ledger entry.
 
 ---
 
@@ -1388,14 +1393,70 @@ Tracker boxes updated: M0-GATE checked; status M0-GATE passed, next M1-01.
 Next eligible task: M1-01.
 ```
 
+```text
+Date / agent or session: 2026-09-21 UTC / Codex owner-requested M0 review
+Task IDs: M0-REVIEW; M0-GATE re-verification
+Spec sections: 1–10, 16/M0, 17.1, 18–20
+Change and affected files: src/config.rs, environment/{mod,hidden_state,
+  observation}.rs, experiments/baseline.rs, logging/events.rs, run.rs,
+  main.rs; M0 regression tests; analysis auditor/tests/docs; .python-version;
+  README, docs/{m0-review,decisions,experiments}.md, this tracker.
+  Independent AGENTS.md edits preserved; spec.md unchanged.
+Code revision / dirty-tree state: base 57b6870, dirty. Exact source and
+  release-binary SHA-256 values in docs/evidence/m0-review/summary.json.
+Commands actually executed: exact argv, exit codes, and full outputs in
+  docs/evidence/m0-review/commands.json, including:
+  cargo fmt --all -- --check
+  cargo clippy --all-targets --locked -- -D warnings
+  cargo test --all-targets --locked
+  python3 analysis/test_validate_logs.py
+  cargo test --locked --test randomized_env birth_mapping_pairs_are_independent -- --nocapture
+  cargo run --release --locked -- --help
+  cargo run --release --locked -- validate-config configs/env_smoke.toml
+  cargo run --release --locked -- validate-config configs/debug_stationary.toml
+  cargo run --release --locked -- simulate --config configs/debug_stationary.toml --seed 1
+    (expected rejection, exit 1; unsupported neural execution)
+  Release simulate for random/constant-0/constant-1/oracle on env_smoke,
+    plus random/oracle on saved noisy_variable.toml and oracle on
+    noisy_logging_off.toml; all --seed 1 --outer-seed 1 --lifetimes 2
+    --out-dir runs/m0-review. Each output audited with validate_logs.py.
+  validate_logs.py on four original runs under
+    runs/env_smoke-root1-outer1-1789963074[-retry1|-retry2|-retry3].
+Outcome and checks passed: 73 Rust tests and 14 Python tests pass; none
+  ignored; fmt/clippy clean. All four original runs pass stronger audit.
+  Seven fresh runs pass (logging-off coverage explicitly reduced).
+  Fresh clean events/hidden annotations match original fields except run_id.
+  Mapping-pair counts 516/502/520/510 across 2048 births meet the tolerance
+  declared before executing the added test; existing goldens unchanged.
+Checks not run / failures / blockers: No remaining M0 blocker. Demonstrated
+  old auditor false pass on a truncated seven-of-eight lifetime; fixed and
+  regression-tested. During audit development a duplicate fixture initially
+  produced only count errors; independent duplicate detection restored.
+  Rejected neural-config execution is expected, not a successful simulation.
+Configuration / seeds / resources: development namespace only; root 1,
+  outer 1, lifetimes 0–1 for smoke runs. Clean four runs: 16 outcomes and
+  272 ticks each, reward sums 4/8/8/16 (B0/B1-0/B1-1/O1). Noisy B0/O1:
+  32 outcomes and 602 ticks each, five noise flips, four changes, rewards
+  19/27; oracle latent accuracy 32/32. Logging-off oracle has same reported
+  32 outcomes and reward 27/32. No final-test outcomes inspected.
+Artifact paths: docs/evidence/m0-review/{commands,summary}.json plus saved
+  diagnostic configs; seven immutable raw directories under runs/m0-review/.
+  Full review and limits: docs/m0-review.md.
+Interpretation / deviations: M0 correctness evidence, no learning claim.
+  Preserved documented warmup semantics and provisional noise assignment;
+  no scientific contract/golden/RNG changes. M1-07 still owns the split
+  observe/finish API; M5-02 owns factorial assignment. No search launched.
+Tracker boxes updated: M0-REVIEW checked; M0-GATE retained after re-verification.
+Next eligible task: M1-01.
+```
+
 ## Blockers and decision register - keep current
 
-No blockers. 2026-09-21: M0-GATE passed — full suite 62/62 Rust tests plus
-6/6 Python audit tests, fmt/clippy clean, four audited baseline smoke runs
-at 16/16 outcomes with matching counts. Next: M1-01 (inherited topology
-and structural validation). One failure was found and fixed this session
-(run-directory overwrite on same-second runs; regression tested, evidence
-re-collected). Scientific ambiguities/decisions are in `docs/decisions.md`.
+No blockers. M0-GATE re-verified after the 2026-09-21 UTC owner-requested
+corrective review: 73 Rust tests, 14 Python tests, clean fmt/clippy, four
+original audited runs, and seven fresh bounded runs. Next: M1-01.
+Review findings and remaining milestone scope: `docs/m0-review.md`.
+Scientific decisions remain in the append-only `docs/decisions.md`.
 
 ## First meaningful success
 

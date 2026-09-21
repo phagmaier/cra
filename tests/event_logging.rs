@@ -135,3 +135,47 @@ fn tampered_logs_fail_validation() {
     assert_eq!(events.len(), 7);
     assert!(validate_stream(&events, &hidden, 2).is_err());
 }
+
+#[test]
+fn rejected_execution_creates_no_successful_looking_artifacts() {
+    let mut cfg = two_lifetime_config();
+    cfg.environment.kind = "isolated_reversal".to_owned();
+    let seeds = EffectiveSeeds::from_config(&cfg);
+    let base = temp_dir("unsupported");
+    let _ = std::fs::remove_dir_all(&base);
+    assert!(run_simulation(&cfg, &seeds, BaselineSel::Random, 1, &base).is_err());
+    assert!(!base.exists());
+}
+
+#[test]
+fn hidden_accounting_and_overlapping_choices_are_rejected() {
+    let cfg = two_lifetime_config();
+    let seeds = EffectiveSeeds::from_config(&cfg);
+    let report = run_simulation(
+        &cfg,
+        &seeds,
+        BaselineSel::Oracle,
+        1,
+        &temp_dir("hidden-tamper"),
+    )
+    .unwrap();
+    let (events, hidden) = read_run_streams(&report.dir).unwrap();
+    for case in 0..7 {
+        let mut events = events.clone();
+        let mut hidden = hidden.clone();
+        match case {
+            0 => hidden[0].epsilon = f64::NAN,
+            1 => hidden[0].cue_id = 1 - hidden[0].cue_id,
+            2 => hidden[0].latent_correctness = false,
+            3 => hidden[0].noise_bit = true,
+            4 => hidden[0].outcome_tick += 1,
+            5 => events[1].commit_tick = events[0].outcome_tick,
+            6 => events[1].lifetime_index = 42,
+            _ => unreachable!(),
+        }
+        assert!(
+            validate_stream(&events, &hidden, cfg.environment.cue_count).is_err(),
+            "case {case}"
+        );
+    }
+}
