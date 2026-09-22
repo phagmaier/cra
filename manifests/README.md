@@ -27,6 +27,14 @@ quantities, and an explicit no-monotonic-performance-criterion rule. It is
 loaded and executed by `tests/m4_timing.rs`; changing it after the recorded
 result starts a new declared revision.
 
+`m4_continuous_acquisition.json` is the pre-results M4-07 acquisition
+comparison: the frozen M3-08 full-recurrent actor family, development outers
+1–3, five matched continuity/control conditions, per-cue exposure windows,
+an explicit fully-persistent-versus-B3 criterion, required health/update
+diagnostics, and a 15-lifetime / 510,420-tick maximum budget. It is loaded and
+executed by `tests/m4_continuous_acquisition.rs`; any post-result plan change
+requires a new declared revision and cannot retroactively change this verdict.
+
 Separation is derived from the full tuple
 `(root_seed, namespace, outer_seed, lifetime_index, stream_name)` in
 [`src/rng.rs`](../src/rng.rs). Distinct namespace strings separate streams

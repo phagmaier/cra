@@ -1,0 +1,74 @@
+{
+  "config_sha256": {
+    "continuous_b3": "e300cd8230e6f27c5209ac37d75b3687f706f551f23a11795dcf25fda91a3f40",
+    "continuous_b4": "240d20b71d5dc21363f10c1a3216d41c0c93792b04767ef636ff57691c739462",
+    "episodic_b4_and_b3": "868715fb907edbe33ca10884a2161234f27a86b5cc7d543f877af17193a464ea",
+    "event_reset_b4": "76497f1ec9b34543d7852c5a6128c32809db6603016c77e58a5cbfeaba94f168"
+  },
+  "criterion": {
+    "max_clipped_update_fraction": 0.1,
+    "max_failed_lifetimes": 0,
+    "max_plastic_bound_occupancy": 0.05,
+    "min_continuous_late_accuracy": 0.7,
+    "min_continuous_minus_matched_b3": 0.15,
+    "min_outer_seeds_passing": 2,
+    "require_continuous_p_movement": true
+  },
+  "failures": [],
+  "measured_budget": {
+    "lifetimes": 15,
+    "maximum_declared_ticks": 510420,
+    "outcomes": 30000,
+    "ticks": 510420
+  },
+  "on_no_pass": "Record the negative result, leave M4-07 unchecked, and proceed only to the declared M4-08 continuity-failure audit. Do not change seeds, windows, criteria, or add hidden resets after observing results.",
+  "pairing": "identical W0 and exogenous event/cue/commit/feedback/noise schedule across all five conditions within each outer seed",
+  "passes": false,
+  "plan": "manifests/m4_continuous_acquisition.json",
+  "plan_sha256": "18354ebb175aafc266cd0c1a01fa5039e52da178f738ea91dfe6b1520d04a1e8",
+  "primary_metric": "late_per_cue_macro_latent_accuracy",
+  "provenance": {
+    "arch": "x86_64",
+    "dirty": true,
+    "git_status": "M manifests/README.md\n M src/experiments/baseline.rs\n M src/experiments/continuous.rs\n M src/experiments/episodic.rs\n M src/experiments/reduction.rs\n M to-do.md\n?? docs/evidence/m4-07/\n?? manifests/m4_continuous_acquisition.json\n?? tests/m4_continuous_acquisition.rs",
+    "os": "linux",
+    "profile": "release",
+    "revision": "0aa6e73f27154560ad8da56bdc69c9b2854d108d"
+  },
+  "schema_version": 1,
+  "seed_verdicts": [
+    {
+      "continuous_b3_late_macro_accuracy": 0.0,
+      "continuous_bound_occupancy": 0.0,
+      "continuous_clipped_update_fraction": 0.00001923076923076923,
+      "continuous_final_p_l1": 0.9891642520316005,
+      "continuous_late_macro_accuracy": 0.0,
+      "continuous_minus_b3_margin": 0.0,
+      "outer_seed": 1,
+      "passes": false
+    },
+    {
+      "continuous_b3_late_macro_accuracy": 0.0,
+      "continuous_bound_occupancy": 0.0,
+      "continuous_clipped_update_fraction": 0.0,
+      "continuous_final_p_l1": 1.2452182264993805,
+      "continuous_late_macro_accuracy": 0.0,
+      "continuous_minus_b3_margin": 0.0,
+      "outer_seed": 2,
+      "passes": false
+    },
+    {
+      "continuous_b3_late_macro_accuracy": 0.875,
+      "continuous_bound_occupancy": 0.0,
+      "continuous_clipped_update_fraction": 0.002701754385964912,
+      "continuous_final_p_l1": 3.49608485309723,
+      "continuous_late_macro_accuracy": 0.94,
+      "continuous_minus_b3_margin": 0.06499999999999995,
+      "outer_seed": 3,
+      "passes": false
+    }
+  ],
+  "seeds_passing": 0,
+  "seeds_total": 3,
+  "task": "M4-07"
+}

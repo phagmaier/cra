@@ -44,8 +44,11 @@ gradual clean timing stages, exact endpoint/pairing checks, and a saved
 27-lifetime `tau_e`/trace/update sensitivity record — 4 new default
 tests plus one explicit bounded diagnostic); **M4-06 done** (schema-4 exact
 continuous pause/resume with nonzero P/E at ongoing, pre-feedback, and
-post-feedback boundaries; schema 2/3 preserved — 9 new tests); next task
-M4-07 (declared continuous acquisition comparison).
+post-feedback boundaries; schema 2/3 preserved — 9 new tests); **M4-07
+declared comparison executed but did not pass** (15/15 paired development
+lifetimes completed with healthy numerics, but fully persistent acquisition
+met the frozen criterion on 0/3 seeds). M4-07 and M4-GATE remain open; next
+task M4-08 (continuity-failure audit).
 The simulator core exists as
 a library
 (`src/environment/`, `src/agent/` nonplastic dynamics plus `B3`
@@ -54,8 +57,8 @@ diagnostic runner) with deterministic
 fixtures, randomized checks, baseline/actor runners, replay proofs, and
 an offline log audit. Lifetime plastic state, the feedback update, and the
 episodic diagnostic runner now
-exist but no gating, evolution, or comparison
-pipeline is wired into a runner yet. Anything listed under "Planned" is a
+exist; the M4-07 bounded comparison harness also exists, but no gating or
+evolution pipeline is wired into a runner yet. Anything listed under "Planned" is a
 target from spec Section 18 / `to-do.md`, not working code.
 
 M0 was re-reviewed and corrected without changing the original smoke
@@ -419,9 +422,14 @@ schema-4 `ContinuousCheckpoint`: exact splits during ongoing activity,
 immediately before pending feedback, and after feedback preserve all live
 learner/environment/RNG state and reject duplicate delivery or incomplete and
 incompatible files. Schema 2 and schema 3 compatibility tests remain green.
-See the [M4-06 evidence](docs/evidence/m4-06/summary.md). **M4-07 is next.**
-Continuous acquisition without within-lifetime resets remains unverified;
-no modulation, evolution, or broader-track claim follows.
+See the [M4-06 evidence](docs/evidence/m4-06/summary.md). M4-07 then executed
+the frozen five-condition comparison: all 15 lifetimes completed with exact
+pairing and healthy update/bound/saturation diagnostics, but fully persistent
+B4 late accuracy was 0.00/0.00/0.94 against B3 0.00/0.00/0.875, so no seed
+cleared the declared accuracy-plus-margin criterion. See the
+[M4-07 negative evidence](docs/evidence/m4-07/summary.md). **M4-08 is next.**
+Continuous acquisition beyond matched B3 remains unverified; no modulation,
+evolution, or broader-track claim follows.
 The owner-requested [M3 preflight hardening](docs/evidence/m3-preflight/summary.md)
 separates hidden cue-role RNG from actor initialization, replaces positional
 feedback hyperparameters with `FeedbackUpdateParams`, and makes
@@ -440,6 +448,15 @@ output path:
 CRA_M4_TIMING_DIR=/tmp/cra-m4-timing-fresh \
   cargo test --release --locked --test m4_timing \
   m4_timing_sensitivity_diagnostic -- --ignored --exact --nocapture
+```
+
+To reproduce the frozen M4-07 development comparison into a fresh directory
+(the recorded verdict is negative; do not alter seeds or thresholds):
+
+```bash
+CRA_M4_ACQUISITION_DIR=/tmp/cra-m4-acquisition-fresh \
+  cargo test --release --locked --test m4_continuous_acquisition \
+  m4_continuous_acquisition_comparison -- --ignored --exact --nocapture
 ```
 
 To verify exact continuous-learning pause/resume and the unchanged episodic

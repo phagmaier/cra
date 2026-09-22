@@ -1215,3 +1215,28 @@ make code or a result look successful.**
   latch fields, mismatched resolved learning settings, corrupt checksums, and
   cross-schema files reject rather than resetting. Verification:
   [M4-06 evidence](evidence/m4-06/summary.md).
+
+## 2026-09-21 UTC — M4-07 declared acquisition comparison and negative-result handling (spec 14.3, 16/M4)
+
+- **Freeze exposure-indexed acquisition before execution.** The M4-07 plan
+  uses the first and final 100 exposures of each cue, then macro-averages cues
+  equally. It carries forward the M3-08 full-recurrent winner settings and
+  compares episodic, event-reset, and fully persistent B4 against the
+  appropriate episodic or birth-only-reset B3. The criterion and finite
+  15-lifetime development budget live in
+  `manifests/m4_continuous_acquisition.json`; no post-result tuning is folded
+  into this verdict.
+- **Health is measured in the production runners.** Episodic, continuous,
+  event-reset, receiver-permutation, and ordinary B3 runners now accumulate
+  the existing read-only `HealthSummary` on every neural transition. This
+  adds no RNG draws or state mutation and lets the comparison report actor
+  saturation, motor-filter maxima, and motor margins from the same lifetime
+  that produced behavior. Non-neural B0/B1/O1 summaries retain no health
+  payload.
+- **A completed empirical instrument is not a passed scientific task.** All
+  15 declared lifetimes completed with exact pairing and healthy numerics,
+  but fully persistent learning passed 0/3 seeds. M4-07 remains unchecked and
+  M4-GATE remains blocked. The next eligible task is M4-08's declared failure
+  audit; hidden resets, altered seeds/windows/criteria, and retrospective
+  threshold weakening are prohibited. Verification and result:
+  [M4-07 evidence](evidence/m4-07/summary.md).

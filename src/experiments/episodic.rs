@@ -45,7 +45,7 @@ use rand_chacha::ChaCha8Rng;
 use serde::{Deserialize, Serialize};
 
 use crate::agent::actor::{ActorError, ActorState, leak_alpha};
-use crate::agent::health::{HealthError, check_state};
+use crate::agent::health::{HealthError, HealthSummary, check_state};
 use crate::agent::motor::{MotorError, MotorState, decide_action};
 use crate::agent::no_learning::{NoLearningActor, NoLearningError};
 use crate::agent::plasticity::{
@@ -765,6 +765,8 @@ pub struct EpisodicSummary {
     pub final_effective: Vec<Vec<f64>>,
     pub final_baseline: f64,
     pub final_last_feedback: Option<u64>,
+    /// Read-only numerical diagnostics accumulated on every neural tick.
+    pub health: HealthSummary,
 }
 
 impl EpisodicSummary {
@@ -898,6 +900,7 @@ pub fn run_episodic_lifetime(
     let mut resets = vec![0u64];
     let mut choices = Vec::new();
     let mut annotations = Vec::new();
+    let mut health = HealthSummary::new();
 
     while !lifetime.is_complete() {
         // Spec 9 step 1: observable input + due feedback (no clock yet).
@@ -937,6 +940,13 @@ pub fn run_episodic_lifetime(
         }
         // Spec 9 steps 4/6/7/8 (fixed gate 1; no modulator until M6).
         learner.advance(&out.observation.features)?;
+        health.observe(
+            lifetime.tick(),
+            learner.actor_state().h(),
+            learner.actor_state().a(),
+            learner.actor_state().r(),
+            learner.motor_state().q(),
+        )?;
         // Finish before commit: `finish_tick` moves the final response tick
         // into the transient Committed phase, so `commit` still observes
         // `commit_tick = tick - 1` and golden delay accounting is unchanged
@@ -995,6 +1005,7 @@ pub fn run_episodic_lifetime(
         final_effective,
         final_baseline,
         final_last_feedback,
+        health,
     })
 }
 
@@ -1044,6 +1055,8 @@ pub struct EpisodicNoLearningSummary {
     /// Recorded so tests prove `W0` identity across conditions.
     pub w0: Vec<Vec<f64>>,
     pub final_last_feedback: Option<u64>,
+    /// Matched B3 numerical diagnostics on every neural tick.
+    pub health: HealthSummary,
 }
 
 impl EpisodicNoLearningSummary {
@@ -1096,6 +1109,7 @@ pub fn run_episodic_no_learning(
     let mut resets = vec![0u64];
     let mut choices = Vec::new();
     let mut annotations = Vec::new();
+    let mut health = HealthSummary::new();
 
     while !lifetime.is_complete() {
         // Spec 9 step 1: observable input + due feedback (no clock yet).
@@ -1131,6 +1145,13 @@ pub fn run_episodic_no_learning(
             annotations.push(annotation);
         }
         actor.advance(&out.observation.features)?;
+        health.observe(
+            lifetime.tick(),
+            actor.actor_state().h(),
+            actor.actor_state().a(),
+            actor.actor_state().r(),
+            actor.motor_state().q(),
+        )?;
         // Finish before commit: `finish_tick` moves the final response tick
         // into the transient Committed phase, so `commit` still observes
         // `commit_tick = tick - 1` and golden delay accounting is unchanged
@@ -1174,6 +1195,7 @@ pub fn run_episodic_no_learning(
         }),
         w0,
         final_last_feedback: actor.last_feedback(),
+        health,
     })
 }
 
@@ -1235,6 +1257,7 @@ pub fn run_episodic_shuffled(
     let mut resets = vec![0u64];
     let mut choices = Vec::new();
     let mut annotations = Vec::new();
+    let mut health = HealthSummary::new();
 
     while !lifetime.is_complete() {
         // Spec 9 step 1: observable input + due feedback (no clock yet).
@@ -1278,6 +1301,13 @@ pub fn run_episodic_shuffled(
         }
         // Spec 9 steps 4/6/7/8 (fixed gate 1; no modulator until M6).
         learner.advance(&out.observation.features)?;
+        health.observe(
+            lifetime.tick(),
+            learner.actor_state().h(),
+            learner.actor_state().a(),
+            learner.actor_state().r(),
+            learner.motor_state().q(),
+        )?;
         // Finish before commit: `finish_tick` moves the final response tick
         // into the transient Committed phase, so `commit` still observes
         // `commit_tick = tick - 1` and golden delay accounting is unchanged
@@ -1331,6 +1361,7 @@ pub fn run_episodic_shuffled(
         final_effective,
         final_baseline,
         final_last_feedback,
+        health,
     })
 }
 

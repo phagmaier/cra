@@ -30,19 +30,20 @@ and [continuation guide](docs/handoff.md).
 
 | Field | Current value |
 | --- | --- |
-| Current milestone | M4 in progress (M3-GATE passed; M4-01 through M4-06 verified 2026-09-21 UTC) |
+| Current milestone | M4 in progress (M4-07 declared comparison executed 2026-09-21 UTC; acceptance criterion not met) |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M4-06 — exact continuous-learning checkpoint/replay |
+| Last verified task | M4-06 — exact continuous-learning checkpoint/replay; M4-07 execution verified but scientific criterion failed |
 | Claimed task | None |
-| Next eligible task | M4-07 |
-| Current blocker | None |
+| Next eligible task | M4-08 — audit continuity failures under the frozen M4-07 negative result |
+| Current blocker | M4-07 fully persistent criterion failed (0/3 seeds); M4-GATE remains blocked pending M4-08 audit |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | 2026-09-21 UTC M4-06; ledger below (3 exact nonzero-P/E split replays, 323 Rust/17 Python pass) |
+| Last evidence record | 2026-09-21 UTC M4-07 negative result; 15/15 paired lifetimes, 0 failures, criterion 0/3 seeds |
 
 ### Session ownership and handoffs
 
 | Owner/session | Task IDs | Files or interfaces owned | Status / handoff |
 | --- | --- | --- | --- |
+| Codex 2026-09-21 M4-07 | M4-07 | manifests/m4_continuous_acquisition.json, src/experiments/{baseline,continuous,episodic,reduction}.rs, tests/m4_continuous_acquisition.rs, README.md, manifests/README.md, docs/{decisions,experiments,handoff}.md, docs/evidence/m4-07/, to-do.md | Declared run complete; 15/15 paired lifetimes, 0 failures, but criterion failed 0/3; task intentionally unchecked, next M4-08 |
 | Codex 2026-09-21 M4-06 | M4-06 | src/checkpoint.rs, src/experiments/continuous.rs, tests/continuous_checkpoint.rs, README.md, docs/{decisions,handoff}.md, docs/evidence/m4-06/, to-do.md | Done; schema-4 exact replay at 3 nonzero-P/E splits, schema 2/3 preserved, full battery green; next M4-07 |
 | omp 2026-09-21 M4-01 | M4-01 | src/environment/mod.rs, src/experiments/{baseline,episodic,reduction}.rs, tests/main_tick_order.rs, docs/evidence/m4-01/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; split tick + 6 migrated drivers + 4 order tests pass, oracle/B3 smokes audited; next M4-02 |
 | omp 2026-09-21 M4-02 | M4-02 | src/experiments/{continuous,mod}.rs, tests/persistent_traces.rs, docs/evidence/m4-02/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; persistent learner + 5 fixtures pass, full battery green; next M4-03 |
@@ -400,6 +401,7 @@ Show that the ungated learner still acquires associations with persistent neural
 - [ ] **M4-07 - Run the declared continuous acquisition comparison**
   - Deliver: Compare the three continuity conditions and matched nonplastic controls across development seeds. Use predeclared per-cue exposure windows and report raw/actual updates, bound occupancy, motor saturation, and failures.
   - Verify: Above-chance acquisition remains measurable in the fully persistent condition and exceeds the declared matched control criterion. Episodic success alone is insufficient.
+  - Negative evidence: `docs/evidence/m4-07/summary.md` (2026-09-21 UTC). Pre-results manifest froze the M3-08 actor family, development outers 1–3, first/final 100 exposures per cue, five continuity/control conditions, and 15-lifetime/510,420-tick budget. All 15 lifetimes completed with exact schedule/W0 pairing, zero failures, finite health, zero bound occupancy, actor saturation 0, motor-filter maxima <0.61, and clipping <0.003. Fully persistent late macro accuracy was 0.00/0.00/0.94 against B3 0.00/0.00/0.875; margins 0.00/0.00/0.065, so 0/3 seeds passed the frozen >=0.70 and >=0.15 criteria. Episodic outer 2 learned to 0.97 while event-reset and continuous remained 0.00, isolating continuity as the next audit target. Checkbox remains open; no seeds/windows/criteria changed, no validation/final-test data inspected. M4-08 is next.
 
 - [ ] **M4-08 - Audit continuity failures before expanding scope**
   - Deliver: Use the Section 21 reduction path to inspect cross-choice interference, ordering, baseline drift, trace timescale, and saturation. Record changes to development ranges and rerun affected controls.
@@ -3489,9 +3491,76 @@ Tracker boxes updated: M4-06 checked after verification. Next M4-07; M4-07
   was not begun.
 ```
 
+```text
+Date / agent or session: 2026-09-21 / Codex (M4-07)
+Task IDs: M4-07 (declared execution complete; scientific acceptance failed)
+Base revision / worktree: 0aa6e73; M4-07 implementation, declaration, and
+  evidence dirty during verification.
+Change and affected files: manifests/m4_continuous_acquisition.json (frozen
+  pre-results seeds/windows/criterion/budget); src/experiments/{baseline,
+  continuous,episodic,reduction}.rs (read-only per-tick HealthSummary on the
+  same behavior-producing runners); tests/m4_continuous_acquisition.rs
+  (declaration checks, five-condition paired fixture, benchmark, bounded
+  comparison); docs/evidence/m4-07/{summary.md,run/*}; README, manifest guide,
+  decisions, experiments, handoff, and tracker.
+Commands actually run:
+  cargo test --locked --test m4_continuous_acquisition -- --nocapture
+  cargo test --release --locked --test m4_continuous_acquisition \
+    m4_continuous_acquisition_benchmark -- --ignored --exact --nocapture
+  CRA_M4_ACQUISITION_DIR=docs/evidence/m4-07/run \
+    cargo test --release --locked --test m4_continuous_acquisition \
+    m4_continuous_acquisition_comparison -- --ignored --exact --nocapture
+  cargo test --locked --test no_learning --test baselines \
+    --test episodic_runner --test episodic_controls --test m3_reduction \
+    --test continuous_runner --test continuity_conditions --test m4_timing \
+    --test m4_continuous_acquisition
+  cargo fmt --all -- --check
+  cargo clippy --all-targets --locked -- -D warnings
+  cargo test --all-targets --locked
+  cargo test --locked --doc
+  python3 analysis/test_validate_logs.py
+  python3 analysis/validate_logs.py analysis/fixtures/valid
+  cargo run --release --locked -- validate-config \
+    configs/continuous_stationary.toml
+  git diff --check
+Execution note: the first comparison invocation failed before any lifetime
+  ran because the fresh target's parent directory did not exist. The parent
+  was created and the unchanged manifest/seeds/target ran once; no result was
+  observed before that rerun.
+Result: focused M4-07 default tests 2 pass / 2 explicit ignores; benchmark
+  2,000 outcomes / 34,028 ticks in 0.098 s. Declared comparison completed
+  15/15 lifetimes, 30,000 outcomes, 510,420 ticks, zero failures, exact
+  within-outer W0 and exogenous-schedule pairing. Full Rust suite 325 pass,
+  0 fail, 9 ignored; 2 compile-fail docs and 17 Python tests pass; fixture
+  audit/profile validation OK; fmt/Clippy/diff clean. Linux x86_64,
+  rustc/cargo 1.98.0.
+Empirical verdict: FAILS 0/3 seeds under the frozen criterion. Fully
+  persistent late per-cue macro accuracy was 0.00/0.00/0.94 versus matched
+  B3 0.00/0.00/0.875; margins 0.00/0.00/0.065. Episodic B4 was
+  0.00/0.97/0.935 and event-reset B4 0.00/0.00/0.955. Clipping <0.003,
+  bound occupancy 0, actor saturation 0, motor-filter maxima <0.61, finite
+  state, and nonzero continuous P movement on every seed. Numerics do not
+  rescue the acceptance failure.
+Artifacts: docs/evidence/m4-07/summary.md;
+  run/records.jsonl SHA-256
+  b6569730802356c6c94338b1802ed4943f288eaefeedaf0f7a9cf3303eb5aa84;
+  run/verdict.json
+  96488cc340eb1242d73c6bff2aafb5acce042366edba5172d2df6cbcac4b0b80;
+  manifest 18354ebb175aafc266cd0c1a01fa5039e52da178f738ea91dfe6b1520d04a1e8.
+Interpretation and claim limits: declared development execution only; no
+  continuous-acquisition success, no validation/final-test inspection, no
+  modulation/evolution or broader-track claim. Do not alter seeds, windows,
+  criterion, or add hidden resets to relabel this result.
+Tracker boxes updated: M4-07 intentionally remains unchecked because its
+  verify clause failed. M4-GATE blocked; next eligible task M4-08.
+```
+
 ## Blockers and decision register - keep current
 
-No blockers. M1-GATE re-verified after the 2026-09-21 UTC owner-requested
+Current blocker: M4-07's fully persistent acquisition criterion failed 0/3
+development seeds despite complete, paired, numerically healthy runs. M4-GATE
+is blocked pending M4-08's declared continuity-failure audit; the negative
+M4-07 record is immutable. M1-GATE re-verified after the 2026-09-21 UTC owner-requested
 corrective review: 185 Rust passes (1 ignored probe), 15 Python passes,
 clean fmt/Clippy, eleven corrected audited runs and two original comparisons.
 M2-GATE passed after M2-06 package execution: 27 fast score diagnostics,

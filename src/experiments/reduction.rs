@@ -45,6 +45,7 @@
 
 use rand_chacha::ChaCha8Rng;
 
+use crate::agent::health::HealthSummary;
 use crate::agent::plasticity::FeedbackOutcome;
 use crate::agent::weights::InheritedParams;
 use crate::config::{Actor, Config, Learning};
@@ -262,6 +263,7 @@ pub fn run_episodic_permuted_lifetime(
     let mut resets = vec![0u64];
     let mut choices = Vec::new();
     let mut annotations: Vec<HiddenAnnotation> = Vec::new();
+    let mut health = HealthSummary::new();
 
     while !lifetime.is_complete() {
         // Spec 9 step 1: observable input + due feedback (no clock yet).
@@ -299,6 +301,13 @@ pub fn run_episodic_permuted_lifetime(
             annotations.push(annotation);
         }
         learner.advance_with_receiver_permutation(&out.observation.features, perm)?;
+        health.observe(
+            lifetime.tick(),
+            learner.actor_state().h(),
+            learner.actor_state().a(),
+            learner.actor_state().r(),
+            learner.motor_state().q(),
+        )?;
         // Finish before commit: `finish_tick` moves the final response tick
         // into the transient Committed phase, so `commit` still observes
         // `commit_tick = tick - 1` and golden delay accounting is unchanged
@@ -351,5 +360,6 @@ pub fn run_episodic_permuted_lifetime(
         final_effective,
         final_baseline,
         final_last_feedback,
+        health,
     })
 }

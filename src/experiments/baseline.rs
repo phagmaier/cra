@@ -25,6 +25,7 @@
 use rand::Rng;
 use rand_chacha::ChaCha8Rng;
 
+use crate::agent::health::HealthSummary;
 use crate::agent::no_learning::NoLearningActor;
 use crate::config::Config;
 use crate::environment::{
@@ -32,10 +33,20 @@ use crate::environment::{
 };
 use crate::rng::{SeedTuple, rng_for};
 
+/// Borrowed neural state used only for read-only health accumulation.
+pub type HealthView<'a> = (&'a [f64], &'a [f64], &'a [f64], [f64; 2]);
+
 /// Ordinary commitment policy. All input arrives through `Agent`; action
 /// selection reads only its own state, never the evaluator's TickOutput.
 pub trait OrdinaryPolicy: Agent {
     fn select_action(&mut self) -> u8;
+
+    /// Optional read-only actor state for numerical-health reporting.
+    /// Simple baselines have no neural state; B3 exposes its live actor and
+    /// motor filters without drawing randomness or changing behavior.
+    fn health_view(&self) -> Option<HealthView<'_>> {
+        None
+    }
 }
 
 fn consume_feedback(last: &mut Option<u64>, event: Feedback) -> Result<(), SimError> {
@@ -146,6 +157,15 @@ impl OrdinaryPolicy for NoLearningActor {
     fn select_action(&mut self) -> u8 {
         NoLearningActor::select_action(self)
     }
+
+    fn health_view(&self) -> Option<HealthView<'_>> {
+        Some((
+            self.actor_state().h(),
+            self.actor_state().a(),
+            self.actor_state().r(),
+            self.motor_state().q(),
+        ))
+    }
 }
 
 /// O1: hidden-state oracle (privileged, researcher-only). Chooses the
@@ -182,6 +202,8 @@ pub struct BaselineSummary {
     pub policy: &'static str,
     pub choices: Vec<ChoiceRecord>,
     pub annotations: Vec<HiddenAnnotation>,
+    /// Present for the neural B3 control and absent for B0/B1/O1.
+    pub health: Option<HealthSummary>,
 }
 
 impl BaselineSummary {
@@ -286,6 +308,8 @@ fn run_ordinary_inner(
     let mut lifetime = Lifetime::new(cfg, root_seed, namespace, outer_seed, lifetime_index)?;
     let mut choices = Vec::new();
     let mut annotations = Vec::new();
+    let mut health = HealthSummary::new();
+    let mut has_health = false;
     while !lifetime.is_complete() {
         // Spec 9 step 1: observable input + due feedback (no clock yet).
         let out = lifetime.observe()?;
@@ -305,6 +329,12 @@ fn run_ordinary_inner(
         }
         // Spec 9 steps 4/6/7/8 (fixed gate 1; no modulator until M6).
         policy.advance(&out.observation.features)?;
+        if let Some((h, a, r, q)) = policy.health_view() {
+            health
+                .observe(lifetime.tick(), h, a, r, q)
+                .map_err(|e| e.to_sim_error())?;
+            has_health = true;
+        }
         // Finish before commit: `finish_tick` moves the final response tick
         // into the transient Committed phase, so `commit` still observes
         // `commit_tick = tick - 1` and golden delay accounting is unchanged
@@ -320,6 +350,7 @@ fn run_ordinary_inner(
         policy: policy_name,
         choices,
         annotations,
+        health: has_health.then_some(health),
     })
 }
 
@@ -374,6 +405,7 @@ pub fn run_oracle(
         policy: "oracle",
         choices,
         annotations,
+        health: None,
     })
 }
 

@@ -33,7 +33,7 @@ use rand_chacha::ChaCha8Rng;
 use serde::{Deserialize, Serialize};
 
 use crate::agent::actor::{ActorError, ActorState, leak_alpha};
-use crate::agent::health::{HealthError, check_state};
+use crate::agent::health::{HealthError, HealthSummary, check_state};
 use crate::agent::motor::{MotorError, MotorState, decide_action};
 use crate::agent::plasticity::{
     FeedbackOutcome, FeedbackUpdateParams, PlasticSnapshot, PlasticState, PlasticityError,
@@ -680,6 +680,8 @@ pub struct ContinuousSummary {
     pub final_effective: Vec<Vec<f64>>,
     pub final_baseline: f64,
     pub final_last_feedback: Option<u64>,
+    /// Read-only numerical diagnostics accumulated on every neural tick.
+    pub health: HealthSummary,
 }
 
 impl ContinuousSummary {
@@ -743,6 +745,7 @@ pub fn run_continuous_lifetime(
     let resets = vec![0u64];
     let mut choices = Vec::new();
     let mut annotations = Vec::new();
+    let mut health = HealthSummary::new();
 
     while !lifetime.is_complete() {
         // Spec 9 step 1: observable input + due feedback (no clock yet).
@@ -785,6 +788,13 @@ pub fn run_continuous_lifetime(
         }
         // Spec 9 steps 4/6/7/8 (fixed gate 1; no modulator until M6).
         learner.advance(&out.observation.features)?;
+        health.observe(
+            lifetime.tick(),
+            learner.actor_state().h(),
+            learner.actor_state().a(),
+            learner.actor_state().r(),
+            learner.motor_state().q(),
+        )?;
         // Finish before commit: the transient Committed phase exists only
         // between finish and commit (`commit_tick = tick - 1`).
         lifetime.finish_tick()?;
@@ -832,6 +842,7 @@ pub fn run_continuous_lifetime(
         final_effective,
         final_last_feedback,
         final_baseline,
+        health,
     })
 }
 
@@ -906,6 +917,7 @@ pub fn run_event_reset_lifetime(
     let mut resets = vec![0u64];
     let mut choices = Vec::new();
     let mut annotations = Vec::new();
+    let mut health = HealthSummary::new();
 
     while !lifetime.is_complete() {
         // Spec 9 step 1: observable input + due feedback (no clock yet).
@@ -948,6 +960,13 @@ pub fn run_event_reset_lifetime(
         }
         // Spec 9 steps 4/6/7/8 (fixed gate 1; no modulator until M6).
         learner.advance(&out.observation.features)?;
+        health.observe(
+            lifetime.tick(),
+            learner.actor_state().h(),
+            learner.actor_state().a(),
+            learner.actor_state().r(),
+            learner.motor_state().q(),
+        )?;
         // Finish before commit: the transient Committed phase exists only
         // between finish and commit (`commit_tick = tick - 1`).
         lifetime.finish_tick()?;
@@ -1001,5 +1020,6 @@ pub fn run_event_reset_lifetime(
         final_effective,
         final_last_feedback,
         final_baseline,
+        health,
     })
 }

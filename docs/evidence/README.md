@@ -123,3 +123,13 @@ pending feedback/latch state, post-feedback deduplication, all live RNGs, and
 validated effective-cache derivation. It preserves and re-runs the schema-3
 episodic compatibility suite; schema 2 remains unchanged. This is replay
 evidence only and does not establish continuous acquisition.
+
+## M4 continuous acquisition comparison
+
+The [M4-07 summary](m4-07/summary.md) records the frozen five-condition
+development comparison and its negative verdict. All 15 lifetimes completed
+with exact pairing and healthy update/bound/saturation diagnostics, but fully
+persistent learning passed 0/3 outer seeds under the predeclared accuracy and
+matched-B3 margin criterion. Raw per-condition records and the machine-readable
+verdict are under `m4-07/run/`. This evidence keeps M4-07 and M4-GATE open and
+routes the next work to M4-08; it must not be rewritten as a positive result.

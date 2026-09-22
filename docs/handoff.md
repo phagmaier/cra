@@ -20,9 +20,23 @@ implementation worktree. Check Git and the tracker for newer work before claimin
 
 **M0-GATE, M1-GATE, M2-GATE passed (re-verified where noted). M3-01
 through M3-GATE verified 2026-09-21 UTC — M3 COMPLETE. M4-01 through
-M4-06 verified 2026-09-21 UTC. Next task: M4-07.**
-There is no outstanding milestone blocker. The claim track remains `family_only`.
+M4-06 verified; M4-07 executed 2026-09-21 UTC but its scientific criterion
+failed. Next task: M4-08.**
+M4-GATE is blocked by the M4-07 negative result pending the declared failure
+audit. The claim track remains `family_only`.
 No reserved final-test outcomes have been inspected.
+
+M4-07 froze and executed a five-condition development comparison across
+outers 1–3: episodic B4/B3, event-reset B4, and fully persistent B4/B3, using
+the M3-08 full-recurrent winner family and first/final 100 exposures per cue.
+All 15 lifetimes completed with exact W0/schedule pairing, zero failures,
+finite states, zero bound occupancy and actor saturation, and clipping below
+0.003. The empirical criterion failed 0/3: fully persistent late macro
+accuracy was 0.00/0.00/0.94 versus B3 0.00/0.00/0.875, for margins
+0.00/0.00/0.065. Outer 2 still acquired episodically (0.97) but not under
+event-reset or full persistence (both 0.00), making continuity failure the
+next audit target. The checkbox remains open by design.
+[M4-07 evidence](evidence/m4-07/summary.md).
 
 M4-06 adds `ContinuousCheckpoint` schema 4 without changing M1 schema 2 or
 episodic schema 3. The continuous snapshot carries live actor/adaptation/
@@ -36,7 +50,7 @@ resolved-config/cache mismatches, corrupt/cross-schema files, and duplicate
 delivery reject. Full checks: **323 Rust tests passed**, seven existing
 ignores, two compile-fail doc checks, 17 Python tests, fixture audit, profile
 validation, clean fmt/Clippy/diff. [M4-06 evidence](evidence/m4-06/summary.md).
-Continuous acquisition remains M4-07.
+Continuous acquisition remains unverified; M4-08 owns the failure audit.
 
 M4-05 declares three clean stationary timing stages: fixed short
 `continuous_stationary`, moderate `continuous_variable_short`, and
@@ -51,7 +65,7 @@ improve reward. Full checks: **314 Rust tests passed**, seven ignores
 (six prior + this bounded diagnostic), 17 Python tests, fixture audit,
 clean fmt/Clippy, and both new profiles validate.
 [M4-05 evidence](evidence/m4-05/summary.md). Checkpoints are now M4-06;
-continuous acquisition remains M4-07.
+the subsequent M4-07 comparison is the negative result summarized above.
 
 M4-04 names the three continuity conditions with pairwise-disjoint
 guards (`episodic_diagnostic` / `birth_only`+never-reset /
@@ -277,22 +291,23 @@ is available for a quick audit. Reproduce missing raw runs using the saved
 commands/configs into new directories; preserve historical evidence paths
 and distinguish reruns from the original execution.
 
-## Next task: M4-07
+## Next task: M4-08
 
-Run the declared continuous acquisition comparison across the three named
-continuity conditions and matched nonplastic controls on development seeds.
-Predeclare per-cue exposure windows and the matched-control criterion before
-execution; report raw/actual updates, bound occupancy, motor saturation, and
-all failures. The fully persistent condition must retain measurable
-above-chance acquisition and exceed the declared control criterion for this
-task to pass. Episodic success and M4-05's timing sensitivity do not satisfy
-the gate.
+Audit the frozen M4-07 failure without changing its seeds, exposure windows,
+or acceptance criterion. Start from outer 2, where the same inherited actor
+learned episodically to 0.97 late accuracy but both event-reset and fully
+persistent conditions remained at 0.00, then use outer 3 as the successful
+continuous contrast and outer 1 as the known representation-locked control.
+Inspect cross-choice interference, ordering, running-baseline drift, trace
+timescale, and motor/representation state with the Section 21 reduction path.
 
-Read the [M4 task queue](../to-do.md#m4---remove-artificial-trial-resets),
-spec Sections 7.3–7.9, 9–10, 14.3, 16/M4, and 17.8, plus the M3-06/M3-07
-pre-results grid and control patterns. Benchmark a representative bounded
-lifetime before scaling and obtain the declared finite development budget.
-Do not begin M4-08 or inspect validation/final-test outcomes.
+The saved update and health evidence already rules out nonfinite state,
+plastic-bound occupancy, gross actor/motor saturation, absent updates, and
+frequent clipping as primary explanations. Do not add hidden resets, weight
+decay, membrane clipping, or a trained decoder. Any new development range or
+diagnostic must be declared with a reason and rerun its affected controls;
+M4-07 remains the immutable negative record. Do not inspect validation or
+final-test outcomes.
 
 M3-GATE passed 2026-09-21 UTC on executed evidence, not stored
 claims: fresh release re-runs reproduce the archived M3-07 verdict
@@ -413,7 +428,7 @@ episodic learner at grid index 11.
 | Event identity | IDs/choice indices restart per lifetime. Ordinary records carry lifetime identity; hidden rows align within contiguous lifetime blocks. Episodic rollouts reuse the same per-lifetime IDs with an added `rollout_index` (one choice per rollout). | Checkpoint resume preserves exactly-once delivery (pending plus consumed/confirmed ledgers round-trip); M1-10 records the tolerance policy. A bare event ID is not a cross-lifetime join key. |
 | Logging | `event_log=false` omits event streams; audit coverage then stops at provenance/completion. Actor/health reads draw nothing (M1-07/M1-08 logging invariance). Episodic summaries carry mode/policies/resets plus consumed raw/limited/actual reports; continuous choices additionally expose evaluator-side pre-feedback E L1 for M4-05 sensitivity records. | Extend Rust validation, Python audit, fixtures, and versioning together when adding persisted quantities (M1 checkpoint schema 2, episodic schema 3, continuous schema 4, health schema 2; ordinary events remain schema 1). |
 | Execution guards | M0 still rejects neural/search sections for baselines; M1-07 adds `validate_actor_no_learning_execution` (actor required, learning disabled/absent, modulator absent/fixed, evolution disabled/absent). M3-04 adds `validate_episodic_execution` (clean task, `episodic_diagnostic` + `no_decay_diagnostic`, enabled learning, fixed gates). | Enable remaining plasticity controls (M3-05), gates (M6), and search (M7) with their implementations/tests; never bypass guards to make a future config appear runnable. |
-| Performance | Tick observations allocate; run logs are buffered. Simulation is serial. M4-05's bounded 27-lifetime timing diagnostic measured 220,005 ticks in 0.61 s reported release test time. | Benchmark the actual larger M4-07 comparison before scaling; keep budgets finite and development-only. |
+| Performance | Tick observations allocate; run logs are buffered. Simulation is serial. M4-07 benchmarked 34,028 ticks in 0.098 s runner time; its bounded 15-lifetime comparison completed 510,420 ticks in 1.21 s reported release test time. | Keep M4-08 diagnostics finite and development-only; do not expand into a search. |
 
 The [decision log](decisions.md) preserves the rationale and superseding
 corrections. The latest M0 review supersedes bootstrap statements that
@@ -428,6 +443,9 @@ Namespace validation and SHA-256 derivation provide stream separation.
 M4-05's `m4_timing_sensitivity.json` used development root 1, outers 1–3,
 lifetime 0 only. See the [manifest guide](../manifests/README.md) before
 adding or revising a suite; any post-result plan change starts a new revision.
+M4-07's `m4_continuous_acquisition.json` used the same development root/outers
+with five paired conditions and is now an immutable negative result; never
+edit it to change the verdict.
 
 Keep `spec.md`, archived review evidence, and original raw runs unchanged.
 The spec's initial checklists and proposed commands remain design text;

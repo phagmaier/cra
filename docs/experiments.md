@@ -214,3 +214,25 @@ interrupted runs — missing data is not a zero score.
   `evidence/m4-05/diagnostic/result.json`. Full checks: 314 Rust pass, 7
   ignored; 17 Python pass; fixture audit, fmt, Clippy, and both new profile
   validations pass. No validation/final-test seeds inspected. Next: M4-06.
+
+## 2026-09-21 UTC — M4-07 continuous acquisition comparison (negative)
+
+- Predeclared plan: `manifests/m4_continuous_acquisition.json`; development
+  root 1, outers 1–3, lifetime 0, 2,000 outcomes, first/final 100 exposures
+  per cue, M3-08 full-recurrent winner family, five continuity/control
+  conditions, 15 lifetimes / 30,000 outcomes / at most 510,420 ticks.
+- Criterion: fully persistent late macro latent accuracy >=0.70 and margin
+  over matched continuous B3 >=0.15, with healthy clipping/bounds/nonzero P,
+  zero failures, on at least 2/3 outer seeds. It was frozen before execution.
+- Result: all 15 lifetimes completed, exact within-outer W0 and exogenous
+  schedule pairing passed, zero failures, but the criterion passed 0/3.
+  Continuous B4 late accuracy was 0.00/0.00/0.94 versus B3
+  0.00/0.00/0.875 (margins 0.00/0.00/0.065). Episodic B4 was
+  0.00/0.97/0.935; event-reset B4 was 0.00/0.00/0.955.
+- Numerics do not explain the failure: clipping stayed below 0.003, bound
+  occupancy and actor saturation were zero, motor-filter maxima stayed below
+  0.61, and every continuous run moved P. No validation/final-test seeds were
+  inspected. M4-07 stays open and M4-08 is next.
+- Evidence: [summary](evidence/m4-07/summary.md), raw condition records
+  `evidence/m4-07/run/records.jsonl`, and verdict
+  `evidence/m4-07/run/verdict.json`.

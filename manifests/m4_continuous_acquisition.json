@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "task": "M4-07",
+  "purpose": "Pre-results development comparison of the three named continuity conditions and their matched nonplastic controls. This declaration fixes seeds, actor family, per-cue exposure windows, criteria, diagnostics, and finite budget before any M4-07 acquisition outcome is executed.",
+  "base_profile": "configs/continuous_stationary.toml",
+  "namespace": "development",
+  "root_seed": 1,
+  "outer_seeds": [1, 2, 3],
+  "lifetime_indices": [0],
+  "outcomes_per_lifetime": 2000,
+  "actor_family": {
+    "source": "M3-08 frozen full-recurrent winner at M3 grid index 11",
+    "m3_grid_index": 11,
+    "eta": 0.001,
+    "input_scale": 0.2,
+    "recurrent_gain": 0.8,
+    "noise_sigma": 0.05,
+    "plastic_mask": "all_recurrent_edges",
+    "tau_e": 32.0
+  },
+  "conditions": [
+    {
+      "id": "episodic_b4",
+      "continuity": "episodic_diagnostic",
+      "learning": "fixed_gate_plastic",
+      "matched_control": "episodic_b3"
+    },
+    {
+      "id": "episodic_b3",
+      "continuity": "episodic_diagnostic",
+      "learning": "disabled",
+      "matched_control": null
+    },
+    {
+      "id": "event_reset_b4",
+      "continuity": "event_reset_diagnostic",
+      "learning": "fixed_gate_plastic",
+      "matched_control": "continuous_b3"
+    },
+    {
+      "id": "continuous_b4",
+      "continuity": "continuous_persistent",
+      "learning": "fixed_gate_plastic",
+      "matched_control": "continuous_b3"
+    },
+    {
+      "id": "continuous_b3",
+      "continuity": "birth_only_nonplastic",
+      "learning": "disabled",
+      "matched_control": null
+    }
+  ],
+  "acquisition_windows": {
+    "unit": "exposures_per_cue",
+    "early_exposures": 100,
+    "late_exposures": 100,
+    "aggregation": "equal-weight macro mean across cues",
+    "minimum_exposures_per_cue": 200
+  },
+  "primary_metric": "late_per_cue_macro_latent_accuracy",
+  "criterion": {
+    "min_continuous_late_accuracy": 0.70,
+    "min_continuous_minus_matched_b3": 0.15,
+    "min_outer_seeds_passing": 2,
+    "max_failed_lifetimes": 0,
+    "max_clipped_update_fraction": 0.10,
+    "max_plastic_bound_occupancy": 0.05,
+    "require_continuous_p_movement": true
+  },
+  "reported_diagnostics": [
+    "early_late_full_per_cue_macro_accuracy_and_reward",
+    "raw_limited_actual_update_l1_mean_p95_max",
+    "clipped_update_fraction",
+    "plastic_bound_occupancy",
+    "final_p_and_e_norms",
+    "actor_saturated_neuron_tick_fraction",
+    "maximum_absolute_motor_filter",
+    "minimum_and_maximum_motor_margin",
+    "reset_audit",
+    "all_failures"
+  ],
+  "on_no_pass": "Record the negative result, leave M4-07 unchecked, and proceed only to the declared M4-08 continuity-failure audit. Do not change seeds, windows, criteria, or add hidden resets after observing results.",
+  "budget": {
+    "outer_seeds": 3,
+    "conditions_per_seed": 5,
+    "total_lifetimes": 15,
+    "total_outcomes": 30000,
+    "maximum_ticks_per_lifetime": 34028,
+    "maximum_total_ticks": 510420,
+    "execution": "serial release-mode bounded diagnostic; fresh output directory required"
+  }
+}
