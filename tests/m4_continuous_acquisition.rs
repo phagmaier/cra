@@ -32,6 +32,11 @@ use std::path::PathBuf;
 
 const PLAN_PATH: &str = "manifests/m4_continuous_acquisition.json";
 
+// Reuse the frozen M4-07 configuration builders and analyzers verbatim.
+// The escape sweep has its own manifest, tests, export, and output path.
+#[path = "support/m4_escape_sweep.rs"]
+mod escape;
+
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct AcquisitionPlan {

@@ -47,8 +47,14 @@ continuous pause/resume with nonzero P/E at ongoing, pre-feedback, and
 post-feedback boundaries; schema 2/3 preserved — 9 new tests); **M4-07
 declared comparison executed but did not pass** (15/15 paired development
 lifetimes completed with healthy numerics, but fully persistent acquisition
-met the frozen criterion on 0/3 seeds). M4-07 and M4-GATE remain open; next
-task M4-08 (continuity-failure audit).
+met the frozen criterion on 0/3 seeds). **M4-08 done** (declared
+continuity-failure audit: 8/8 paired legs, exact M4-07 reproduction, and
+probes isolating a continuity-induced behavioral lock with teaching-signal
+starvation — 6 new tests plus one explicit bounded export). M4-07 and
+M4-GATE remain open. **M4-08c complete as a negative diagnostic**: all 12
+eta/tau settings fail, 39/39 lifetimes complete, nothing adopted. The
+[negative M4-09 bundle](docs/evidence/m4-09/summary.md) is saved; next is a
+separate persistent-exploration design declaration, with M4 still blocked.
 The simulator core exists as
 a library
 (`src/environment/`, `src/agent/` nonplastic dynamics plus `B3`
@@ -427,7 +433,36 @@ the frozen five-condition comparison: all 15 lifetimes completed with exact
 pairing and healthy update/bound/saturation diagnostics, but fully persistent
 B4 late accuracy was 0.00/0.00/0.94 against B3 0.00/0.00/0.875, so no seed
 cleared the declared accuracy-plus-margin criterion. See the
-[M4-07 negative evidence](docs/evidence/m4-07/summary.md). **M4-08 is next.**
+[M4-07 negative evidence](docs/evidence/m4-07/summary.md). M4-08 then
+audited the failure: the 8-leg export reproduces M4-07 exactly and isolates
+a continuity-induced behavioral lock (zero action-1 answers across all
+persistent outer-2 legs, baseline decayed to 0, updates starved despite
+large traces), with trace-timescale, baseline-drift, and saturation ruled
+out as binding causes. See the
+[M4-08 audit evidence](docs/evidence/m4-08/summary.md). M4-08b then
+localized the lock with paired synthetic-drive probes (outer-2 cue drive
+pins the wrong action at every scale while zero drive escapes; outer-3
+drive is aligned; history washes out 4–5× but plateaus). See the
+[M4-08b probe evidence](docs/evidence/m4-08b/summary.md). The subsequent
+[M4-08c sweep](docs/evidence/m4-08c/summary.md) found no escape at any of
+12 eta/tau settings: 39/39 lifetimes complete, 78,000 scalar rows, exact
+historical aggregate replication, zero failures. Both locked seeds choose
+action 0 throughout. The [negative M4-09 bundle](docs/evidence/m4-09/summary.md)
+preserves the result; persistent exploration is the next design question.
+
+Audit the saved sweep without running more lifetimes:
+
+```bash
+python3 analysis/audit_m4_escape.py docs/evidence/m4-08c/run
+```
+
+The bounded continuous-clean experiment entry point (fresh destination,
+existing parent required; rerunning is deterministic replication) is:
+
+```bash
+CRA_M4_ESCAPE_DIR=runs/NEW_M4_ESCAPE_DIRECTORY cargo test --release --locked --test m4_continuous_acquisition escape::m4_escape_sweep_export -- --ignored --exact --nocapture
+```
+
 Continuous acquisition beyond matched B3 remains unverified; no modulation,
 evolution, or broader-track claim follows.
 The owner-requested [M3 preflight hardening](docs/evidence/m3-preflight/summary.md)
@@ -457,6 +492,16 @@ To reproduce the frozen M4-07 development comparison into a fresh directory
 CRA_M4_ACQUISITION_DIR=/tmp/cra-m4-acquisition-fresh \
   cargo test --release --locked --test m4_continuous_acquisition \
   m4_continuous_acquisition_comparison -- --ignored --exact --nocapture
+```
+
+To reproduce the M4-08 continuity-failure audit into a fresh directory
+(8 paired legs plus probes; asserts execution integrity and exact M4-07
+reproduction, sets no acquisition criterion):
+
+```bash
+CRA_M4_AUDIT_DIR=/tmp/cra-m4-audit-fresh \
+  cargo test --release --locked --test m4_continuity_audit \
+  m4_continuity_audit_export -- --ignored --exact --nocapture
 ```
 
 To verify exact continuous-learning pause/resume and the unchanged episodic

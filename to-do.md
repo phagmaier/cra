@@ -30,18 +30,21 @@ and [continuation guide](docs/handoff.md).
 
 | Field | Current value |
 | --- | --- |
-| Current milestone | M4 in progress (M4-07 declared comparison executed 2026-09-21 UTC; acceptance criterion not met) |
+| Current milestone | M4 blocked on acquisition (M4-08c verified negative 2026-09-22 UTC; negative M4-09 bundle saved) |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M4-06 — exact continuous-learning checkpoint/replay; M4-07 execution verified but scientific criterion failed |
-| Claimed task | None |
-| Next eligible task | M4-08 — audit continuity failures under the frozen M4-07 negative result |
-| Current blocker | M4-07 fully persistent criterion failed (0/3 seeds); M4-GATE remains blocked pending M4-08 audit |
+| Last verified task | M4-08c — 12-point persistent escape sweep, valid null (0/12 settings pass) |
+| Claimed task | None; bounded M4-08c execution and negative evidence packaging complete |
+| Next eligible task | Declare a separate M4 persistent-exploration design investigation (input-drive/noise balance); no further tuning included in M4-08c |
+| Current blocker | Both locked seeds remain action-0-only at all 12 eta/tau settings; no family adopted; M4-07/M4-09 successful-system handoff/M4-GATE remain open |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | 2026-09-21 UTC M4-07 negative result; 15/15 paired lifetimes, 0 failures, criterion 0/3 seeds |
+| Last evidence record | 2026-09-22 UTC M4-08c: 39/39 lifetimes, 78,000 rows, 1,327,092 ticks, 6/6 exact archived aggregate records, zero failures; docs/evidence/m4-09/summary.md packages the null |
 
 ### Session ownership and handoffs
 
 | Owner/session | Task IDs | Files or interfaces owned | Status / handoff |
+| Codex 2026-09-22 M4-08c | M4-08c, negative M4-09 bundle | manifests/m4_escape_sweep.json, tests/m4_continuous_acquisition.rs, tests/support/m4_escape_sweep.rs, analysis/audit_m4_escape.py, docs/evidence/m4-08c/, docs/evidence/m4-09/, tracker and current documentation | Done; one declared sweep, valid null, nothing adopted; prior M4-08/08b edits preserved; next design declaration, no M5 unlock |
+| Muse Code 2026-09-22 M4-08b | M4-08b | manifests/m4_lock_localization.json, tests/m4_lock_localization.rs, docs/evidence/m4-08b/, README.md, manifests/README.md, docs/{decisions,experiments,handoff}.md, docs/evidence/README.md, to-do.md (no production behavior change) | Done; lock localized to projection alignment, full battery green; M4-07/M4-GATE stay open, next M4-09 |
+| Muse Code 2026-09-22 M4-08 | M4-08 | manifests/m4_continuity_audit.json, tests/m4_continuity_audit.rs, docs/evidence/m4-08/, README.md, manifests/README.md, docs/{decisions,experiments,handoff}.md, docs/evidence/README.md, to-do.md (no production behavior change) | Done; audit verified, lock isolated, full battery green; M4-07/M4-GATE stay open, next M4-09 |
 | --- | --- | --- | --- |
 | Codex 2026-09-21 M4-07 | M4-07 | manifests/m4_continuous_acquisition.json, src/experiments/{baseline,continuous,episodic,reduction}.rs, tests/m4_continuous_acquisition.rs, README.md, manifests/README.md, docs/{decisions,experiments,handoff}.md, docs/evidence/m4-07/, to-do.md | Declared run complete; 15/15 paired lifetimes, 0 failures, but criterion failed 0/3; task intentionally unchecked, next M4-08 |
 | Codex 2026-09-21 M4-06 | M4-06 | src/checkpoint.rs, src/experiments/continuous.rs, tests/continuous_checkpoint.rs, README.md, docs/{decisions,handoff}.md, docs/evidence/m4-06/, to-do.md | Done; schema-4 exact replay at 3 nonzero-P/E splits, schema 2/3 preserved, full battery green; next M4-07 |
@@ -403,13 +406,25 @@ Show that the ungated learner still acquires associations with persistent neural
   - Verify: Above-chance acquisition remains measurable in the fully persistent condition and exceeds the declared matched control criterion. Episodic success alone is insufficient.
   - Negative evidence: `docs/evidence/m4-07/summary.md` (2026-09-21 UTC). Pre-results manifest froze the M3-08 actor family, development outers 1–3, first/final 100 exposures per cue, five continuity/control conditions, and 15-lifetime/510,420-tick budget. All 15 lifetimes completed with exact schedule/W0 pairing, zero failures, finite health, zero bound occupancy, actor saturation 0, motor-filter maxima <0.61, and clipping <0.003. Fully persistent late macro accuracy was 0.00/0.00/0.94 against B3 0.00/0.00/0.875; margins 0.00/0.00/0.065, so 0/3 seeds passed the frozen >=0.70 and >=0.15 criteria. Episodic outer 2 learned to 0.97 while event-reset and continuous remained 0.00, isolating continuity as the next audit target. Checkbox remains open; no seeds/windows/criteria changed, no validation/final-test data inspected. M4-08 is next.
 
-- [ ] **M4-08 - Audit continuity failures before expanding scope**
+- [x] **M4-08 - Audit continuity failures before expanding scope**
   - Deliver: Use the Section 21 reduction path to inspect cross-choice interference, ordering, baseline drift, trace timescale, and saturation. Record changes to development ranges and rerun affected controls.
   - Verify: Do not introduce hidden resets, weight decay, membrane clipping, or a trained decoder to pass. If continuous learning remains unverified, leave the milestone blocked and report the negative finding honestly.
+  - Evidence: `docs/evidence/m4-08/summary.md` (2026-09-22 UTC). Pre-analysis `manifests/m4_continuity_audit.json` (M4-07 manifest referenced by SHA-256 and verified untouched; 8 paired legs + probes; only new range tau_e 16/64 with spec-7.9 reason; no acquisition criterion). No production change. 6 new tests in `tests/m4_continuity_audit.rs`: declaration freeze, exact two-step stale-trace leak, analyzer goldens, representation/carryover probe, persistent closed-loop probe, 8-condition small-fixture pairing with raw identity. Release export: 8/8 lifetimes, 16,000 outcomes, 272,224 ticks, zero failures, 4/4 archive re-runs bitwise identical. Findings: outer-2 persistent legs answer action 0 on all 2,000 outcomes (zero reward, baseline to 0, late |delta| 0 despite E L1 186-367) while episodic explores and reaches 0.97; event-reset locks identically with independent updates (cosine -0.01 vs 0.32-0.69), isolating persistent activity as the binding constraint; tau_e does not rescue; baseline/ordering/saturation healthy; lock reproduces at minimal scale (wrong-action loop 600/600 while P moves; cue carryover ~80% of fresh separation). Full battery: 331 Rust pass (325 + 6), 10 ignored (9 prior + this export), 2 compile-fail docs, 17 Python, fixture audit, clean fmt/Clippy/diff. M4-07 stays unchecked; M4-GATE stays blocked; next M4-09.
+
+- [x] **M4-08b - Localize the behavioral lock (motor vs recurrent vs cue-drive)**
+  - Deliver: Paired synthetic-drive probes (dose/flip/converge) on the frozen family over outers 2–3 with a pre-analysis manifest and transition budget. No production change, no new range.
+  - Verify: Lock-in validity gate, determinism, budget accounting, full battery green. Probes are diagnostic only; no acquisition or tuning claim.
+  - Evidence: `docs/evidence/m4-08b/summary.md` (2026-09-22 UTC). Pre-analysis `manifests/m4_lock_localization.json` (frozen family, lock-in + dose/flip/converge matrices, 76,768-transition budget). 4 new tests in `tests/m4_lock_localization.rs`: declaration/budget arithmetic, analyzer goldens, lock-in validity + bitwise determinism, structural matrix + exact reproduction. Release export: exactly 76,768/76,768 transitions, 16/16 validity gates, same-tag rebuild identity. Findings: lock-in reproduces on all seeds; outer-2 1× drive moves fresh readout toward action 0 (+0.11..+0.16) against mappings rewarding 1; zero drive escapes locked clones 8/8 (~50 ticks) while 1×/2×/4× drive pins 0/8 with scale-growing margins; outer-3 cue-1 drive flips 8/8 (median 14→6→3) and cue-0 holds 8/8 correctly; converge washes out 4–5× but plateaus (0.17/0.33 at 64 ticks). Lock localized to input-projection alignment; input scaling deepens the pin. Full battery: 335 Rust pass (331 + 4), 11 ignored (10 prior + this export), 2 compile-fail docs, 17 Python, fixture audit, clean fmt/Clippy/diff. M4-07/M4-GATE stay open; next M4-09 (still blocked on acquisition).
+
+- [x] **M4-08c - Test bounded fixed-rule escape on the frozen acquisition seeds**
+  - Deliver: Predeclare eta `{1e-4,3e-4,1e-3,3e-3}` × tau_e `{16,32,64}`, retain M4-07 actor/seeds/windows/bar, reuse three fresh matched B3 lifetimes, and execute at most 39 lifetimes / 1,327,092 ticks. Save all series and apply the frozen adoption/null rule.
+  - Verify: Full archived aggregate replication at the anchor, exact W0/exogenous pairing, complete counts, raw identity, no hidden resets, deterministic selection, and full quality battery. A valid null completes this diagnostic, not M4-07 or M4-GATE.
+  - Evidence: `docs/evidence/m4-08c/summary.md`; 39/39 complete, 0 failures, 0/12 settings pass (each 0/3 seeds). Both locked seeds choose action 0 on every outcome at every setting. Six archived aggregate records reproduce exactly. Nothing adopted; negative `docs/evidence/m4-09/summary.md` saved and design escalation recorded.
 
 - [ ] **M4-09 - Save the M4 continuous-system evidence bundle**
   - Deliver: Save resolved profiles, reset audit, several-seed acquisition/control results, exact replay evidence, sample traces, and the runnable continuous-clean command.
   - Verify: The report labels the main learner a heuristic online local system rather than importing the restricted diagnostic's unbiased-gradient interpretation.
+  - Negative package saved 2026-09-22: `docs/evidence/m4-09/summary.md` indexes resolved profiles, reset audits, all acquisition/control results, existing replay evidence, scalar traces, and the runnable bounded Rust harness. This does not complete the successful continuous-system handoff; acquisition remains unresolved and the production plastic `simulate` route remains absent.
 
 - [ ] **M4-GATE - Verify and record milestone exit**
   - The birth-only-reset learner shows the declared acquisition evidence with persistent traces; no within-lifetime reset hooks fire, replay passes, and trace/update/bound statistics remain interpretable. This is the first core continuous-learning result. An unresolved failure blocks noisy-task and gate-search claims.
@@ -3555,12 +3570,175 @@ Tracker boxes updated: M4-07 intentionally remains unchecked because its
   verify clause failed. M4-GATE blocked; next eligible task M4-08.
 ```
 
+```text
+Date / agent or session: 2026-09-22 / Muse Code (M4-08)
+Task IDs: M4-08 (audit verified; no acquisition rescue, none claimed)
+Spec sections: 16/M4 "If it fails" (interference, ordering, long traces,
+  baseline drift, saturated motor), 21 (reduction path), 7.3-7.9, 9-10
+Change and affected files: manifests/m4_continuity_audit.json (new
+  pre-analysis declaration), tests/m4_continuity_audit.rs (new: 6 fast
+  tests + 1 ignored bounded export), docs/evidence/m4-08/summary.md +
+  audit/{series.jsonl,audit.json} (new), README.md, manifests/README.md,
+  docs/{decisions,experiments,handoff}.md, docs/evidence/README.md,
+  to-do.md. No production file changed.
+Code revision / dirty-tree state: 08e4f82; audit manifest/test/evidence
+  untracked at execution, to-do.md claim edit only.
+Commands actually executed:
+  cargo test --locked --test m4_continuity_audit (6 pass, 1 ignored)
+  CRA_M4_AUDIT_DIR=docs/evidence/m4-08/audit cargo test --release
+  --locked --test m4_continuity_audit m4_continuity_audit_export --
+  --ignored --exact --nocapture (1 pass, 8/8 legs, 2.8 s)
+  cargo test --all-targets --locked (331 pass, 0 fail, 10 ignored)
+  cargo fmt --all -- --check (clean), cargo clippy --all-targets
+  --locked -- -D warnings (clean), python3
+  analysis/test_validate_logs.py (17 pass),
+  analysis/validate_logs.py analysis/fixtures/valid (OK),
+  validate-config configs/continuous_stationary.toml (OK),
+  git diff --check (clean).
+Outcome and checks passed: declaration freeze, exact two-step stale-trace
+  leak, analyzer goldens, representation/carryover and closed-loop probes,
+  8-condition small-fixture pairing with raw identity; release export with
+  exact schedule/W0 pairing, raw identity on all 12,000 persistent
+  outcomes, and 4/4 archive re-runs bitwise identical to M4-07.
+Checks not run / failures / blockers: no failures; M4-07/M4-GATE remain
+  open by finding (not by missing execution). No validation/final-test
+  seeds inspected.
+Configuration and suite hashes: audit manifest
+  bd6c96473df9e5c68000f4ed06436df54b9a2ebcad24b29dcae918c62db58bb4;
+  audit.json 4c399c79078b0b60560e45c23e2cf10bf71b2620793cad484a96ed701e3c9f52;
+  series.jsonl
+  8372b17bc8323d830e06099e0dae0a64010d9f2ecce006be31e54541ab16e5d8;
+  M4-07 manifest unchanged
+  (18354ebb175aafc266cd0c1a01fa5039e52da178f738ea91dfe6b1520d04a1e8).
+Seed namespace / outer seeds / lifetime count: development / outers 1-3
+  (focus 2) / 8 lifetimes x 2,000 outcomes = 16,000 outcomes, 272,224
+  ticks; plus synthetic probes (no environment).
+Artifact paths and checksums where relevant: docs/evidence/m4-08/
+  (summary.md + audit/series.jsonl 16,000 rows + audit/audit.json).
+Interpretation and claim limits: continuity-induced behavioral lock with
+  teaching-signal starvation on outer 2 (0 action-1 in 2,000 outcomes per
+  persistent leg; baseline to 0; late |delta| 0 despite E L1 186-367;
+  episodic explores and reaches 0.97); event-reset locks identically with
+  independent updates, isolating persistent activity over trace
+  contamination; tau_e 16/64 no rescue; baseline/ordering/saturation
+  healthy; minimal-scale reproduction (wrong-action loop 600/600, P moving;
+  cue carryover ~80% of fresh separation). Development seeds, tested actor
+  family only; no acquisition, modulation, evolution, or broader-track
+  claim. No hidden resets/decay/clipping/decoder added.
+Tracker boxes updated: M4-08 checked after verification; status, ownership,
+  blocker, and next eligible task updated.
+Next eligible task: M4-09 (evidence bundle; blocked on verified continuous
+  acquisition).
+```
+
+```text
+Date / agent or session: 2026-09-22 / Muse Code (M4-08b)
+Task IDs: M4-08b (probes verified; diagnostic only, no rescue, none claimed)
+Spec sections: 16/M4 "If it fails", 21.1-21.2 (smallest system,
+  representation vs learning failure); 5.5 (input channels), 6, 10
+Change and affected files: manifests/m4_lock_localization.json (new
+  pre-analysis declaration), tests/m4_lock_localization.rs (new: 4 fast
+  tests + 1 ignored bounded export), docs/evidence/m4-08b/summary.md +
+  probes/probes.json (new), README.md, manifests/README.md,
+  docs/{decisions,experiments,handoff}.md, docs/evidence/README.md,
+  to-do.md. No production file changed.
+Code revision / dirty-tree state: 08e4f82; probe manifest/test/evidence
+  untracked at execution (M4-08 files likewise uncommitted).
+Commands actually executed:
+  cargo test --locked --test m4_lock_localization (4 pass, 1 ignored)
+  CRA_M4_LOCK_DIR=docs/evidence/m4-08b/probes cargo test --release
+  --locked --test m4_lock_localization m4_lock_localization_export --
+  --ignored --exact --nocapture (1 pass, 76,768 transitions)
+  cargo test --all-targets --locked (335 pass, 0 fail, 11 ignored)
+  cargo fmt --all -- --check (clean), cargo clippy --all-targets
+  --locked -- -D warnings (clean), python3
+  analysis/test_validate_logs.py (17 pass),
+  analysis/validate_logs.py analysis/fixtures/valid (OK),
+  validate-config configs/continuous_stationary.toml (OK),
+  git diff --check (clean).
+Outcome and checks passed: declaration/budget-arithmetic test, analyzer
+  goldens, lock-in validity (16/16 lock-ins end all-0) plus bitwise
+  determinism, structural full-matrix test with exact reproduction;
+  release export with exactly the declared 76,768 transitions, zero
+  nonfinite states, and same-tag rebuild identity. One development
+  tripwire fired and was fixed honestly: the transition counter omitted
+  the margins block (measured 60,448 vs declared 76,768); the counter,
+  not the budget, was corrected.
+Checks not run / failures / blockers: no failures; M4-07/M4-GATE remain
+  open by finding. No validation/final-test seeds inspected.
+Configuration and suite hashes: probe manifest
+  dd8861dfdd41fe0447ca94f4a1655a9610ec7167980779185fca09446a061764;
+  probes.json
+  c8c171a50d1ef33ee8b38c4c24a6a40d11888a73c8cc729c9303e3fbc244ba25.
+Seed namespace / outer seeds / lifetime count: development / outers 2-3 /
+  no lifetimes (synthetic ordinary inputs; 76,768 learner transitions).
+Artifact paths and checksums where relevant: docs/evidence/m4-08b/
+  (summary.md + probes/probes.json).
+Interpretation and claim limits: lock localized to input-projection
+  alignment on the frozen family. Outer-2 1x drive moves the fresh readout
+  toward action 0 (+0.11..+0.16) against mappings rewarding 1; zero drive
+  escapes locked clones 8/8 (median ~50 ticks) while 1x/2x/4x drive pins
+  0/8 with scale-growing margins; outer-3 cue-1 drive flips 8/8 (median
+  14->6->3 ticks) and cue-0 drive holds 8/8 correctly; converge distances
+  wash out 4-5x by 64 ticks but plateau (0.17/0.33). Motor inertia alone
+  is escapable; history persistence is secondary. Scaling input drive
+  deepens the pin rather than fixing it. Diagnostic only; no acquisition,
+  tuning, gate, or broader-track claim. No hidden resets/decay/clipping/
+  decoder added.
+Tracker boxes updated: M4-08b checked after verification; status,
+  ownership, blocker, and next eligible task updated.
+Next eligible task: M4-09 (evidence bundle; blocked on verified continuous
+  acquisition).
+```
+
+### 2026-09-22 UTC — M4-08c complete as a negative diagnostic; negative M4-09 package
+
+Owner authorized choosing and proceeding. Preserved prior dirty M4-08/08b
+work. Added `manifests/m4_escape_sweep.json` before execution (SHA-256
+`ca00ca01b3d6913e0216f7c846a155556b25a1fc1fbaff4094d27620cd816770`),
+`tests/support/m4_escape_sweep.rs` under the existing acquisition target,
+and read-only `analysis/audit_m4_escape.py`. No production/spec/config or
+historical raw evidence changes. Preflight corrections recorded selection
+bias, outer-3's unattainable margin ceiling, weaker-input uncertainty, and
+aggregate-only archive replication scope.
+
+Executed once:
+`CRA_M4_ESCAPE_DIR=docs/evidence/m4-08c/run cargo test --release --locked --test m4_continuous_acquisition escape::m4_escape_sweep_export -- --ignored --exact --nocapture`.
+All 39 declared development lifetimes completed (root 1, outers 1–3,
+lifetime 0, 2,000 outcomes each): 78,000 outcomes and 1,327,092 ticks,
+4.408 seconds export-body time, zero failures. Exact pairing and 6/6
+archived aggregate-record matches; all 12 settings pass 0/3 seeds. Outers
+1/2 remain wrong-action locked throughout; maximum clipping 0.053904,
+bound occupancy 0, all P movement positive. Nothing adopted.
+
+Fresh verification: focused target 6 passed/3 ignored; full
+`cargo test --all-targets --locked` 339 passed/12 ignored; `cargo test
+--locked --doc` 2 passed; `python3 analysis/test_validate_logs.py` 17
+passed; `python3 analysis/validate_logs.py analysis/fixtures/valid` OK;
+`python3 analysis/audit_m4_escape.py docs/evidence/m4-08c/run` audited all
+78,000 scalar rows; fmt, Clippy `-D warnings`, continuous-profile validation
+and diff checks clean. Unrelated historical slow suites were not rerun.
+
+Evidence: `docs/evidence/m4-08c/{preflight,summary}.md`, immutable run
+artifacts under `docs/evidence/m4-08c/run/`, and negative bundle
+`docs/evidence/m4-09/summary.md`. Design escalation in `docs/decisions.md`.
+M4-07, successful M4-09, and M4-GATE remain open; no M5 or search unlocked.
+Next eligible work is a separate declaration studying persistent actor
+exploration/input-drive versus noise, not another post-result eta/tau run.
+
 ## Blockers and decision register - keep current
 
 Current blocker: M4-07's fully persistent acquisition criterion failed 0/3
-development seeds despite complete, paired, numerically healthy runs. M4-GATE
-is blocked pending M4-08's declared continuity-failure audit; the negative
-M4-07 record is immutable. M1-GATE re-verified after the 2026-09-21 UTC owner-requested
+development seeds despite complete, paired, numerically healthy runs. M4-08
+(2026-09-22 UTC) audited the failure and isolates a continuity-induced
+behavioral lock with teaching-signal starvation; M4-08b localized it to
+input-projection alignment (outer-2 drive pins the wrong action at every
+scale while zero drive escapes; scaling drive deepens the pin). M4-08c
+then tested all 12 eta/tau settings: 39/39 complete, 0/12 pass, both locked
+seeds never choose action 1, nothing adopted. Negative M4-09 package saved;
+next is a separate persistent-exploration design declaration. No rescue
+mechanism was introduced. M4-GATE remains blocked on verified continuous
+acquisition; the negative M4-07 record is immutable. M1-GATE re-verified after the 2026-09-21 UTC owner-requested
 corrective review: 185 Rust passes (1 ignored probe), 15 Python passes,
 clean fmt/Clippy, eleven corrected audited runs and two original comparisons.
 M2-GATE passed after M2-06 package execution: 27 fast score diagnostics,

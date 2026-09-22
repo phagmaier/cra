@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "task": "M4-08",
+  "purpose": "Declared continuity-failure audit under the frozen M4-07 negative result. This plan fixes development seeds, actor family, per-cue exposure windows, audit diagnostics, and a finite compute budget BEFORE any M4-08 audit lifetime is executed. It introduces no learning-rule, tick-order, reset-policy, or criterion change: the M4-07 manifest, exposure windows, and acceptance criterion are referenced by hash and left immutable.",
+  "frozen_source": {
+    "m4_07_manifest": "manifests/m4_continuous_acquisition.json",
+    "m4_07_manifest_sha256": "18354ebb175aafc266cd0c1a01fa5039e52da178f738ea91dfe6b1520d04a1e8",
+    "m4_07_evidence": "docs/evidence/m4-07/summary.md",
+    "m4_07_verdict": "0/3 outer seeds passing; fully persistent late macro accuracy 0.00/0.00/0.94 vs matched B3 0.00/0.00/0.875",
+    "note": "M4-07 stays unchecked. No seed, window, or criterion in the frozen manifest may be revised to retroactively turn that run into a pass."
+  },
+  "base_profile": "configs/continuous_stationary.toml",
+  "namespace": "development",
+  "root_seed": 1,
+  "lifetime_indices": [0],
+  "outcomes_per_lifetime": 2000,
+  "actor_family": {
+    "source": "M3-08 frozen full-recurrent winner at M3 grid index 11 (identical to M4-07)",
+    "m3_grid_index": 11,
+    "eta": 0.001,
+    "input_scale": 0.2,
+    "recurrent_gain": 0.8,
+    "noise_sigma": 0.05,
+    "plastic_mask": "all_recurrent_edges",
+    "tau_e": 32.0
+  },
+  "acquisition_windows": {
+    "unit": "exposures_per_cue",
+    "early_exposures": 100,
+    "late_exposures": 100,
+    "aggregation": "equal-weight macro mean across cues",
+    "minimum_exposures_per_cue": 200,
+    "note": "Same windows as M4-07, reused only to locate the failure (outer 2 learns episodically, not persistently). They are descriptive here, never a new acceptance criterion."
+  },
+  "audit_runs": [
+    {
+      "id": "outer2_episodic_b4",
+      "outer_seed": 2,
+      "continuity": "episodic_diagnostic",
+      "learning": "fixed_gate_plastic",
+      "role": "focus: the one condition that acquired (late 0.97) on the identical W0/schedule; reference for baseline drift, update alignment, and per-cue behavior"
+    },
+    {
+      "id": "outer2_event_reset_b4",
+      "outer_seed": 2,
+      "continuity": "event_reset_diagnostic",
+      "learning": "fixed_gate_plastic",
+      "role": "focus: trace clearing alone did not rescue (late 0.00); isolates persistent ACTIVITY as the remaining difference from episodic"
+    },
+    {
+      "id": "outer2_continuous_b4",
+      "outer_seed": 2,
+      "continuity": "continuous_persistent",
+      "learning": "fixed_gate_plastic",
+      "role": "focus: fully persistent failure (late 0.00) to audit for interference, drift, timescale, and saturation"
+    },
+    {
+      "id": "outer2_continuous_b3",
+      "outer_seed": 2,
+      "continuity": "birth_only_nonplastic",
+      "learning": "disabled",
+      "role": "matched control rerun in the current revision so every audit leg has a freshly paired nonplastic reference"
+    },
+    {
+      "id": "outer3_continuous_b4",
+      "outer_seed": 3,
+      "continuity": "continuous_persistent",
+      "learning": "fixed_gate_plastic",
+      "role": "contrast: the only seed with above-chance persistent accuracy (late 0.94, margin 0.065); what differs from outer 2?"
+    },
+    {
+      "id": "outer1_continuous_b4",
+      "outer_seed": 1,
+      "continuity": "continuous_persistent",
+      "learning": "fixed_gate_plastic",
+      "role": "control: documented representation-locked initialization (0.00 under every condition); guards against mistaking a generic lock for a continuity effect"
+    },
+    {
+      "id": "outer2_continuous_b4_tau16",
+      "outer_seed": 2,
+      "continuity": "continuous_persistent",
+      "learning": "fixed_gate_plastic",
+      "tau_e_override": 16.0,
+      "role": "timescale leg: shorter trace keeps less stale credit; paired W0/schedule with the tau_e=32 focus run"
+    },
+    {
+      "id": "outer2_continuous_b4_tau64",
+      "outer_seed": 2,
+      "continuity": "continuous_persistent",
+      "learning": "fixed_gate_plastic",
+      "tau_e_override": 64.0,
+      "role": "timescale leg: longer trace keeps more stale credit; paired W0/schedule with the tau_e=32 focus run"
+    }
+  ],
+  "new_development_ranges": [
+    {
+      "parameter": "tau_e",
+      "baseline": 32.0,
+      "audit_values": [16.0, 64.0],
+      "reason": "Spec 7.9: a trace increment from D ticks ago is retained by exp(-D/tau_e); increasing tau_e preserves older credit but also includes more unrelated activity and previous choices. M4-05 showed trace/update scale grows with tau_e while reward was nonmonotonic. The audit asks descriptively whether outer 2's persistent failure moves with timescale; eta is held fixed so this is not tuning, and no value is adopted without rerunning the matched B3 control (outer2_continuous_b3, tau_e-invariant by construction since B3 holds no E/P/baseline)."
+    }
+  ],
+  "diagnostics": [
+    "per_outcome_series: cue, action, reward, latent correctness, delta, baseline_old/new, eligibility L1 before update, raw/actual update L1, commit/feedback ticks",
+    "baseline_drift: baseline trajectory start/mid/end and range, episodic vs persistent on the paired schedule",
+    "update_alignment: consecutive-outcome cosine of actual-update matrices (shared-trace interference signature), early vs late",
+    "trace_scale: eligibility L1 before update per outcome, persistent vs episodic at matched schedule positions; raw-identity check raw_L1 = eta*|delta|*E_L1 on every persistent outcome",
+    "inter_feedback_decay: realized ticks between consecutive feedbacks and implied retained fraction exp(-gap/tau_e)",
+    "per_cue_behavior: early/late accuracy and action rates per cue (behavioral representation-lock signature)",
+    "health: actor saturation fraction, motor-filter maxima, motor margins from the same lifetimes",
+    "representation_probe: synthetic two-cue drive through the outer-2 family learner, fresh vs carryover separation (Section 21.2 diagnostic, never a task readout)",
+    "persistent_closed_loop_probe: constant-input synthetic-reward loop with no resets (Section 21.1 smallest system); asks whether the fixed-gate rule still drifts toward the preferred action under full persistence",
+    "archive_cross_check: re-run late macro accuracies must reproduce the archived M4-07 records exactly (same code revision, deterministic)"
+  ],
+  "integrity_rules": [
+    "All 8 lifetimes complete with zero simulation failures; every state finite.",
+    "Within each outer seed, all conditions share identical W0 and exogenous event/cue/commit/feedback/noise schedules.",
+    "Resets audit: [0] only for continuous runs; episodic/event-reset runs log their declared resets.",
+    "No hidden resets, weight decay, membrane clipping, trained decoder, or gate change: fixed gate 1 throughout.",
+    "The audit records measurements; it sets no acquisition pass/fail criterion and cannot check M4-07 or M4-GATE."
+  ],
+  "prohibitions": [
+    "Do not edit manifests/m4_continuous_acquisition.json, its windows, seeds, or criterion.",
+    "Do not inspect validation or final-test seed namespaces.",
+    "Do not add a stabilizer (decay, clipping, normalization, homeostasis) to rescue learning."
+  ],
+  "budget": {
+    "lifetimes": 8,
+    "outcomes": 16000,
+    "maximum_ticks_per_lifetime": 34028,
+    "maximum_total_ticks": 272224,
+    "execution": "serial release-mode bounded diagnostic; fresh output directory required"
+  }
+}

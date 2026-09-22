@@ -1,0 +1,79 @@
+schema_version = 1
+profile_name = "m4_07_continuous_persistent"
+
+[simulation]
+dt = 1.0
+precision = "f64"
+warmup_ticks = 32
+outcomes_per_lifetime = 2000
+reset_policy = "birth_only"
+feedback_order = "before_neural_transition"
+
+[environment]
+kind = "stationary_clean"
+cue_count = 2
+cue_encoding = "one_hot"
+stable_fraction = 1.0
+feedback_noise_values = [0.0]
+volatile_hazard_values = [0.0]
+hazard_clock = "cue_exposure"
+quiet_ticks = [4, 4]
+cue_ticks = 8
+memory_gap_ticks = [0, 0]
+response_ticks = 4
+reward_delay_ticks = [1, 1]
+feedback_ticks = 1
+max_pending_choices = 1
+
+[actor]
+neuron_count = 16
+motor_neurons_per_action = 2
+edge_probability = 0.25
+self_edges = false
+recurrent_gain = 0.8
+input_scale = 0.2
+tau_h = 5.0
+tau_a = 100.0
+adaptation_strength = 0.0
+noise_sigma = 0.05
+motor_filter_tau = 3.0
+
+[learning]
+enabled = true
+rule = "gaussian_transition_score"
+plastic_mask = "all_recurrent_edges"
+trace_policy = "persistent"
+tau_e = 16.0
+eta = 0.0001
+max_update = 0.01
+plastic_bound = 0.5
+plastic_decay = 0.0
+reward_baseline_initial = 0.5
+reward_baseline_beta = 0.02
+
+[modulator]
+mode = "fixed"
+neuron_count = 2
+tau_m = 20.0
+ordinary_feedback_to_actor = false
+gate_timing = "pre_outcome"
+gate_bias_initial = 0.0
+projection_init_std = 0.01
+
+[evolution]
+enabled = false
+population_size = 32
+elite_count = 8
+mutation_std = 0.1
+search_space = "gate_projection_only"
+
+[logging]
+event_log = true
+trace_every_ticks = 10
+full_trace_lifetimes = 1
+record_raw_and_applied_updates = true
+
+[seeds]
+root_seed = 1
+namespace = "development"
+outer_seed = 1

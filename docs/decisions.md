@@ -1240,3 +1240,100 @@ make code or a result look successful.**
   audit; hidden resets, altered seeds/windows/criteria, and retrospective
   threshold weakening are prohibited. Verification and result:
   [M4-07 evidence](evidence/m4-07/summary.md).
+
+## 2026-09-22 UTC — M4-08 continuity-failure audit (spec 16/M4, 21)
+
+- **Audit before scope expansion, with the negative record frozen.** The
+  M4-08 plan (`manifests/m4_continuity_audit.json`) references the M4-07
+  manifest by SHA-256, reuses its family/seeds/windows descriptively, and
+  declares 8 paired legs plus probes before execution. The only new
+  development range is tau_e 16/64 with a recorded spec-7.9 reason; eta is
+  held fixed. No production file changed; all diagnostics drive the public
+  runners or the public learner API.
+- **The failure is a continuity-induced behavioral lock, not a rule,
+  ordering, baseline, timescale, or saturation defect.** On outer 2 every
+  persistent-activity leg answers action 0 on all 2,000 outcomes (zero
+  reward), the baseline decays to 0, and late |delta| is 0 despite large
+  live traces — updates starve. The identical-schedule episodic leg explores
+  from reset states and reaches late 0.97. Event-reset (E cleared, activity
+  persistent) locks identically with independent consecutive updates, so
+  persistent activity — not trace contamination — is the binding constraint,
+  even though the audit proves stale-trace leakage exactly and measures
+  alignment growing with tau_e (0.32/0.53/0.69). Timescale does not rescue
+  (0.00 at 16/32/64); baseline tracks mean reward correctly; saturation is
+  zero; raw identity holds on every persistent outcome.
+- **The lock reproduces at minimal scale.** A constant-input synthetic-
+  reward loop with no resets holds the wrong action on 600/600 outcomes
+  while P still moves; a synthetic two-cue probe shows fresh cue separation
+  with prior-cue carryover at ~80% of that separation on the focus seeds.
+  Outer 1 (locked under every condition) and outer 2 (locked only without
+  resets) are different failures; outer 3 starts near-correct and holds.
+- **M4-08 is verified as an audit; M4-GATE stays blocked.** No rescue
+  mechanism was introduced and none follows from this evidence. Any future
+  escape mechanism needs a new declared task with fresh controls; the M4-07
+  criterion stays frozen. Verification:
+  [M4-08 evidence](evidence/m4-08/summary.md).
+
+## 2026-09-22 UTC — M4-08b lock localization (spec 16/M4, 21.1–21.2)
+
+- **Paired synthetic-drive probes on the frozen family, no new range.**
+  `manifests/m4_lock_localization.json` declares lock-in (M4-08 protocol,
+  60 outcomes), dose/flip/converge matrices on outers 2–3, and a 76,768-
+  transition budget before execution. Flip clones share history and noise;
+  converge pairs share perturbation draws. No production change.
+- **The lock sits in the input-projection alignment.** Outer-2 1× cue drive
+  moves the fresh readout toward action 0 while both mappings reward 1;
+  zero drive escapes locked clones 8/8 (~50 ticks) but any cue drive pins
+  0/8 with margins growing in scale. Outer 3 is the aligned contrast
+  (cue-1 drive flips 8/8 ever faster; cue-0 drive correctly holds).
+  Converge distances wash out 4–5× by 64 ticks but plateau above zero, so
+  history persistence is secondary. Motor inertia alone is escapable.
+- **Consequence:** scaling `input_scale` cannot fix a wrong-way projection
+  (deeper pin with scale). Headroom, if any, is in a bounded persistent
+  `eta` × `tau_e` (+`motor_filter_tau`) sweep with pre-registered rules, or
+  in larger scope changes (family selected on persistence, exploration
+  support) needing their own tasks. Verification:
+  [M4-08b evidence](evidence/m4-08b/summary.md).
+
+## 2026-09-22 UTC — M4-08c null and persistent-exploration design escalation (spec 6.4–6.5, 7.9, 10.2, 16/M4)
+
+- **Owner instruction authorizes the bounded sweep.** The request to choose
+  and proceed superseded the earlier approval hold. The plan was frozen in
+  `manifests/m4_escape_sweep.json`, then executed once for 39 lifetimes.
+  No production changes; M4-07 manifest/criterion/archive preserved.
+- **Correct the interpretation before running.** Absolute thresholds and
+  deterministic replay do not remove development selection bias. Outer-3
+  B3 accuracy 0.875 means the 0.15 margin is unattainable there, requiring
+  rescue of both locked seeds. Prior drive probes do not rule out weaker
+  inputs in closed-loop lifetimes; excluding input/motor axes isolates this
+  sweep rather than proving those axes irrelevant. Omitting tau_e 128 is a
+  finite-budget choice, not a monotonic failure theorem. These corrections
+  are in the [preflight](evidence/m4-08c/preflight.md), written before runs.
+- **Measured null, no adoption.** All 12 settings pass 0/3 seeds. All 24
+  B4 lifetimes on outers 1/2 choose action 0 for every outcome, with tiny
+  late teaching signals despite live traces. All 39 lifetimes completed;
+  pairing, six exact archived aggregate records, and numerical checks pass.
+  The [negative M4-09 bundle](evidence/m4-09/summary.md) is an evidence
+  package, not a milestone pass or an impossibility result.
+- **Choose persistent exploration as the next design question.** Stop
+  tuning eta/tau on this frozen episodic-selected actor for now. Prefer a
+  separately preregistered input-drive/noise balance investigation using
+  the existing ordinary neural perturbations and unchanged learning rule.
+  It should first measure B3 exploration in actual persistent lifetimes,
+  then acquisition against paired B3 at declared settings and budgets;
+  retain every initialization rather than screening away unfavorable
+  mappings. Any selected family needs fresh development confirmation and
+  replay coverage before the M4-GATE question. The old threshold stays
+  frozen; any better future acquisition criterion must be a new declaration
+  with its own rationale, not a replacement verdict for M4-07.
+- **Alternatives and consequences.** Motor-filter changes remain a possible
+  separate diagnostic, but cue-driven pinning and passively escapable motor
+  inertia make them less directly motivated than input/noise balance. Adding
+  another exploration rule or changing the baseline would alter the model
+  and is not authorized implicitly by this null. Weakening input may lose
+  cue information; stronger neural noise changes both exploration and score
+  variance, so neither is an assumed rescue. No design sweep, new family,
+  or scientific contract change was executed after the null.
+
+Verification: [M4-08c evidence](evidence/m4-08c/summary.md). M4-07,
+successful M4-09 handoff, and M4-GATE remain open; no M5/gates/search unlock.

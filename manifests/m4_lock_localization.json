@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "task": "M4-08b",
+  "purpose": "Declared lock-localization probes under the frozen M4-08 finding (outer-2 continuity-induced behavioral lock with teaching-signal starvation). This plan fixes the actor family, probe protocols, noise seeds, and a finite transition budget BEFORE any M4-08b probe is executed. It introduces no learning-rule, tick-order, reset-policy, hyperparameter, or criterion change and sets no acquisition pass/fail verdict: it localizes the lock to motor-filter inertia, recurrent attractor persistence, or insufficient cue drive.",
+  "frozen_source": {
+    "m4_08_manifest": "manifests/m4_continuity_audit.json",
+    "m4_08_evidence": "docs/evidence/m4-08/summary.md",
+    "m4_08_finding": "outer-2 persistent legs answer action 0 on all 2,000 outcomes; baseline to 0; late |delta| 0 despite large traces; constant-input loop holds the wrong action 600/600 while P moves",
+    "actor_family": {
+      "source": "M3-08 frozen full-recurrent winner at M3 grid index 11 (identical to M4-07/M4-08)",
+      "m3_grid_index": 11,
+      "eta": 0.001,
+      "input_scale": 0.2,
+      "recurrent_gain": 0.8,
+      "noise_sigma": 0.05,
+      "plastic_mask": "all_recurrent_edges",
+      "tau_e": 32.0
+    },
+    "note": "Family hyperparameters are reused exactly; M4-08b tests no new range. Any future range change needs its own declared task."
+  },
+  "namespace": "development",
+  "root_seed": 1,
+  "outer_seeds": [2, 3],
+  "base_profile": "configs/continuous_stationary.toml",
+  "feature_layout": "[cue0, cue1, cue_present, go, outcome_present, outcome_value, prev_a0, prev_a1]; cue vectors set one-hot cue plus cue_present; locked latch sets prev_a0=1 (the locked action); fresh latch is zero; zero drive is all zeros",
+  "lock_in": {
+    "protocol": "M4-08 persistent closed-loop protocol at 60 outcomes: constant cue-0 features with locked latch, 17 ticks per outcome (stationary cycle length), synthetic reward for preferred_action=1",
+    "preferred_action": 1,
+    "preferred_action_justification": "M4-08 audit correctness labels (evaluator-side) show outer-2 birth mappings reward action 1 on both cues; the learner never sees labels, only the synthetic 0/1 reward, exactly as in the M4-08 probe",
+    "outcomes": 60,
+    "ticks_per_outcome": 17,
+    "validity_gate": "last 10 lock-in actions must all be 0 (reproduces the M4-08 600/600 lock at small scale); otherwise the flip/converge probes built on the locked state are invalid and must not be interpreted"
+  },
+  "probes": [
+    {
+      "id": "dose_response",
+      "question": "How sensitive is fresh activity/readout to cue-drive strength?",
+      "matrix": "fresh learner; cue in {0,1}; scale in {0, 0.5, 1, 2, 4}; 8 ticks",
+      "record": "displacement ||r_scale - r_zero|| after 8 ticks; motor margin q0-q1"
+    },
+    {
+      "id": "flip",
+      "question": "Can ordinary cue drive overcome lock inertia, and at what strength?",
+      "matrix": "locked-state clone; switch cue in {0,1}; scale in {0, 1, 2, 4} (0 = zero-features control); 8 noise seeds; cap 200 ticks",
+      "record": "ticks to first action-1 (or never); margin trajectory over first 40 ticks"
+    },
+    {
+      "id": "converge",
+      "question": "Does recurrent activity wash out history toward the fresh trajectory (drive wins) or hold an offset (attractor wins)?",
+      "matrix": "locked-then-cue-A vs fresh-then-cue-A; cue A in {0,1}; 4 noise seeds; 64 ticks",
+      "record": "||r_locked_path - r_fresh_path|| at ticks 8/16/32/64"
+    }
+  ],
+  "diagnostics": [
+    "lock_in_validity: last-10 actions and lock margin per seed/outer",
+    "dose_response: displacement and margin vs scale (fresh state)",
+    "flip: ticks-to-first-action-1 distribution plus margin@40 by scale (locked state)",
+    "converge: locked-vs-fresh distance at 8/16/32/64 ticks",
+    "determinism: rebuilt probes reproduce trajectories bitwise"
+  ],
+  "integrity_rules": [
+    "Every probe uses the public agent-only learner constructor with matched outer-seed inheritance and fixed probe RNG tuples; no hidden state, schedules, or labels reach the learner.",
+    "All trajectories finite; any nonfinite state is a failure, not a data point.",
+    "The export asserts execution integrity only (validity gate, determinism, budget); magnitudes are recorded for docs/evidence/m4-08b/, never asserted as thresholds."
+  ],
+  "prohibitions": [
+    "No learning-rule, tick-order, reset-policy, hyperparameter, or gate change.",
+    "No trained readout or label-fed teaching signal: cue features are ordinary inputs; probe analysis stays evaluator-side.",
+    "No acquisition, tuning, or gate-search claim; no validation/final-test seeds."
+  ],
+  "budget": {
+    "unit": "learner transitions (advance calls)",
+    "lock_in_flip": 16320,
+    "flip_legs": 25600,
+    "lock_in_converge": 8160,
+    "fresh_zero_pairing": 8160,
+    "converge_paths": 2048,
+    "dose_response": 160,
+    "lock_margins": 16320,
+    "total_declared_transitions": 76768,
+    "maximum_total_transitions": 100000,
+    "execution": "serial; trivial compute, release-mode ignored export into a fresh directory"
+  }
+}

@@ -1,0 +1,1351 @@
+{
+  "config_sha256": "f91dfd07f8701cec2f9cc6c676b6bafe613d5954822e9204f95026dddc94d735",
+  "converge_seeds": 4,
+  "dose_scales": [
+    0.0,
+    0.5,
+    1.0,
+    2.0,
+    4.0
+  ],
+  "flip_cap_ticks": 200,
+  "flip_scales": [
+    0.0,
+    1.0,
+    2.0,
+    4.0
+  ],
+  "flip_seeds": 8,
+  "measured_budget": {
+    "maximum_declared_transitions": 100000,
+    "transitions": 76768
+  },
+  "outers": [
+    {
+      "converge": [
+        {
+          "cue": 0,
+          "distance_16": 0.5328291219544753,
+          "distance_32": 0.28323722373928995,
+          "distance_64": 0.23418033150238574,
+          "distance_8": 0.8808296469897466,
+          "seed": 0
+        },
+        {
+          "cue": 1,
+          "distance_16": 0.6170293214613639,
+          "distance_32": 0.32723451212931426,
+          "distance_64": 0.23057890455896765,
+          "distance_8": 0.9450514251257993,
+          "seed": 0
+        },
+        {
+          "cue": 0,
+          "distance_16": 0.4176299626652407,
+          "distance_32": 0.17014739473408444,
+          "distance_64": 0.09734675772380232,
+          "distance_8": 0.8533796765552439,
+          "seed": 1
+        },
+        {
+          "cue": 1,
+          "distance_16": 0.463325179665829,
+          "distance_32": 0.17529045529688955,
+          "distance_64": 0.06665159548840648,
+          "distance_8": 0.8809594015435811,
+          "seed": 1
+        },
+        {
+          "cue": 0,
+          "distance_16": 0.462861164307585,
+          "distance_32": 0.27572633316021106,
+          "distance_64": 0.2027820061526824,
+          "distance_8": 0.7905856803820166,
+          "seed": 2
+        },
+        {
+          "cue": 1,
+          "distance_16": 0.4957555132859871,
+          "distance_32": 0.2698313976290229,
+          "distance_64": 0.17677947247247555,
+          "distance_8": 0.8201659224829245,
+          "seed": 2
+        },
+        {
+          "cue": 0,
+          "distance_16": 0.29542113789943397,
+          "distance_32": 0.14130576037120407,
+          "distance_64": 0.15433632680252846,
+          "distance_8": 0.6444651443484773,
+          "seed": 3
+        },
+        {
+          "cue": 1,
+          "distance_16": 0.33572756804135245,
+          "distance_32": 0.13535529800083795,
+          "distance_64": 0.18946432352687803,
+          "distance_8": 0.6902608511863996,
+          "seed": 3
+        }
+      ],
+      "dose": [
+        {
+          "cue": 0,
+          "displacement": 0.0,
+          "margin": -0.16956004012100478,
+          "scale": 0.0
+        },
+        {
+          "cue": 0,
+          "displacement": 0.5182388047227681,
+          "margin": -0.0039028521012374195,
+          "scale": 0.5
+        },
+        {
+          "cue": 0,
+          "displacement": 1.0150036524193489,
+          "margin": 0.15811847949593483,
+          "scale": 1.0
+        },
+        {
+          "cue": 0,
+          "displacement": 1.8276823322290392,
+          "margin": 0.43719445039290666,
+          "scale": 2.0
+        },
+        {
+          "cue": 0,
+          "displacement": 2.7322427846905333,
+          "margin": 0.8092606669068471,
+          "scale": 4.0
+        },
+        {
+          "cue": 1,
+          "displacement": 0.0,
+          "margin": -0.16956004012100478,
+          "scale": 0.0
+        },
+        {
+          "cue": 1,
+          "displacement": 0.4380500486088036,
+          "margin": -0.029899414679677806,
+          "scale": 0.5
+        },
+        {
+          "cue": 1,
+          "displacement": 0.8618085467412926,
+          "margin": 0.11010892714432323,
+          "scale": 1.0
+        },
+        {
+          "cue": 1,
+          "displacement": 1.609152075574488,
+          "margin": 0.37777271105286697,
+          "scale": 2.0
+        },
+        {
+          "cue": 1,
+          "displacement": 2.622608771047925,
+          "margin": 0.8036786231321355,
+          "scale": 4.0
+        }
+      ],
+      "flip": [
+        {
+          "cue": 0,
+          "lock_margin": 0.8108694447154003,
+          "margin_at_40": 0.011527009915280443,
+          "scale": 0.0,
+          "seed": 0,
+          "ticks_to_first_one": 41
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.8108694447154003,
+          "margin_at_40": 0.7251747335481643,
+          "scale": 1.0,
+          "seed": 0,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.8108694447154003,
+          "margin_at_40": 0.9877526306118477,
+          "scale": 2.0,
+          "seed": 0,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.8108694447154003,
+          "margin_at_40": 1.0942611786789376,
+          "scale": 4.0,
+          "seed": 0,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.8108694447154003,
+          "margin_at_40": 0.011527009915280443,
+          "scale": 0.0,
+          "seed": 0,
+          "ticks_to_first_one": 41
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.8108694447154003,
+          "margin_at_40": 0.47674454311612935,
+          "scale": 1.0,
+          "seed": 0,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.8108694447154003,
+          "margin_at_40": 0.6837127454830415,
+          "scale": 2.0,
+          "seed": 0,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.8108694447154003,
+          "margin_at_40": 0.972835123603535,
+          "scale": 4.0,
+          "seed": 0,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.374065358374954,
+          "margin_at_40": 0.18502363644284503,
+          "scale": 0.0,
+          "seed": 1,
+          "ticks_to_first_one": 51
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.374065358374954,
+          "margin_at_40": 0.694844996163624,
+          "scale": 1.0,
+          "seed": 1,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.374065358374954,
+          "margin_at_40": 0.9518389460117029,
+          "scale": 2.0,
+          "seed": 1,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.374065358374954,
+          "margin_at_40": 1.091091860083095,
+          "scale": 4.0,
+          "seed": 1,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.374065358374954,
+          "margin_at_40": 0.18502363644284503,
+          "scale": 0.0,
+          "seed": 1,
+          "ticks_to_first_one": 51
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.374065358374954,
+          "margin_at_40": 0.45798696078101864,
+          "scale": 1.0,
+          "seed": 1,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.374065358374954,
+          "margin_at_40": 0.6502227921401474,
+          "scale": 2.0,
+          "seed": 1,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.374065358374954,
+          "margin_at_40": 0.9917703436311958,
+          "scale": 4.0,
+          "seed": 1,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.7328704110996136,
+          "margin_at_40": 0.09255127321656755,
+          "scale": 0.0,
+          "seed": 2,
+          "ticks_to_first_one": 65
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.7328704110996136,
+          "margin_at_40": 0.76511915210358,
+          "scale": 1.0,
+          "seed": 2,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.7328704110996136,
+          "margin_at_40": 1.0418546239566988,
+          "scale": 2.0,
+          "seed": 2,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.7328704110996136,
+          "margin_at_40": 1.1427164876686282,
+          "scale": 4.0,
+          "seed": 2,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.7328704110996136,
+          "margin_at_40": 0.09255127321656755,
+          "scale": 0.0,
+          "seed": 2,
+          "ticks_to_first_one": 65
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.7328704110996136,
+          "margin_at_40": 0.5336634620126204,
+          "scale": 1.0,
+          "seed": 2,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.7328704110996136,
+          "margin_at_40": 0.7630423069738526,
+          "scale": 2.0,
+          "seed": 2,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.7328704110996136,
+          "margin_at_40": 1.051985191612609,
+          "scale": 4.0,
+          "seed": 2,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.7432357816941161,
+          "margin_at_40": -0.19926193810904513,
+          "scale": 0.0,
+          "seed": 3,
+          "ticks_to_first_one": 34
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.7432357816941161,
+          "margin_at_40": 0.49039907294501084,
+          "scale": 1.0,
+          "seed": 3,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.7432357816941161,
+          "margin_at_40": 0.8273067677467729,
+          "scale": 2.0,
+          "seed": 3,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.7432357816941161,
+          "margin_at_40": 1.0245185355563844,
+          "scale": 4.0,
+          "seed": 3,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.7432357816941161,
+          "margin_at_40": -0.19926193810904513,
+          "scale": 0.0,
+          "seed": 3,
+          "ticks_to_first_one": 34
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.7432357816941161,
+          "margin_at_40": 0.1714967691505987,
+          "scale": 1.0,
+          "seed": 3,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.7432357816941161,
+          "margin_at_40": 0.4480976206325487,
+          "scale": 2.0,
+          "seed": 3,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.7432357816941161,
+          "margin_at_40": 0.853121006875498,
+          "scale": 4.0,
+          "seed": 3,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.5198441606895061,
+          "margin_at_40": -0.16440201075505526,
+          "scale": 0.0,
+          "seed": 4,
+          "ticks_to_first_one": 30
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.5198441606895061,
+          "margin_at_40": 0.4855745296909795,
+          "scale": 1.0,
+          "seed": 4,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.5198441606895061,
+          "margin_at_40": 0.8216143704159872,
+          "scale": 2.0,
+          "seed": 4,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.5198441606895061,
+          "margin_at_40": 1.0356902341438117,
+          "scale": 4.0,
+          "seed": 4,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.5198441606895061,
+          "margin_at_40": -0.16440201075505526,
+          "scale": 0.0,
+          "seed": 4,
+          "ticks_to_first_one": 30
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.5198441606895061,
+          "margin_at_40": 0.22107886578966893,
+          "scale": 1.0,
+          "seed": 4,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.5198441606895061,
+          "margin_at_40": 0.45689408147180277,
+          "scale": 2.0,
+          "seed": 4,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.5198441606895061,
+          "margin_at_40": 0.8363678488844357,
+          "scale": 4.0,
+          "seed": 4,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.9564650141928324,
+          "margin_at_40": 0.1273724230757242,
+          "scale": 0.0,
+          "seed": 5,
+          "ticks_to_first_one": 106
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.9564650141928324,
+          "margin_at_40": 0.8331940351187209,
+          "scale": 1.0,
+          "seed": 5,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.9564650141928324,
+          "margin_at_40": 1.0673540713951901,
+          "scale": 2.0,
+          "seed": 5,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.9564650141928324,
+          "margin_at_40": 1.1409757036363093,
+          "scale": 4.0,
+          "seed": 5,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.9564650141928324,
+          "margin_at_40": 0.1273724230757242,
+          "scale": 0.0,
+          "seed": 5,
+          "ticks_to_first_one": 106
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.9564650141928324,
+          "margin_at_40": 0.6277973776256831,
+          "scale": 1.0,
+          "seed": 5,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.9564650141928324,
+          "margin_at_40": 0.8231482485675825,
+          "scale": 2.0,
+          "seed": 5,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.9564650141928324,
+          "margin_at_40": 1.0646014274465956,
+          "scale": 4.0,
+          "seed": 5,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.9552782432849672,
+          "margin_at_40": 0.2710270028214625,
+          "scale": 0.0,
+          "seed": 6,
+          "ticks_to_first_one": 104
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.9552782432849672,
+          "margin_at_40": 0.8666373139386359,
+          "scale": 1.0,
+          "seed": 6,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.9552782432849672,
+          "margin_at_40": 1.087210577611388,
+          "scale": 2.0,
+          "seed": 6,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.9552782432849672,
+          "margin_at_40": 1.1552770411911162,
+          "scale": 4.0,
+          "seed": 6,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.9552782432849672,
+          "margin_at_40": 0.2710270028214625,
+          "scale": 0.0,
+          "seed": 6,
+          "ticks_to_first_one": 104
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.9552782432849672,
+          "margin_at_40": 0.6562913416290659,
+          "scale": 1.0,
+          "seed": 6,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.9552782432849672,
+          "margin_at_40": 0.8459208552090223,
+          "scale": 2.0,
+          "seed": 6,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.9552782432849672,
+          "margin_at_40": 1.1067152427440796,
+          "scale": 4.0,
+          "seed": 6,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.7089624710254897,
+          "margin_at_40": 0.14080242140218774,
+          "scale": 0.0,
+          "seed": 7,
+          "ticks_to_first_one": 49
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.7089624710254897,
+          "margin_at_40": 0.771135478725031,
+          "scale": 1.0,
+          "seed": 7,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.7089624710254897,
+          "margin_at_40": 1.051699913326653,
+          "scale": 2.0,
+          "seed": 7,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.7089624710254897,
+          "margin_at_40": 1.174133545197063,
+          "scale": 4.0,
+          "seed": 7,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.7089624710254897,
+          "margin_at_40": 0.14080242140218774,
+          "scale": 0.0,
+          "seed": 7,
+          "ticks_to_first_one": 49
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.7089624710254897,
+          "margin_at_40": 0.5100022951373615,
+          "scale": 1.0,
+          "seed": 7,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.7089624710254897,
+          "margin_at_40": 0.7279234010640983,
+          "scale": 2.0,
+          "seed": 7,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.7089624710254897,
+          "margin_at_40": 1.046825849268164,
+          "scale": 4.0,
+          "seed": 7,
+          "ticks_to_first_one": null
+        }
+      ],
+      "lock_margins": [
+        0.8108694447154003,
+        0.374065358374954,
+        0.7328704110996136,
+        0.7432357816941161,
+        0.5198441606895061,
+        0.9564650141928324,
+        0.9552782432849672,
+        0.7089624710254897
+      ],
+      "outer_seed": 2,
+      "transitions": 38384
+    },
+    {
+      "converge": [
+        {
+          "cue": 0,
+          "distance_16": 0.8454459191006333,
+          "distance_32": 0.446568445894562,
+          "distance_64": 0.41212469523303713,
+          "distance_8": 1.3224850096004201,
+          "seed": 0
+        },
+        {
+          "cue": 1,
+          "distance_16": 0.9175335978343121,
+          "distance_32": 0.4604253859122218,
+          "distance_64": 0.44650135938015956,
+          "distance_8": 1.5000364440265488,
+          "seed": 0
+        },
+        {
+          "cue": 0,
+          "distance_16": 0.3697066916766087,
+          "distance_32": 0.16462812756990136,
+          "distance_64": 0.19883136469659562,
+          "distance_8": 0.9409734994211407,
+          "seed": 1
+        },
+        {
+          "cue": 1,
+          "distance_16": 0.44515996484935993,
+          "distance_32": 0.17244912036597004,
+          "distance_64": 0.17393074255028745,
+          "distance_8": 1.0561023559465326,
+          "seed": 1
+        },
+        {
+          "cue": 0,
+          "distance_16": 0.299483214995286,
+          "distance_32": 0.29528937154361085,
+          "distance_64": 0.32998481712192496,
+          "distance_8": 0.7358548296452939,
+          "seed": 2
+        },
+        {
+          "cue": 1,
+          "distance_16": 0.38665011634583624,
+          "distance_32": 0.25170619954604595,
+          "distance_64": 0.3036079279202769,
+          "distance_8": 0.9063144911966934,
+          "seed": 2
+        },
+        {
+          "cue": 0,
+          "distance_16": 0.6693504900653984,
+          "distance_32": 0.4510066563146176,
+          "distance_64": 0.42383434019449634,
+          "distance_8": 1.175304758930219,
+          "seed": 3
+        },
+        {
+          "cue": 1,
+          "distance_16": 0.6939445723476526,
+          "distance_32": 0.43596202146669805,
+          "distance_64": 0.38436393780433187,
+          "distance_8": 1.2708376719350376,
+          "seed": 3
+        }
+      ],
+      "dose": [
+        {
+          "cue": 0,
+          "displacement": 0.0,
+          "margin": -0.04520900618044205,
+          "scale": 0.0
+        },
+        {
+          "cue": 0,
+          "displacement": 0.6401534727552312,
+          "margin": 0.07001903523058647,
+          "scale": 0.5
+        },
+        {
+          "cue": 0,
+          "displacement": 1.2207814884315453,
+          "margin": 0.17686235511251247,
+          "scale": 1.0
+        },
+        {
+          "cue": 0,
+          "displacement": 2.0865131898045193,
+          "margin": 0.33815178485169645,
+          "scale": 2.0
+        },
+        {
+          "cue": 0,
+          "displacement": 2.9091258285802044,
+          "margin": 0.4767709061018268,
+          "scale": 4.0
+        },
+        {
+          "cue": 1,
+          "displacement": 0.0,
+          "margin": -0.04520900618044205,
+          "scale": 0.0
+        },
+        {
+          "cue": 1,
+          "displacement": 0.38471125177876664,
+          "margin": -0.05278646434944119,
+          "scale": 0.5
+        },
+        {
+          "cue": 1,
+          "displacement": 0.7462781539395201,
+          "margin": -0.06094395194680572,
+          "scale": 1.0
+        },
+        {
+          "cue": 1,
+          "displacement": 1.3473417681812832,
+          "margin": -0.08278777451543418,
+          "scale": 2.0
+        },
+        {
+          "cue": 1,
+          "displacement": 2.1964319423846304,
+          "margin": -0.1429497895559111,
+          "scale": 4.0
+        }
+      ],
+      "flip": [
+        {
+          "cue": 0,
+          "lock_margin": 0.19174508027387474,
+          "margin_at_40": -0.050929725661702556,
+          "scale": 0.0,
+          "seed": 0,
+          "ticks_to_first_one": 33
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.19174508027387474,
+          "margin_at_40": 0.2924571421972278,
+          "scale": 1.0,
+          "seed": 0,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.19174508027387474,
+          "margin_at_40": 0.35400464403028076,
+          "scale": 2.0,
+          "seed": 0,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.19174508027387474,
+          "margin_at_40": 0.5263646024992721,
+          "scale": 4.0,
+          "seed": 0,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.19174508027387474,
+          "margin_at_40": -0.050929725661702556,
+          "scale": 0.0,
+          "seed": 0,
+          "ticks_to_first_one": 33
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.19174508027387474,
+          "margin_at_40": -0.11657788112592057,
+          "scale": 1.0,
+          "seed": 0,
+          "ticks_to_first_one": 17
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.19174508027387474,
+          "margin_at_40": -0.27804235614831563,
+          "scale": 2.0,
+          "seed": 0,
+          "ticks_to_first_one": 6
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.19174508027387474,
+          "margin_at_40": -0.7339489498606098,
+          "scale": 4.0,
+          "seed": 0,
+          "ticks_to_first_one": 3
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.1672674815308199,
+          "margin_at_40": 0.00456541331320981,
+          "scale": 0.0,
+          "seed": 1,
+          "ticks_to_first_one": 92
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.1672674815308199,
+          "margin_at_40": 0.2204374603436179,
+          "scale": 1.0,
+          "seed": 1,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.1672674815308199,
+          "margin_at_40": 0.32119967269800165,
+          "scale": 2.0,
+          "seed": 1,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.1672674815308199,
+          "margin_at_40": 0.510996454559534,
+          "scale": 4.0,
+          "seed": 1,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.1672674815308199,
+          "margin_at_40": 0.00456541331320981,
+          "scale": 0.0,
+          "seed": 1,
+          "ticks_to_first_one": 92
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.1672674815308199,
+          "margin_at_40": -0.13716143712469353,
+          "scale": 1.0,
+          "seed": 1,
+          "ticks_to_first_one": 12
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.1672674815308199,
+          "margin_at_40": -0.3966694057321175,
+          "scale": 2.0,
+          "seed": 1,
+          "ticks_to_first_one": 4
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.1672674815308199,
+          "margin_at_40": -0.8007560806139866,
+          "scale": 4.0,
+          "seed": 1,
+          "ticks_to_first_one": 2
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.30336655437435966,
+          "margin_at_40": 0.009807608475708298,
+          "scale": 0.0,
+          "seed": 2,
+          "ticks_to_first_one": 41
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.30336655437435966,
+          "margin_at_40": 0.2655083245491778,
+          "scale": 1.0,
+          "seed": 2,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.30336655437435966,
+          "margin_at_40": 0.42157491296400823,
+          "scale": 2.0,
+          "seed": 2,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.30336655437435966,
+          "margin_at_40": 0.6574472135471028,
+          "scale": 4.0,
+          "seed": 2,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.30336655437435966,
+          "margin_at_40": 0.009807608475708298,
+          "scale": 0.0,
+          "seed": 2,
+          "ticks_to_first_one": 41
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.30336655437435966,
+          "margin_at_40": -0.05979912772146971,
+          "scale": 1.0,
+          "seed": 2,
+          "ticks_to_first_one": 35
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.30336655437435966,
+          "margin_at_40": -0.29648700287672614,
+          "scale": 2.0,
+          "seed": 2,
+          "ticks_to_first_one": 6
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.30336655437435966,
+          "margin_at_40": -0.7407336732033071,
+          "scale": 4.0,
+          "seed": 2,
+          "ticks_to_first_one": 4
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.29751456294489487,
+          "margin_at_40": 0.016226391073079775,
+          "scale": 0.0,
+          "seed": 3,
+          "ticks_to_first_one": 25
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.29751456294489487,
+          "margin_at_40": 0.27648253021478364,
+          "scale": 1.0,
+          "seed": 3,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.29751456294489487,
+          "margin_at_40": 0.37012303979700834,
+          "scale": 2.0,
+          "seed": 3,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.29751456294489487,
+          "margin_at_40": 0.5584356260188941,
+          "scale": 4.0,
+          "seed": 3,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.29751456294489487,
+          "margin_at_40": 0.016226391073079775,
+          "scale": 0.0,
+          "seed": 3,
+          "ticks_to_first_one": 25
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.29751456294489487,
+          "margin_at_40": -0.08927319869078078,
+          "scale": 1.0,
+          "seed": 3,
+          "ticks_to_first_one": 21
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.29751456294489487,
+          "margin_at_40": -0.32139396388633895,
+          "scale": 2.0,
+          "seed": 3,
+          "ticks_to_first_one": 6
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.29751456294489487,
+          "margin_at_40": -0.7625532165790505,
+          "scale": 4.0,
+          "seed": 3,
+          "ticks_to_first_one": 4
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.35563534721905105,
+          "margin_at_40": -0.11349610479450949,
+          "scale": 0.0,
+          "seed": 4,
+          "ticks_to_first_one": 24
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.35563534721905105,
+          "margin_at_40": 0.31164397835896374,
+          "scale": 1.0,
+          "seed": 4,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.35563534721905105,
+          "margin_at_40": 0.4190030286246594,
+          "scale": 2.0,
+          "seed": 4,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.35563534721905105,
+          "margin_at_40": 0.6216828340686446,
+          "scale": 4.0,
+          "seed": 4,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.35563534721905105,
+          "margin_at_40": -0.11349610479450949,
+          "scale": 0.0,
+          "seed": 4,
+          "ticks_to_first_one": 24
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.35563534721905105,
+          "margin_at_40": -0.1449379788056156,
+          "scale": 1.0,
+          "seed": 4,
+          "ticks_to_first_one": 10
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.35563534721905105,
+          "margin_at_40": -0.30040283477063534,
+          "scale": 2.0,
+          "seed": 4,
+          "ticks_to_first_one": 6
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.35563534721905105,
+          "margin_at_40": -0.7481132540351381,
+          "scale": 4.0,
+          "seed": 4,
+          "ticks_to_first_one": 3
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.3132374814239874,
+          "margin_at_40": -0.03529555141101904,
+          "scale": 0.0,
+          "seed": 5,
+          "ticks_to_first_one": 18
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.3132374814239874,
+          "margin_at_40": 0.3069296894729054,
+          "scale": 1.0,
+          "seed": 5,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.3132374814239874,
+          "margin_at_40": 0.4034689146148913,
+          "scale": 2.0,
+          "seed": 5,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.3132374814239874,
+          "margin_at_40": 0.5899366571641365,
+          "scale": 4.0,
+          "seed": 5,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.3132374814239874,
+          "margin_at_40": -0.03529555141101904,
+          "scale": 0.0,
+          "seed": 5,
+          "ticks_to_first_one": 18
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.3132374814239874,
+          "margin_at_40": -0.11975232635555239,
+          "scale": 1.0,
+          "seed": 5,
+          "ticks_to_first_one": 15
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.3132374814239874,
+          "margin_at_40": -0.31066532214322085,
+          "scale": 2.0,
+          "seed": 5,
+          "ticks_to_first_one": 8
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.3132374814239874,
+          "margin_at_40": -0.734563477875046,
+          "scale": 4.0,
+          "seed": 5,
+          "ticks_to_first_one": 4
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.2296656316662088,
+          "margin_at_40": 0.01763201204871862,
+          "scale": 0.0,
+          "seed": 6,
+          "ticks_to_first_one": 41
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.2296656316662088,
+          "margin_at_40": 0.25749098770424733,
+          "scale": 1.0,
+          "seed": 6,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.2296656316662088,
+          "margin_at_40": 0.38116983508573626,
+          "scale": 2.0,
+          "seed": 6,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.2296656316662088,
+          "margin_at_40": 0.5797375307724952,
+          "scale": 4.0,
+          "seed": 6,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.2296656316662088,
+          "margin_at_40": 0.01763201204871862,
+          "scale": 0.0,
+          "seed": 6,
+          "ticks_to_first_one": 41
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.2296656316662088,
+          "margin_at_40": -0.09386542400385192,
+          "scale": 1.0,
+          "seed": 6,
+          "ticks_to_first_one": 8
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.2296656316662088,
+          "margin_at_40": -0.36707180166568243,
+          "scale": 2.0,
+          "seed": 6,
+          "ticks_to_first_one": 5
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.2296656316662088,
+          "margin_at_40": -0.8316638154722105,
+          "scale": 4.0,
+          "seed": 6,
+          "ticks_to_first_one": 3
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.24471959949949468,
+          "margin_at_40": -0.04692855644578527,
+          "scale": 0.0,
+          "seed": 7,
+          "ticks_to_first_one": 26
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.24471959949949468,
+          "margin_at_40": 0.2332481523402063,
+          "scale": 1.0,
+          "seed": 7,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.24471959949949468,
+          "margin_at_40": 0.3142156953185767,
+          "scale": 2.0,
+          "seed": 7,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 0,
+          "lock_margin": 0.24471959949949468,
+          "margin_at_40": 0.5285202656897153,
+          "scale": 4.0,
+          "seed": 7,
+          "ticks_to_first_one": null
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.24471959949949468,
+          "margin_at_40": -0.04692855644578527,
+          "scale": 0.0,
+          "seed": 7,
+          "ticks_to_first_one": 26
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.24471959949949468,
+          "margin_at_40": -0.12369386544116234,
+          "scale": 1.0,
+          "seed": 7,
+          "ticks_to_first_one": 13
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.24471959949949468,
+          "margin_at_40": -0.3398941707066152,
+          "scale": 2.0,
+          "seed": 7,
+          "ticks_to_first_one": 5
+        },
+        {
+          "cue": 1,
+          "lock_margin": 0.24471959949949468,
+          "margin_at_40": -0.7796337301595975,
+          "scale": 4.0,
+          "seed": 7,
+          "ticks_to_first_one": 3
+        }
+      ],
+      "lock_margins": [
+        0.19174508027387474,
+        0.1672674815308199,
+        0.30336655437435966,
+        0.29751456294489487,
+        0.35563534721905105,
+        0.3132374814239874,
+        0.2296656316662088,
+        0.24471959949949468
+      ],
+      "outer_seed": 3,
+      "transitions": 38384
+    }
+  ],
+  "pairing": "flip clones share locked history and future noise draws; converge pairs share perturbation draws; dose legs share fresh noise draws",
+  "passes": null,
+  "plan": "manifests/m4_lock_localization.json",
+  "plan_sha256": "dd8861dfdd41fe0447ca94f4a1655a9610ec7167980779185fca09446a061764",
+  "provenance": {
+    "arch": "x86_64",
+    "dirty": true,
+    "git_status": "M README.md\n M docs/decisions.md\n M docs/evidence/README.md\n M docs/experiments.md\n M docs/handoff.md\n M manifests/README.md\n M to-do.md\n?? docs/evidence/m4-08/\n?? manifests/m4_continuity_audit.json\n?? manifests/m4_lock_localization.json\n?? tests/m4_continuity_audit.rs\n?? tests/m4_lock_localization.rs",
+    "os": "linux",
+    "profile": "release",
+    "revision": "08e4f827f752034b0d0fd21eedd31caf4a2fb31c"
+  },
+  "schema_version": 1,
+  "task": "M4-08b"
+}

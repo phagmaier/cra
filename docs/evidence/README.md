@@ -133,3 +133,27 @@ persistent learning passed 0/3 outer seeds under the predeclared accuracy and
 matched-B3 margin criterion. Raw per-condition records and the machine-readable
 verdict are under `m4-07/run/`. This evidence keeps M4-07 and M4-GATE open and
 routes the next work to M4-08; it must not be rewritten as a positive result.
+
+## M4 continuity-failure audit
+
+The [M4-08 summary](m4-08/summary.md) records the declared audit: 8/8 paired
+legs with exact M4-07 reproduction, per-outcome series
+(`m4-08/audit/series.jsonl`) and leg/probe aggregates (`m4-08/audit/audit.json`).
+It isolates a continuity-induced behavioral lock with teaching-signal
+starvation on outer 2 and rules out trace-timescale, baseline-drift, and
+saturation explanations. It sets no acquisition criterion; M4-07 and M4-GATE
+stay open.
+
+The [M4-08b summary](m4-08b/summary.md) localizes the lock with paired
+synthetic-drive probes on the frozen family: outer-2 cue drive pins the
+wrong action at every scale while zero drive escapes, outer-3 drive is
+aligned, and recurrent history washes out 4–5× but plateaus. Matrix and
+budgets are in `m4-08b/probes/probes.json`. Diagnostic only; no new range
+or acquisition claim.
+
+The [M4-08c summary](m4-08c/summary.md) records the complete negative
+12-point eta/tau escape sweep: 39/39 lifetimes, 78,000 scalar rows,
+1,327,092 ticks, six exact historical aggregate matches, zero failures,
+no setting adopted. Both locked seeds remain action-0-only throughout.
+The [negative M4-09 bundle](m4-09/summary.md) indexes implementation,
+replay, profiles, traces and acquisition failures without claiming M4 exit.

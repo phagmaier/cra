@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "task": "M4-08c",
+  "purpose": "Bounded development escape test of the frozen M4-07 actor family, varying only eta and tau_e. Owner authorized choosing and proceeding on 2026-09-22. Written before sweep execution.",
+  "reference_plan": "manifests/m4_continuous_acquisition.json",
+  "reference_plan_sha256": "18354ebb175aafc266cd0c1a01fa5039e52da178f738ea91dfe6b1520d04a1e8",
+  "reference_records": "docs/evidence/m4-07/run/records.jsonl",
+  "reference_records_sha256": "b6569730802356c6c94338b1802ed4943f288eaefeedaf0f7a9cf3303eb5aa84",
+  "inherit": "Base profile, actor family, development root 1, outers 1-3, lifetime 0, 2000 outcomes, first/final 100 exposures per cue, and criterion verbatim from reference_plan; override only eta and tau_e.",
+  "eta": [0.0001, 0.0003, 0.001, 0.003],
+  "tau_e": [16.0, 32.0, 64.0],
+  "grid_order": "eta-major, tau_e-minor; index 7 is the (0.001, 32) replication anchor",
+  "execution_order": "Run 3 continuous B3 controls and all 3 anchor B4 lifetimes first. Compare every archived aggregate record field exactly; halt on any mismatch. Then remaining points in grid order, outers ascending. Each declared lifetime runs once.",
+  "control_reuse": "One fresh continuous B3 per outer shared across 12 points; no plastic state or eta/tau_e dependence. Fast pairing fixtures verify this across the grid.",
+  "selection": "Eligible only if the inherited absolute criterion passes on at least 2/3 seeds, all 39 lifetimes complete without failure and integrity checks pass, and every passing seed meets the descriptive mechanism screen. Rank by most passing seeds, highest minimum-across-all-seeds margin, smallest abs(log2(eta/0.001))+abs(log2(tau_e/32)), then lowest grid index.",
+  "mechanism": {
+    "late_window": "union of the final 100 exposures of each cue, identical to accuracy windows",
+    "required_on_each_passing_seed": "Both actions occur at least once over the lifetime, and late mean abs(delta) exceeds 1e-12. This is a conservative descriptive screen, not a causal or generalization proof; a screen failure prevents automatic adoption.",
+    "late_delta_floor": 1e-12,
+    "report": "Lifetime and late action counts; late mean abs(delta), eligibility L1 and actual update L1; raw identity max error; all per-outcome scalar series and inherited M4-07 diagnostics. Successful learning can itself reduce delta, so this screen is not a universal learning criterion."
+  },
+  "budget": {
+    "grid_points": 12,
+    "b4_lifetimes": 36,
+    "b3_lifetimes": 3,
+    "total_lifetimes": 39,
+    "total_outcomes": 78000,
+    "maximum_ticks_per_lifetime": 34028,
+    "maximum_total_ticks": 1327092,
+    "execution": "serial release, fresh directory only; preflight small fixtures are separate engineering checks"
+  },
+  "guardrails": "No production changes, hidden resets, decay, membrane clipping, learned decoders, gate changes, actor/input/motor tuning, extra seeds, validation/final-test inspection, or post-result retuning. Save failures; missing or interrupted output is not a null.",
+  "on_pass": "Adopt the deterministic screened winner provisionally as the M4 persistent development family; record departure from M3-08, preserve M4-07 negative result, and require replay verification for new settings and a separately declared fresh-development confirmation before broader claims. Do not automatically check M4-GATE.",
+  "on_no_pass": "Adopt nothing. Save an honest negative M4-09 evidence bundle and design-escalation entry; M4-07 and M4-GATE remain open. No follow-up tuning in this run.",
+  "scope_rationale": "Joint eta/tau tuning is motivated by spec 7.9 and the proposed M5 ranges, but this is a stationary-clean M4 diagnostic. Omitting tau_e 128 bounds cost given no rescue at 16/32/64 at eta 0.001; this does not establish monotonic failure. Keep input and motor fixed for attribution, not because weaker drive or altered filtering has been disproved.",
+  "claim_limits": "Reusing development seeds answers only this frozen-grid question. An absolute bar and deterministic replay do not remove selection bias or stochastic false positives. Outer 3 B3=0.875 leaves maximum margin 0.125, below 0.15, so both locked outers 1 and 2 must pass. A null excludes only these 12 settings on these 3 lifetimes, not the algorithm or all fixed-rule settings."
+}

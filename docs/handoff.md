@@ -1,8 +1,9 @@
 # Agent continuation guide
 
-Updated 2026-09-21 UTC after M4-06 at base `6d6f9ee`.
-The session started clean; M4-06 evidence records the deliberately dirty
-implementation worktree. Check Git and the tracker for newer work before claiming.
+Updated 2026-09-22 UTC for M4-08c at base `08e4f82`.
+Prior dirty M4-08/08b work is preserved. This session adds the bounded
+escape sweep and negative M4-09 bundle with no production change.
+Check Git and the tracker for newer work before claiming.
 
 ## Start here
 
@@ -21,9 +22,12 @@ implementation worktree. Check Git and the tracker for newer work before claimin
 **M0-GATE, M1-GATE, M2-GATE passed (re-verified where noted). M3-01
 through M3-GATE verified 2026-09-21 UTC — M3 COMPLETE. M4-01 through
 M4-06 verified; M4-07 executed 2026-09-21 UTC but its scientific criterion
-failed. Next task: M4-08.**
-M4-GATE is blocked by the M4-07 negative result pending the declared failure
-audit. The claim track remains `family_only`.
+failed; M4-08 audit and M4-08b lock localization both verified 2026-09-22
+UTC. M4-08c is verified as a negative diagnostic: all 12 eta/tau settings
+fail, 39/39 lifetimes complete, nothing adopted. Negative M4-09 bundle
+saved. Next: separately declare a persistent-exploration design investigation.**
+M4-GATE remains blocked by the unresolved continuous-acquisition failure.
+The claim track remains `family_only`.
 No reserved final-test outcomes have been inspected.
 
 M4-07 froze and executed a five-condition development comparison across
@@ -291,23 +295,53 @@ is available for a quick audit. Reproduce missing raw runs using the saved
 commands/configs into new directories; preserve historical evidence paths
 and distinguish reruns from the original execution.
 
-## Next task: M4-08
+## Next task: persistent-exploration design declaration (M4 remains blocked)
 
-Audit the frozen M4-07 failure without changing its seeds, exposure windows,
-or acceptance criterion. Start from outer 2, where the same inherited actor
-learned episodically to 0.97 late accuracy but both event-reset and fully
-persistent conditions remained at 0.00, then use outer 3 as the successful
-continuous contrast and outer 1 as the known representation-locked control.
-Inspect cross-choice interference, ordering, running-baseline drift, trace
-timescale, and motor/representation state with the Section 21 reduction path.
+M4-08c was authorized by the owner's instruction to choose and proceed.
+Its 39-lifetime sweep ran once: all 12 settings fail the unchanged bar,
+and every outer-1/2 run remains action-0-only for all 2,000 outcomes.
+Three B4 anchor plus three B3 saved aggregate records match M4-07 exactly.
+Full fresh checks: 339 Rust tests, 12 default ignores, 2 doc tests, 17
+Python tests, fixture and 78,000-row series audits; fmt/Clippy/config/diff
+clean. See [M4-08c](evidence/m4-08c/summary.md) and the
+[negative M4-09 bundle](evidence/m4-09/summary.md).
 
-The saved update and health evidence already rules out nonfinite state,
-plastic-bound occupancy, gross actor/motor saturation, absent updates, and
-frequent clipping as primary explanations. Do not add hidden resets, weight
-decay, membrane clipping, or a trained decoder. Any new development range or
-diagnostic must be declared with a reason and rerun its affected controls;
-M4-07 remains the immutable negative record. Do not inspect validation or
-final-test outcomes.
+No family was adopted, and no post-result sweep was run. The recommended
+next declaration investigates ordinary input-drive/noise balance under
+persistent operation, paired against B3. Weaker drive has not been ruled
+out by the synthetic probes. Any revised family requires a declared
+development budget and independent confirmation, with no hidden resets,
+selection on held-out results, or retrospective changes to M4-07. See the
+2026-09-22 escalation in [decisions](decisions.md).
+
+M4-08 completed the declared audit without changing M4-07 seeds, windows,
+or criterion. Findings: outer 2 locks onto action 0 on all 2,000 outcomes
+under every persistent-activity leg (zero reward → baseline 0 → zero delta
+despite large traces), while the identical-schedule episodic leg explores
+from reset states and reaches 0.97; event-reset locks identically with
+independent updates, isolating persistent activity (not trace contamination)
+as the binding constraint; tau_e 16/64 does not rescue; baseline, ordering,
+and saturation are healthy; the lock reproduces at minimal scale (constant-
+input loop holds the wrong action 600/600 while P moves; cue carryover ≈
+80% of fresh separation). Outer 1 is a different, condition-independent
+lock; outer 3 starts near-correct and holds.
+[M4-08 evidence](evidence/m4-08/summary.md).
+
+M4-08b then localized the lock with paired synthetic-drive probes on the
+frozen family (no new range): outer-2 1× cue drive moves the fresh readout
+toward action 0 against mappings rewarding 1; zero drive escapes locked
+clones 8/8 (~50 ticks) while 1×/2×/4× drive pins 0/8 with scale-growing
+margins; outer-3 drive is aligned (cue-1 flips 8/8 ever faster, cue-0
+correctly holds); converge distances wash out 4–5× but plateau above zero.
+[M4-08b evidence](evidence/m4-08b/summary.md). The lock sits in
+input-projection alignment — scaling drive deepens the pin rather than
+fixing it.
+
+M4-09's negative evidence bundle is now saved; the successful continuous
+system handoff remains incomplete against the still-open M4-07 criterion.
+A rescue mechanism (if any) needs a new declared task with fresh
+controls — do not smuggle it into M4-09, add hidden resets/decay/clipping/
+decoders, or revise M4-07. Do not inspect validation or final-test outcomes.
 
 M3-GATE passed 2026-09-21 UTC on executed evidence, not stored
 claims: fresh release re-runs reproduce the archived M3-07 verdict
@@ -397,6 +431,9 @@ episodic learner at grid index 11.
 | Continuity profiles (M4-04) | `configs/continuous_stationary.toml` (new executable twin), `configs/debug_stationary.toml` (source, header only) | `tests/continuity_conditions.rs`; section-identical except name, both validate, library execution at small override |
 | Timing/delay curriculum (M4-05) | `configs/continuous_{stationary,variable_short,variable_delayed}.toml`, `manifests/m4_timing_sensitivity.json`, `ContinuousChoice::eligibility_l1_before_update` | `tests/m4_timing.rs`; exact low/high endpoints, non-timing equality, same-seed exogenous pairing across `tau_e`, raw-update scale identity, explicit 27-lifetime evidence export |
 | Continuous checkpoints (M4-06) | `src/checkpoint.rs` (`ContinuousCheckpoint` schema 4), snapshot/restore in `src/experiments/continuous.rs` | `tests/continuous_checkpoint.rs`; faithful tick-order driver, 3 nonzero-P/E split replays, pending/latch/cache/config/dedup rejection coverage; M1 schema 2 and episodic schema 3 unchanged |
+| Continuity-failure audit (M4-08) | `manifests/m4_continuity_audit.json`, `tests/m4_continuity_audit.rs`, `docs/evidence/m4-08/` (no production change) | manifest declaration test, exact two-step trace-leak proof, analyzer/probe/pairing tests, ignored 8-leg release export with per-outcome series and exact M4-07 reproduction |
+| Lock localization (M4-08b) | `manifests/m4_lock_localization.json`, `tests/m4_lock_localization.rs`, `docs/evidence/m4-08b/` (no production change) | manifest/budget-arithmetic test, analyzer goldens, lock-in validity + determinism, structural matrix test, ignored release export (76,768/76,768 transitions) with dose/flip/converge matrix |
+| Persistent escape sweep (M4-08c) | `manifests/m4_escape_sweep.json`, `tests/support/m4_escape_sweep.rs` child of `m4_continuous_acquisition`, `analysis/audit_m4_escape.py` | 4 new fast checks, 39-lifetime explicit export, 6 exact archived aggregate matches, 78,000 scalar rows; valid null, no family adoption |
 | Matched controls (M3-05) | `src/experiments/episodic.rs` (`run_episodic_no_learning`, `run_episodic_shuffled`, `run_episodic_conditions`), `src/agent/no_learning.rs` (diagnostic reset) | `tests/episodic_controls.rs`; shared W0/schedule/resets, first-action parity, P-movement plus behavior, re-derived shuffle protocol, observed/applied separation |
 | Development grid (M3-06) | `manifests/m3_development_grid.json`, `src/experiments/grid.rs` | `tests/development_grid.rs`; frozen axes/seeds/windows/criterion/budget, validation-only instantiation of all 24 points, derived tick estimate, invalid-mutation rejection |
 | Acquisition sweep (M3-07) | `src/experiments/sweep.rs`, `tests/m3_acquisition.rs` | fast analysis on real summaries plus ignored release sweep; windows/margins/health/judging/selection, 216/216 integrity, archived records plus verdict |

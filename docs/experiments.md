@@ -236,3 +236,69 @@ interrupted runs — missing data is not a zero score.
 - Evidence: [summary](evidence/m4-07/summary.md), raw condition records
   `evidence/m4-07/run/records.jsonl`, and verdict
   `evidence/m4-07/run/verdict.json`.
+
+## 2026-09-22 UTC — M4-08 continuity-failure audit
+
+- Pre-analysis plan: `manifests/m4_continuity_audit.json`; frozen M4-07
+  manifest referenced by SHA-256 (verified untouched at execution), same
+  family/seeds/windows used descriptively, 8 paired legs (outer-2 trio plus
+  matched B3, outer-3 contrast, outer-1 control, outer-2 tau_e 16/64 with a
+  recorded spec-7.9 reason), 16,000 outcomes / at most 272,224 ticks. No
+  acquisition criterion; no production change.
+- Result: 8/8 complete, 272,224 measured ticks, zero failures, exact
+  schedule/W0 pairing, 4/4 archive re-runs bitwise identical to M4-07.
+  Outer-2 persistent legs answer action 0 on all 2,000 outcomes each (zero
+  reward); baseline decays to 0.000 and late |delta| to 0.0000 despite late
+  E L1 of 186–367. Episodic on the same schedule explores (196 first-half
+  action-1) and reaches 0.97. Event-reset locks identically with
+  consecutive-update cosine ≈ −0.01 (vs 0.32–0.69 growing with tau_e on
+  fully persistent legs), isolating persistent activity as the lock.
+  Timescale does not rescue (0.00 at 16/32/64). Baseline/saturation/raw-
+  identity all healthy. Probes: synthetic two-cue carryover ≈ 80% of fresh
+  separation on outers 2–3; constant-input loop holds the wrong action
+  600/600 with preferred 1 while P moves (L1 ≈ 1.4).
+- Interpretation: continuity-induced behavioral lock with teaching-signal
+  starvation; distinct from outer-1's condition-independent lock. M4-08
+  verified as audit; M4-GATE remains blocked.
+- Evidence: [summary](evidence/m4-08/summary.md), per-outcome series
+  `evidence/m4-08/audit/series.jsonl` (16,000 rows), leg/probe aggregates
+  `evidence/m4-08/audit/audit.json`.
+
+## 2026-09-22 UTC — M4-08b lock-localization probes
+
+- Pre-analysis plan: `manifests/m4_lock_localization.json`; frozen family,
+  outers 2–3, lock-in (60 outcomes, M4-08 protocol) plus dose/flip/converge
+  matrices, 76,768 declared transitions. No new range, no production change.
+- Result: exactly 76,768 transitions, zero nonfinite states, 16/16 lock
+  validity gates, bitwise rebuild identity. Outer-2 1× drive moves the fresh
+  readout toward action 0 (+0.11..+0.16) against mappings rewarding 1;
+  zero-drive flips locked clones 8/8 (median 50 ticks) while 1×/2×/4× drive
+  pins 0/8 with scale-growing margins. Outer-3 cue-1 drive flips 8/8
+  (median 14→6→3 ticks); cue-0 drive holds 8/8 correctly. Converge
+  distances fall 4–5× by 64 ticks but plateau (0.17/0.33).
+- Interpretation: lock localized to input-projection alignment; motor
+  inertia escapable, attractor persistence secondary. Scaling input drive
+  deepens the pin rather than fixing it.
+- Evidence: [summary](evidence/m4-08b/summary.md), matrix
+  `evidence/m4-08b/probes/probes.json`.
+
+## 2026-09-22 UTC — M4-08c persistent escape sweep (valid null)
+
+- Pre-analysis `manifests/m4_escape_sweep.json`: eta
+  `{1e-4,3e-4,1e-3,3e-3}` × tau_e `{16,32,64}`, unchanged M4-07 actor,
+  development root 1/outers 1–3/lifetime 0, windows and bar. One fresh B3
+  per outer shared across points; anchor first; no input/motor tuning.
+- Executed once: 39/39 lifetimes, 78,000 outcomes, 1,327,092 ticks,
+  4.408 seconds export-body time, zero failures. Exact W0/schedule/mapping
+  pairing; all three anchor and three B3 aggregate records match M4-07.
+  Independent series audit covers all rows and recomputes windows/verdicts.
+- Every point passes 0/3 seeds. Outers 1/2 choose action 0 on all 2,000
+  outcomes at every setting; late mean abs(delta) ~2e-17 with E L1 133–376.
+  Outer 3 late accuracy ranges 0.875–0.970 versus B3 0.875; its frozen
+  0.15 margin is unreachable even at perfect accuracy. Maximum clipping
+  0.053904, bound occupancy 0, all P norms positive, healthy numerics.
+- Nothing adopted. Null applies to this grid and these reused development
+  lifetimes only. [M4-08c summary](evidence/m4-08c/summary.md) links all
+  series, configs, hashes and provenance; [negative M4-09 bundle](evidence/m4-09/summary.md)
+  packages the result. M4 remains blocked; next is a separately declared
+  persistent-exploration design investigation. No post-result tuning ran.
