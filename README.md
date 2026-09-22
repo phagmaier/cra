@@ -42,8 +42,10 @@ guards, same-seed pairing, `continuous_stationary` executable twin of
 the `debug_stationary` source — 6 new tests); **M4-05 done** (three
 gradual clean timing stages, exact endpoint/pairing checks, and a saved
 27-lifetime `tau_e`/trace/update sensitivity record — 4 new default
-tests plus one explicit bounded diagnostic); next task M4-06
-(continuous-learning checkpoints).**
+tests plus one explicit bounded diagnostic); **M4-06 done** (schema-4 exact
+continuous pause/resume with nonzero P/E at ongoing, pre-feedback, and
+post-feedback boundaries; schema 2/3 preserved — 9 new tests); next task
+M4-07 (declared continuous acquisition comparison).
 The simulator core exists as
 a library
 (`src/environment/`, `src/agent/` nonplastic dynamics plus `B3`
@@ -405,14 +407,19 @@ Python audit tests, fixture audit OK, clean fmt/Clippy. The gate
 rests on exit conditions (a)–(d) in the [tracker ledger](to-do.md):
 several-seed learning over matched controls, valid score/golden
 tests, interpretable numerics, no lucky trajectory. **M3 COMPLETE —
-M4-01 through M4-05 done.** M4-05 adds
+M4-01 through M4-06 done.** M4-05 adds
 [`continuous_variable_short`](configs/continuous_variable_short.toml) and
 [`continuous_variable_delayed`](configs/continuous_variable_delayed.toml),
 table-pins all timing endpoints, and saves paired development measurements for
 `tau_e` 16/32/64. The 27-lifetime diagnostic completed 6,912 outcomes and
 220,005 ticks; longer traces increased measured trace/update scale and
 clipping but did not monotonically improve reward. See the
-[M4-05 evidence](docs/evidence/m4-05/summary.md). **M4-06 is next.**
+[M4-05 evidence](docs/evidence/m4-05/summary.md). M4-06 adds the separate
+schema-4 `ContinuousCheckpoint`: exact splits during ongoing activity,
+immediately before pending feedback, and after feedback preserve all live
+learner/environment/RNG state and reject duplicate delivery or incomplete and
+incompatible files. Schema 2 and schema 3 compatibility tests remain green.
+See the [M4-06 evidence](docs/evidence/m4-06/summary.md). **M4-07 is next.**
 Continuous acquisition without within-lifetime resets remains unverified;
 no modulation, evolution, or broader-track claim follows.
 The owner-requested [M3 preflight hardening](docs/evidence/m3-preflight/summary.md)
@@ -433,6 +440,14 @@ output path:
 CRA_M4_TIMING_DIR=/tmp/cra-m4-timing-fresh \
   cargo test --release --locked --test m4_timing \
   m4_timing_sensitivity_diagnostic -- --ignored --exact --nocapture
+```
+
+To verify exact continuous-learning pause/resume and the unchanged episodic
+checkpoint contract:
+
+```bash
+cargo test --release --locked --test continuous_checkpoint
+cargo test --locked --test episodic_checkpoint
 ```
 
 To save the bounded observability tests' measured diagnostics, choose a fresh
@@ -553,12 +568,14 @@ double-buffered transition, `-expm1` leaks, post-integration noise),
 `agent/motor.rs` (M1-06 pool means, leaky filter, new-q commitment),
 `agent/no_learning.rs` (M1-07 B3 continuous actor through the ordinary
 runner), `agent/health.rs` (M1-08 read-only watchdog, summaries, stable
-traces), `checkpoint.rs` (M1-09 versioned lifetime files, config hash,
-checksum, atomic writes), `experiments/baseline.rs` (B0/B1/B3/O1 harness),
+traces), `checkpoint.rs` (schema-2 nonplastic, schema-3 episodic, and
+schema-4 continuous lifetime files with config hash, checksum, and atomic
+writes), `experiments/baseline.rs` (B0/B1/B3/O1 harness),
 `experiments/finite_rollout.rs` (M2-04 fixed-weight, no-decay diagnostic),
 `experiments/episodic.rs` (M3-04 fixed-gate episodic diagnostic runner with
 logged rollout resets), `experiments/continuous.rs` (M4 persistent learner,
-continuity runners, and pre-feedback trace measurements),
+continuity runners, pre-feedback trace measurements, and continuous
+snapshot/restore),
 `logging/` (event records + validation), `run.rs` (provenance + simulation
 runner), and thin `main.rs`.
 `configs/` holds `env_smoke.toml` (M0 smoke), `debug_stationary.toml`

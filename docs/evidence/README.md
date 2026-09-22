@@ -114,3 +114,12 @@ RNG, named feedback-update parameters, and plastic snapshot v3 with enforced
 bound compatibility. It records the intentional hidden-role seed migration,
 full verification, and remaining runner-order/boundary work. No learner run or
 acquisition claim was added.
+
+## M4 continuous checkpoint replay
+
+The [M4-06 summary](m4-06/summary.md) records schema-4 exact continuation of
+the fully persistent learner at three nonzero-`P/E` boundaries, including
+pending feedback/latch state, post-feedback deduplication, all live RNGs, and
+validated effective-cache derivation. It preserves and re-runs the schema-3
+episodic compatibility suite; schema 2 remains unchanged. This is replay
+evidence only and does not establish continuous acquisition.

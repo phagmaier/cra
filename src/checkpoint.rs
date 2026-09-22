@@ -9,11 +9,14 @@
 //!
 //! Scope: the nonplastic M1 actor plus the continuous environment for
 //! [`Checkpoint`] (schema 2); M3-10 adds [`LearningCheckpoint`] (schema
-//! 3) for the episodic plastic learner below, carrying `P`/`E`/baseline/
-//! dedup inside the versioned [`PlasticSnapshot`](crate::agent::plasticity::PlasticSnapshot).
+//! 3) for the episodic plastic learner, and M4-06 adds
+//! [`ContinuousCheckpoint`] (schema 4) for the fully persistent learner.
+//! Both plastic envelopes carry `P`/`E`/baseline/dedup inside the versioned
+//! [`PlasticSnapshot`](crate::agent::plasticity::PlasticSnapshot); schema 4
+//! additionally pins and validates the derived `W0 + P` cache.
 //! [`Checkpoint`] rejects files that claim plasticity (unknown fields)
-//! instead of silently defaulting them, and neither loader reads the
-//! other's schema. Health summaries and traces (M1-08) are
+//! instead of silently defaulting them, and none of the three loaders reads
+//! another envelope's schema. Health summaries and traces (M1-08) are
 //! diagnostics, not lifetime state, and are intentionally absent: resume
 //! reproduces the trajectory, and observers re-derive identical summaries.
 //!
@@ -42,6 +45,7 @@ use crate::agent::no_learning::{NoLearningActor, NoLearningError};
 use crate::agent::weights::InheritedParams;
 use crate::config::{Config, resolved_toml};
 use crate::environment::{Lifetime, SimError};
+use crate::experiments::continuous::{ContinuousError, ContinuousLearner};
 use crate::experiments::episodic::{EpisodicError, EpisodicLearner};
 
 /// Schema version for M1 checkpoint files. Bumped only with a documented
@@ -101,9 +105,7 @@ pub enum CheckpointError {
     Io { path: String, message: String },
     #[error("checkpoint parse error for '{path}': {message}")]
     Parse { path: String, message: String },
-    #[error(
-        "unsupported checkpoint schema_version {found}; this implementation reads {CHECKPOINT_SCHEMA_VERSION}"
-    )]
+    #[error("unsupported checkpoint schema_version {found}")]
     SchemaVersion { found: u32 },
     #[error("checkpoint checksum mismatch: file is corrupt or tampered")]
     ChecksumMismatch,
@@ -140,6 +142,15 @@ impl From<EpisodicError> for CheckpointError {
             EpisodicError::InvalidConfig(reason) | EpisodicError::BadSeed(reason) => {
                 Self::Incompatible(reason)
             }
+            other => Self::Corrupt(other.to_string()),
+        }
+    }
+}
+
+impl From<ContinuousError> for CheckpointError {
+    fn from(error: ContinuousError) -> Self {
+        match error {
+            ContinuousError::InvalidConfig(reason) => Self::Incompatible(reason),
             other => Self::Corrupt(other.to_string()),
         }
     }
@@ -930,6 +941,395 @@ impl LearningCheckpoint {
     }
 }
 
+/// Schema version for fully persistent continuous-learning checkpoints
+/// (M4-06). This is a separate envelope from M1 schema 2 and episodic
+/// schema 3; no loader silently migrates between the three contracts.
+pub const CONTINUOUS_CHECKPOINT_SCHEMA_VERSION: u32 = 4;
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ContinuousCheckpointPayload {
+    schema_version: u32,
+    code_version: String,
+    reference_os: String,
+    reference_arch: String,
+    config: Config,
+    config_hash_sha256: String,
+    seeds: SeedIdentity,
+    env: crate::environment::LifetimeSnapshot,
+    agent: crate::experiments::continuous::ContinuousAgentSnapshot,
+    inherited: InheritedParams,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ContinuousCheckpointFile {
+    payload: ContinuousCheckpointPayload,
+    checksum_sha256: String,
+}
+
+/// Exact pause/resume envelope for the fully persistent continuous learner.
+///
+/// The environment half carries phase/countdowns, pending feedback,
+/// previous-action latch, hidden schedule state, delivery/confirmation
+/// ledgers, and all live environment RNGs. The learner half carries live
+/// neural/adaptation/motor state, both agent RNGs, `P`, `E`, baseline,
+/// feedback deduplication, and an asserted effective-weight cache. Inherited
+/// parameters and the fully resolved config travel in this envelope.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ContinuousCheckpoint {
+    payload: ContinuousCheckpointPayload,
+    checksum_sha256: String,
+}
+
+impl ContinuousCheckpoint {
+    /// Capture only at a fully processed tick boundary. A due feedback may
+    /// still be pending (the immediately-before-feedback boundary), but a
+    /// delivered feedback must already be applied and confirmed. The
+    /// transient commitment phase is rejected.
+    pub fn capture(
+        lifetime: &Lifetime,
+        learner: &ContinuousLearner,
+        cfg: &Config,
+        seeds: SeedIdentity,
+    ) -> Result<Self, CheckpointError> {
+        crate::config::validate_continuous_execution(cfg).map_err(|e| {
+            CheckpointError::Incompatible(format!("checkpoint config not executable: {e}"))
+        })?;
+        if cfg.actor.as_ref() != Some(learner.actor_config()) {
+            return Err(CheckpointError::Incompatible(
+                "live actor configuration differs from capture configuration".to_owned(),
+            ));
+        }
+        let learning = cfg.learning.as_ref().ok_or_else(|| {
+            CheckpointError::Incompatible("checkpoint config has no [learning] section".to_owned())
+        })?;
+        let bad = |s: &str| CheckpointError::Incompatible(s.to_owned());
+        if learner.plastic().mask_kind().name() != learning.plastic_mask {
+            return Err(bad("live plastic mask differs from capture configuration"));
+        }
+        if learner.plastic().trace_policy().name() != learning.trace_policy {
+            return Err(bad("live trace policy differs from capture configuration"));
+        }
+        if learner.plastic().tau_e_config() != learning.tau_e {
+            return Err(bad("live tau_e differs from capture configuration"));
+        }
+        if learner.plastic().plastic_bound() != learning.plastic_bound {
+            return Err(bad("live plastic bound differs from capture configuration"));
+        }
+        let resolved = resolved_toml(cfg).map_err(|e| {
+            CheckpointError::Corrupt(format!("cannot resolve checkpoint config: {e}"))
+        })?;
+        let payload = ContinuousCheckpointPayload {
+            schema_version: CONTINUOUS_CHECKPOINT_SCHEMA_VERSION,
+            code_version: env!("CARGO_PKG_VERSION").to_owned(),
+            reference_os: std::env::consts::OS.to_owned(),
+            reference_arch: std::env::consts::ARCH.to_owned(),
+            config: cfg.clone(),
+            config_hash_sha256: sha256_hex(resolved.as_bytes()),
+            env: lifetime.snapshot(
+                seeds.root_seed,
+                &seeds.namespace,
+                seeds.outer_seed,
+                seeds.lifetime_index,
+            )?,
+            agent: learner.snapshot(
+                seeds.root_seed,
+                &seeds.namespace,
+                seeds.outer_seed,
+                seeds.lifetime_index,
+            )?,
+            inherited: learner.inherited().clone(),
+            seeds,
+        };
+        let checksum_sha256 = sha256_hex(
+            &serde_json::to_vec(&payload)
+                .map_err(|e| CheckpointError::Corrupt(format!("cannot encode payload: {e}")))?,
+        );
+        let checkpoint = Self {
+            payload,
+            checksum_sha256,
+        };
+        checkpoint.check_compatibility()?;
+        Ok(checkpoint)
+    }
+
+    pub fn seeds(&self) -> &SeedIdentity {
+        &self.payload.seeds
+    }
+
+    pub fn config(&self) -> &Config {
+        &self.payload.config
+    }
+
+    pub fn tick(&self) -> u64 {
+        self.payload.env.tick
+    }
+
+    /// Persist with the established checksum + unique-temp + fsync + atomic
+    /// rename pattern used by schemas 2 and 3.
+    pub fn save_to_path(&self, path: &Path) -> Result<(), CheckpointError> {
+        let io = |message: String| CheckpointError::Io {
+            path: path.display().to_string(),
+            message,
+        };
+        let parent = path
+            .parent()
+            .ok_or_else(|| io("no parent directory".to_owned()))?;
+        let file_name = path
+            .file_name()
+            .ok_or_else(|| io("no file name".to_owned()))?
+            .to_string_lossy()
+            .into_owned();
+        let file = ContinuousCheckpointFile {
+            payload: self.payload.clone(),
+            checksum_sha256: self.checksum_sha256.clone(),
+        };
+        let bytes = serde_json::to_vec_pretty(&file)
+            .map_err(|e| CheckpointError::Corrupt(format!("cannot encode file: {e}")))?;
+        static NEXT_TEMP: AtomicU64 = AtomicU64::new(0);
+        let (tmp, mut output) = loop {
+            let nonce = NEXT_TEMP.fetch_add(1, Ordering::Relaxed);
+            let tmp = parent.join(format!(".{file_name}.tmp.{}.{nonce}", std::process::id()));
+            match std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&tmp)
+            {
+                Ok(file) => break (tmp, file),
+                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
+                Err(e) => return Err(io(e.to_string())),
+            }
+        };
+        if let Err(e) = output.write_all(&bytes).and_then(|_| output.sync_all()) {
+            let _ = std::fs::remove_file(&tmp);
+            return Err(io(e.to_string()));
+        }
+        drop(output);
+        std::fs::rename(&tmp, path).map_err(|e| {
+            let _ = std::fs::remove_file(&tmp);
+            io(e.to_string())
+        })?;
+        Ok(())
+    }
+
+    /// Load only complete schema-4 continuous checkpoints. Missing or
+    /// unknown fields, old schemas, bad checksums, and incompatible state
+    /// are explicit failures.
+    pub fn load_from_path(path: &Path) -> Result<Self, CheckpointError> {
+        let io = |message: String| CheckpointError::Io {
+            path: path.display().to_string(),
+            message,
+        };
+        let parse = |message: String| CheckpointError::Parse {
+            path: path.display().to_string(),
+            message,
+        };
+        let bytes = std::fs::read(path).map_err(|e| io(e.to_string()))?;
+        let file: ContinuousCheckpointFile =
+            serde_json::from_slice(&bytes).map_err(|e| parse(e.to_string()))?;
+        if file.payload.schema_version != CONTINUOUS_CHECKPOINT_SCHEMA_VERSION {
+            return Err(CheckpointError::SchemaVersion {
+                found: file.payload.schema_version,
+            });
+        }
+        let recomputed = sha256_hex(
+            &serde_json::to_vec(&file.payload)
+                .map_err(|e| CheckpointError::Corrupt(format!("cannot re-encode payload: {e}")))?,
+        );
+        if recomputed != file.checksum_sha256 {
+            return Err(CheckpointError::ChecksumMismatch);
+        }
+        let checkpoint = Self {
+            payload: file.payload,
+            checksum_sha256: file.checksum_sha256,
+        };
+        checkpoint.check_compatibility()?;
+        Ok(checkpoint)
+    }
+
+    fn check_seed_identity(&self, expected: &SeedIdentity) -> Result<(), CheckpointError> {
+        if self.payload.seeds != *expected {
+            return Err(CheckpointError::Incompatible(format!(
+                "checkpoint recorded for lifetime {:?} but resume expects {:?}",
+                self.payload.seeds, expected
+            )));
+        }
+        Ok(())
+    }
+
+    fn check_compatibility(&self) -> Result<(), CheckpointError> {
+        if self.payload.code_version != env!("CARGO_PKG_VERSION")
+            || self.payload.reference_os != std::env::consts::OS
+            || self.payload.reference_arch != std::env::consts::ARCH
+        {
+            return Err(CheckpointError::Incompatible(
+                "checkpoint code version or reference platform differs".to_owned(),
+            ));
+        }
+        crate::config::validate_continuous_execution(&self.payload.config).map_err(|e| {
+            CheckpointError::Incompatible(format!("checkpoint config not executable: {e}"))
+        })?;
+        let resolved = resolved_toml(&self.payload.config).map_err(|e| {
+            CheckpointError::Corrupt(format!("cannot resolve checkpoint config: {e}"))
+        })?;
+        if sha256_hex(resolved.as_bytes()) != self.payload.config_hash_sha256 {
+            return Err(CheckpointError::Corrupt(
+                "config hash does not match the stored configuration".to_owned(),
+            ));
+        }
+        if self.payload.agent.ticks_advanced != self.payload.env.tick {
+            return Err(CheckpointError::Incompatible(format!(
+                "agent ticks {} disagree with environment tick {}",
+                self.payload.agent.ticks_advanced, self.payload.env.tick
+            )));
+        }
+        let p = &self.payload;
+        let cfg = &p.config;
+        let e = &p.env;
+        let bad = |s: &str| CheckpointError::Incompatible(s.to_owned());
+        let actor_cfg = cfg
+            .actor
+            .as_ref()
+            .ok_or_else(|| bad("missing actor config"))?;
+        let learning = cfg
+            .learning
+            .as_ref()
+            .ok_or_else(|| bad("missing learning config"))?;
+        p.inherited
+            .validate(
+                actor_cfg,
+                crate::environment::feature_dim(cfg.environment.cue_count),
+            )
+            .map_err(|err| bad(&err.to_string()))?;
+        if e.cue_count != cfg.environment.cue_count
+            || e.cue_ticks != cfg.environment.cue_ticks
+            || e.response_ticks != cfg.environment.response_ticks
+            || e.quiet_range != cfg.environment.quiet_ticks
+            || e.gap_range != cfg.environment.memory_gap_ticks
+            || e.delay_range != cfg.environment.reward_delay_ticks
+            || e.outcomes_target != cfg.simulation.outcomes_per_lifetime
+            || e.warmup_ticks != cfg.simulation.warmup_ticks
+        {
+            return Err(bad(
+                "stored environment differs from resolved configuration",
+            ));
+        }
+        let id = &p.seeds;
+        let env = Lifetime::restore(
+            e.clone(),
+            id.root_seed,
+            &id.namespace,
+            id.outer_seed,
+            id.lifetime_index,
+        )?;
+        let learner = ContinuousLearner::restore(
+            p.agent.clone(),
+            actor_cfg.clone(),
+            learning.clone(),
+            p.inherited.clone(),
+            e.cue_count,
+            id.root_seed,
+            &id.namespace,
+            id.outer_seed,
+            id.lifetime_index,
+        )?;
+        if learner.plastic().plastic_bound() != learning.plastic_bound {
+            return Err(bad("restored plastic bound disagrees with configuration"));
+        }
+        if learner.plastic().effective_weights() != p.agent.effective_weights {
+            return Err(bad(
+                "restored effective-weight cache disagrees with checkpoint assertion",
+            ));
+        }
+        if e.confirmed != e.consumed || p.agent.plastic.last_feedback != e.consumed.last().copied()
+        {
+            return Err(bad(
+                "learner feedback bookkeeping disagrees with delivered/confirmed events",
+            ));
+        }
+        if matches!(e.phase, crate::environment::schedule::PhaseState::Committed) {
+            return Err(bad("commitment must finish before capture"));
+        }
+        let birth = Lifetime::new(
+            cfg,
+            id.root_seed,
+            &id.namespace,
+            id.outer_seed,
+            id.lifetime_index,
+        )?;
+        for cue in 0..e.cue_count {
+            if env.hidden().epsilon(cue) != birth.hidden().epsilon(cue)
+                || env.hidden().hazard(cue) != birth.hidden().hazard(cue)
+                || env.hidden().role(cue) != birth.hidden().role(cue)
+            {
+                return Err(bad(
+                    "hidden noise/hazard assignment differs from config and seed",
+                ));
+            }
+        }
+        let init = crate::rng::SeedTuple::new(
+            id.root_seed,
+            &id.namespace,
+            id.outer_seed,
+            0,
+            crate::rng::ACTOR_INIT_STREAM,
+        );
+        let init_hex = crate::rng::derive_seed_hex(&init).map_err(|err| bad(&err.to_string()))?;
+        if p.inherited.topology.init_seed_hex != init_hex {
+            return Err(bad(
+                "inherited initialization seed differs from checkpoint identity",
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn restore_env(&self, expected: &SeedIdentity) -> Result<Lifetime, CheckpointError> {
+        self.check_seed_identity(expected)?;
+        self.check_compatibility()?;
+        let seeds = &self.payload.seeds;
+        Ok(Lifetime::restore(
+            self.payload.env.clone(),
+            seeds.root_seed,
+            &seeds.namespace,
+            seeds.outer_seed,
+            seeds.lifetime_index,
+        )?)
+    }
+
+    pub fn restore_learner(
+        &self,
+        expected: &SeedIdentity,
+    ) -> Result<ContinuousLearner, CheckpointError> {
+        self.check_seed_identity(expected)?;
+        self.check_compatibility()?;
+        let seeds = &self.payload.seeds;
+        let actor_cfg = self.payload.config.actor.clone().ok_or_else(|| {
+            CheckpointError::Incompatible("checkpoint config has no [actor] section".to_owned())
+        })?;
+        let learning = self.payload.config.learning.clone().ok_or_else(|| {
+            CheckpointError::Incompatible("checkpoint config has no [learning] section".to_owned())
+        })?;
+        let cue_count = self.payload.config.environment.cue_count;
+        if self.payload.inherited.topology.neuron_count != actor_cfg.neuron_count {
+            return Err(CheckpointError::Incompatible(
+                "inherited topology does not match the checkpoint actor config".to_owned(),
+            ));
+        }
+        Ok(ContinuousLearner::restore(
+            self.payload.agent.clone(),
+            actor_cfg,
+            learning,
+            self.payload.inherited.clone(),
+            cue_count,
+            seeds.root_seed,
+            &seeds.namespace,
+            seeds.outer_seed,
+            seeds.lifetime_index,
+        )?)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -944,6 +1344,11 @@ mod tests {
         // The plastic-learner envelope is a separate version line: M1
         // schema 2 files never gain plastic fields by migration.
         assert_eq!(LEARNING_CHECKPOINT_SCHEMA_VERSION, 3);
+    }
+
+    #[test]
+    fn continuous_schema_version_is_pinned() {
+        assert_eq!(CONTINUOUS_CHECKPOINT_SCHEMA_VERSION, 4);
     }
 
     fn test_capture() -> (Checkpoint, SeedIdentity) {
@@ -975,6 +1380,104 @@ mod tests {
         let actor = NoLearningActor::new(&cfg, 1, "development", 1, 0).unwrap();
         let checkpoint = Checkpoint::capture(&life, &actor, &cfg, id.clone()).unwrap();
         (checkpoint, id)
+    }
+
+    fn test_continuous_capture() -> (ContinuousCheckpoint, SeedIdentity) {
+        let mut cfg: Config =
+            toml::from_str(&std::fs::read_to_string("configs/continuous_stationary.toml").unwrap())
+                .unwrap();
+        cfg.simulation.outcomes_per_lifetime = 4;
+        let id = SeedIdentity {
+            root_seed: 1,
+            namespace: "development".to_owned(),
+            outer_seed: 2,
+            lifetime_index: 0,
+        };
+        let (inherited, _) = crate::experiments::continuous::sample_matched_inheritance(
+            &cfg,
+            id.root_seed,
+            &id.namespace,
+            id.outer_seed,
+        )
+        .unwrap();
+        let noise = crate::rng::rng_for(&crate::rng::SeedTuple::new(
+            id.root_seed,
+            &id.namespace,
+            id.outer_seed,
+            id.lifetime_index,
+            "actor_noise",
+        ))
+        .unwrap();
+        let tie = crate::rng::rng_for(&crate::rng::SeedTuple::new(
+            id.root_seed,
+            &id.namespace,
+            id.outer_seed,
+            id.lifetime_index,
+            "tie_break",
+        ))
+        .unwrap();
+        let learner = ContinuousLearner::from_agent_parts(
+            cfg.actor.clone().unwrap(),
+            cfg.learning.clone().unwrap(),
+            inherited,
+            cfg.environment.cue_count,
+            noise,
+            tie,
+        )
+        .unwrap();
+        let lifetime = Lifetime::new(
+            &cfg,
+            id.root_seed,
+            &id.namespace,
+            id.outer_seed,
+            id.lifetime_index,
+        )
+        .unwrap();
+        let checkpoint =
+            ContinuousCheckpoint::capture(&lifetime, &learner, &cfg, id.clone()).unwrap();
+        (checkpoint, id)
+    }
+
+    #[test]
+    fn continuous_derived_cache_disagreement_is_incompatible() {
+        let (mut checkpoint, id) = test_continuous_capture();
+        checkpoint.payload.agent.effective_weights[0][0] += 1.0;
+        assert!(matches!(
+            checkpoint.restore_env(&id),
+            Err(CheckpointError::Incompatible(_))
+        ));
+        assert!(matches!(
+            checkpoint.restore_learner(&id),
+            Err(CheckpointError::Incompatible(_))
+        ));
+    }
+
+    #[test]
+    fn continuous_resolved_learning_mismatch_is_incompatible() {
+        let (mut checkpoint, id) = test_continuous_capture();
+        checkpoint.payload.config.learning.as_mut().unwrap().tau_e += 1.0;
+        let resolved = resolved_toml(&checkpoint.payload.config).unwrap();
+        checkpoint.payload.config_hash_sha256 = sha256_hex(resolved.as_bytes());
+        assert!(matches!(
+            checkpoint.restore_env(&id),
+            Err(CheckpointError::Incompatible(_))
+        ));
+        assert!(matches!(
+            checkpoint.restore_learner(&id),
+            Err(CheckpointError::Incompatible(_))
+        ));
+    }
+
+    #[test]
+    fn continuous_loader_rejects_schema_2_checkpoint() {
+        let (checkpoint, _) = test_capture();
+        let path = std::env::temp_dir().join(format!(
+            "cra-schema2-continuous-cross-load-{}.json",
+            std::process::id()
+        ));
+        checkpoint.save_to_path(&path).unwrap();
+        assert!(ContinuousCheckpoint::load_from_path(&path).is_err());
+        let _ = std::fs::remove_file(path);
     }
 
     #[test]

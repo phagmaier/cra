@@ -1,7 +1,7 @@
 # Agent continuation guide
 
-Updated 2026-09-21 UTC after M4-05 at base `1e0db3`.
-The session started clean; M4-05 evidence records the deliberately dirty
+Updated 2026-09-21 UTC after M4-06 at base `6d6f9ee`.
+The session started clean; M4-06 evidence records the deliberately dirty
 implementation worktree. Check Git and the tracker for newer work before claiming.
 
 ## Start here
@@ -20,9 +20,23 @@ implementation worktree. Check Git and the tracker for newer work before claimin
 
 **M0-GATE, M1-GATE, M2-GATE passed (re-verified where noted). M3-01
 through M3-GATE verified 2026-09-21 UTC — M3 COMPLETE. M4-01 through
-M4-05 verified 2026-09-21 UTC. Next task: M4-06.**
+M4-06 verified 2026-09-21 UTC. Next task: M4-07.**
 There is no outstanding milestone blocker. The claim track remains `family_only`.
 No reserved final-test outcomes have been inspected.
+
+M4-06 adds `ContinuousCheckpoint` schema 4 without changing M1 schema 2 or
+episodic schema 3. The continuous snapshot carries live actor/adaptation/
+perturbation and motor state, both agent RNG positions, persistent `P/E`,
+baseline and dedup, plus an effective-cache assertion re-derived from stored
+inherited `W0 + P`; the shared environment snapshot carries phase, pending
+reward, action latch, ledgers, and all environment RNGs. A production-faithful
+driver matches the runner, then exact replay passes with nonzero `P/E` during
+cue activity, immediately before feedback, and after feedback. Missing fields,
+resolved-config/cache mismatches, corrupt/cross-schema files, and duplicate
+delivery reject. Full checks: **323 Rust tests passed**, seven existing
+ignores, two compile-fail doc checks, 17 Python tests, fixture audit, profile
+validation, clean fmt/Clippy/diff. [M4-06 evidence](evidence/m4-06/summary.md).
+Continuous acquisition remains M4-07.
 
 M4-05 declares three clean stationary timing stages: fixed short
 `continuous_stationary`, moderate `continuous_variable_short`, and
@@ -36,7 +50,7 @@ records; longer traces increased scale/clipping but did not monotonically
 improve reward. Full checks: **314 Rust tests passed**, seven ignores
 (six prior + this bounded diagnostic), 17 Python tests, fixture audit,
 clean fmt/Clippy, and both new profiles validate.
-[M4-05 evidence](evidence/m4-05/summary.md). Checkpoints are M4-06;
+[M4-05 evidence](evidence/m4-05/summary.md). Checkpoints are now M4-06;
 continuous acquisition remains M4-07.
 
 M4-04 names the three continuity conditions with pairwise-disjoint
@@ -57,7 +71,8 @@ without resets, finish on the tick after the final outcome. Full
 checks: **304 fast Rust tests passed** (6 new), six pre-existing
 ignores, two compile-fail doc checks, 17 Python audit tests, clean
 fmt/Clippy. [M4-03 evidence](evidence/m4-03/summary.md). Conditions,
-timing profiles, and sensitivity records are now M4-04/M4-05; checkpoints are M4-06.
+timing profiles and sensitivity records followed in M4-04/M4-05; checkpoints
+followed in M4-06.
 
 M4-02 adds the fully persistent learner
 (`experiments::continuous::ContinuousLearner`, fixed gate 1, no reset
@@ -68,8 +83,8 @@ counterfactuals, and once-per-feedback baseline counting (closed form
 0.509804). Full checks: **298 fast Rust tests passed** (5 new), six
 pre-existing ignores, two compile-fail doc checks, 17 Python audit
 tests, clean fmt/Clippy. [M4-02 evidence](evidence/m4-02/summary.md).
-The runner, profiles, and timing work arrived in M4-03 through M4-05;
-continuous checkpoints remain M4-06.
+The runner, profiles, timing work, and checkpoints arrived in M4-03 through
+M4-06.
 
 M4-01 splits the tick into `Lifetime::observe()` + `finish_tick()`
 (`advance()` kept as the fused primitive, parity-pinned) and migrates
@@ -262,34 +277,22 @@ is available for a quick audit. Reproduce missing raw runs using the saved
 commands/configs into new directories; preserve historical evidence paths
 and distinguish reruns from the original execution.
 
-## Next task: M4-06
+## Next task: M4-07
 
-**Deliver:** exact pause/resume for the fully persistent learner during
-nonzero traces and offsets, including just-before-feedback and
-post-feedback boundaries. Carry baseline, consumed-event identity,
-previous-action latch, pending reward/environment phase, all live neural
-and motor state, RNG positions, inherited parameters, and the effective
-weight cache's validated derivation.
+Run the declared continuous acquisition comparison across the three named
+continuity conditions and matched nonplastic controls on development seeds.
+Predeclare per-cue exposure windows and the matched-control criterion before
+execution; report raw/actual updates, bound occupancy, motor saturation, and
+all failures. The fully persistent condition must retain measurable
+above-chance acquisition and exceed the declared control criterion for this
+task to pass. Episodic success and M4-05's timing sensitivity do not satisfy
+the gate.
 
-Read spec Section 10.7, the
-[M4 task queue](../to-do.md#m4---remove-artificial-trial-resets), and the
-existing episodic checkpoint implementation/tests before changing schemas.
-Use `src/checkpoint.rs`, `src/experiments/continuous.rs`, and
-`tests/episodic_checkpoint.rs` as the established envelope/replay patterns;
-add continuous-specific coverage rather than weakening the schema-2 M1 or
-schema-3 episodic compatibility checks.
-
-Verification must split an ordinary continuous lifetime with nonzero `P/E`
-at three meaningful states: during ongoing activity, immediately before a
-due feedback is observed, and after feedback has applied. Resumed and
-uninterrupted trajectories must be bit-identical on the reference platform.
-Duplicate delivery must not update twice; missing/new fields and mismatched
-resolved configuration must reject rather than reset. Preserve M4-01 tick
-ordering and M4-05 timing profiles; checkpointing must draw no randomness.
-
-M4-05 is descriptive timing sensitivity only. It selected no `tau_e` and
-does not prove continuous acquisition. M4-07 remains responsible for the
-declared several-seed continuity/control comparison.
+Read the [M4 task queue](../to-do.md#m4---remove-artificial-trial-resets),
+spec Sections 7.3–7.9, 9–10, 14.3, 16/M4, and 17.8, plus the M3-06/M3-07
+pre-results grid and control patterns. Benchmark a representative bounded
+lifetime before scaling and obtain the declared finite development budget.
+Do not begin M4-08 or inspect validation/final-test outcomes.
 
 M3-GATE passed 2026-09-21 UTC on executed evidence, not stored
 claims: fresh release re-runs reproduce the archived M3-07 verdict
@@ -378,6 +381,7 @@ episodic learner at grid index 11.
 | Event-reset diagnostic (M4-04) | `src/experiments/continuous.rs` (`run_event_reset_lifetime`, `EVENT_RESET_MODE`), `src/config.rs` (`validate_event_reset_execution`), `src/agent/plasticity.rs` (`reset_traces_event_diagnostic`) | `tests/continuity_conditions.rs`; pairwise-disjoint guards, same-seed pairing with divergent P/E, per-outcome reset audit, E-only clear unit proof |
 | Continuity profiles (M4-04) | `configs/continuous_stationary.toml` (new executable twin), `configs/debug_stationary.toml` (source, header only) | `tests/continuity_conditions.rs`; section-identical except name, both validate, library execution at small override |
 | Timing/delay curriculum (M4-05) | `configs/continuous_{stationary,variable_short,variable_delayed}.toml`, `manifests/m4_timing_sensitivity.json`, `ContinuousChoice::eligibility_l1_before_update` | `tests/m4_timing.rs`; exact low/high endpoints, non-timing equality, same-seed exogenous pairing across `tau_e`, raw-update scale identity, explicit 27-lifetime evidence export |
+| Continuous checkpoints (M4-06) | `src/checkpoint.rs` (`ContinuousCheckpoint` schema 4), snapshot/restore in `src/experiments/continuous.rs` | `tests/continuous_checkpoint.rs`; faithful tick-order driver, 3 nonzero-P/E split replays, pending/latch/cache/config/dedup rejection coverage; M1 schema 2 and episodic schema 3 unchanged |
 | Matched controls (M3-05) | `src/experiments/episodic.rs` (`run_episodic_no_learning`, `run_episodic_shuffled`, `run_episodic_conditions`), `src/agent/no_learning.rs` (diagnostic reset) | `tests/episodic_controls.rs`; shared W0/schedule/resets, first-action parity, P-movement plus behavior, re-derived shuffle protocol, observed/applied separation |
 | Development grid (M3-06) | `manifests/m3_development_grid.json`, `src/experiments/grid.rs` | `tests/development_grid.rs`; frozen axes/seeds/windows/criterion/budget, validation-only instantiation of all 24 points, derived tick estimate, invalid-mutation rejection |
 | Acquisition sweep (M3-07) | `src/experiments/sweep.rs`, `tests/m3_acquisition.rs` | fast analysis on real summaries plus ignored release sweep; windows/margins/health/judging/selection, 216/216 integrity, archived records plus verdict |
@@ -402,12 +406,12 @@ episodic learner at grid index 11.
 | --- | --- | --- |
 | Tick API | M4-01: `Lifetime::observe()` builds a tick without clock advance; public `finish_tick()` advances it; `advance()` is exactly observe+finish (parity-pinned in `tests/main_tick_order.rs`). All six production drivers run observe → apply → agent-step → finish → commit; finish precedes commit so `Committed`/`commit_tick = tick - 1`/golden delays are unchanged. | Preserve complete-tick checkpoint splits and this causal order. M4-04 profiles conditions on top without changing tick semantics. |
 | Agent feedback | All runners call `apply_feedback` once per delivered event before `advance(features)`; B3 dedups without learning; selection reads policy state only. `PlasticState::apply_feedback_once` is the single `P`/baseline/dedup writer (fixed gate 1; `advance_inner` runs eligibility before motor on disjoint state). M4-02 adds the persistent `experiments::continuous` learner (no resets) alongside the episodic diagnostic. | Keep the information boundary for gates (M6). `TickOutput` belongs to the driver/evaluator. |
-| Effective weights | `PlasticState::refresh_effective` is the single `W0 + P` cache writer. `step_with_effective_weights` reads it; the episodic runner is its first production caller and `P` changes only through `apply_feedback_once` or validated restore. | M3-10/M4-06 embed `PlasticSnapshot` (schema 3) in checkpoint schema and prove split replay with nonzero `P`/`E`/baseline/dedup/bound. |
+| Effective weights | `PlasticState::refresh_effective` is the single `W0 + P` cache writer. `step_with_effective_weights` reads it; `P` changes only through `apply_feedback_once` or validated restore. M4-06 schema 4 stores the cache as an assertion, re-derives it from inherited `W0 + P`, and rejects disagreement. | Preserve this single derivation path when adding gates/interventions; never restore the cache as an independent learned parameter. |
 | Warmup | Replaces the first quiet interval; zero starts directly at cue presentation. `episodic_stationary` uses warmup 0. | Preserve the documented M0 convention; use measured ticks for budgets. An additive-warmup change needs an explicit decision and new evidence. |
 | Noise/hazard assignment | Stable membership is shuffled from dedicated `cue_membership`; noise rates cycle by cue index. | M5-02 owns factorial counterbalancing; current assignment is not a completed training-distribution implementation. |
 | Agent construction boundary | Existing B3 construction still receives broad config/master seed coordinates, although it uses only actor-safe values. The M3-04 learner uses agent-only inputs (`Actor`/`Learning`, inherited params, cue count, dedicated RNGs). | Keep the narrow episodic constructor; do not regress it to broad-config construction in M3-05 controls. |
 | Event identity | IDs/choice indices restart per lifetime. Ordinary records carry lifetime identity; hidden rows align within contiguous lifetime blocks. Episodic rollouts reuse the same per-lifetime IDs with an added `rollout_index` (one choice per rollout). | Checkpoint resume preserves exactly-once delivery (pending plus consumed/confirmed ledgers round-trip); M1-10 records the tolerance policy. A bare event ID is not a cross-lifetime join key. |
-| Logging | `event_log=false` omits event streams; audit coverage then stops at provenance/completion. Actor/health reads draw nothing (M1-07/M1-08 logging invariance). Episodic summaries carry mode/policies/resets plus consumed raw/limited/actual reports; continuous choices additionally expose evaluator-side pre-feedback E L1 for M4-05 sensitivity records. | Extend Rust validation, Python audit, fixtures, and versioning together when adding persisted quantities (ordinary M1 checkpoint schema 2, episodic learning schema 3, health schema 2; ordinary events remain schema 1). |
+| Logging | `event_log=false` omits event streams; audit coverage then stops at provenance/completion. Actor/health reads draw nothing (M1-07/M1-08 logging invariance). Episodic summaries carry mode/policies/resets plus consumed raw/limited/actual reports; continuous choices additionally expose evaluator-side pre-feedback E L1 for M4-05 sensitivity records. | Extend Rust validation, Python audit, fixtures, and versioning together when adding persisted quantities (M1 checkpoint schema 2, episodic schema 3, continuous schema 4, health schema 2; ordinary events remain schema 1). |
 | Execution guards | M0 still rejects neural/search sections for baselines; M1-07 adds `validate_actor_no_learning_execution` (actor required, learning disabled/absent, modulator absent/fixed, evolution disabled/absent). M3-04 adds `validate_episodic_execution` (clean task, `episodic_diagnostic` + `no_decay_diagnostic`, enabled learning, fixed gates). | Enable remaining plasticity controls (M3-05), gates (M6), and search (M7) with their implementations/tests; never bypass guards to make a future config appear runnable. |
 | Performance | Tick observations allocate; run logs are buffered. Simulation is serial. M4-05's bounded 27-lifetime timing diagnostic measured 220,005 ticks in 0.61 s reported release test time. | Benchmark the actual larger M4-07 comparison before scaling; keep budgets finite and development-only. |
 

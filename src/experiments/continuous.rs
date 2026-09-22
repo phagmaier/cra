@@ -30,19 +30,20 @@
 //! RNGs), never from the full environment `Config` or master seeds.
 
 use rand_chacha::ChaCha8Rng;
+use serde::{Deserialize, Serialize};
 
 use crate::agent::actor::{ActorError, ActorState, leak_alpha};
 use crate::agent::health::{HealthError, check_state};
 use crate::agent::motor::{MotorError, MotorState, decide_action};
 use crate::agent::plasticity::{
-    FeedbackOutcome, FeedbackUpdateParams, PlasticState, PlasticityError,
+    FeedbackOutcome, FeedbackUpdateParams, PlasticSnapshot, PlasticState, PlasticityError,
 };
 use crate::agent::weights::{InheritedParams, ParamsError};
 use crate::config::{Actor, Config, Learning};
 use crate::environment::{
     Feedback, HiddenAnnotation, Lifetime, MotorOutput, SimError, feature_dim,
 };
-use crate::rng::{SeedTuple, rng_for};
+use crate::rng::{RngState, SeedTuple, rng_for};
 
 /// Continuous learner/runner failures. Every variant is an explicit error,
 /// never a silent default. Duplicate feedback leaves all state unchanged
@@ -311,6 +312,216 @@ impl ContinuousLearner {
     pub fn reset_traces_event_diagnostic(&mut self) -> Result<(), ContinuousError> {
         Ok(self.plastic.reset_traces_event_diagnostic()?)
     }
+
+    /// Snapshot every live learner value required for exact continuous
+    /// pause/resume (M4-06): actor/adaptation state, the most recent
+    /// perturbations, motor filters/readout, tick count, both RNG positions,
+    /// persistent `P`/`E` plus baseline/dedup, and the derived effective
+    /// weight cache. Inherited parameters travel in the checkpoint envelope.
+    ///
+    /// The cache is stored as an integrity assertion rather than trusted:
+    /// restore recomputes `W0 + P` through `PlasticState::restore` and
+    /// rejects any disagreement.
+    pub(crate) fn snapshot(
+        &self,
+        root_seed: u64,
+        namespace: &str,
+        outer_seed: u64,
+        lifetime_index: u64,
+    ) -> Result<ContinuousAgentSnapshot, ContinuousError> {
+        let bad = |e: crate::rng::SeedError| ContinuousError::InvalidConfig(e.to_string());
+        let noise_rng = RngState::capture(
+            &self.noise_rng,
+            &SeedTuple::new(
+                root_seed,
+                namespace,
+                outer_seed,
+                lifetime_index,
+                NOISE_STREAM,
+            ),
+        )
+        .map_err(bad)?;
+        let tie_rng = RngState::capture(
+            &self.tie_rng,
+            &SeedTuple::new(root_seed, namespace, outer_seed, lifetime_index, TIE_STREAM),
+        )
+        .map_err(bad)?;
+        Ok(ContinuousAgentSnapshot {
+            h: self.state.h().to_vec(),
+            a: self.state.a().to_vec(),
+            last_perturbations: self.state.last_perturbations().to_vec(),
+            q: self.motor.q(),
+            last_output: self.last_output,
+            ticks_advanced: self.ticks_advanced,
+            noise_rng,
+            tie_rng,
+            plastic: self.plastic.snapshot(),
+            effective_weights: self.plastic.effective_weights().to_vec(),
+        })
+    }
+
+    /// Restore a fully persistent learner from a continuous checkpoint.
+    /// Every field is required by serde; shapes, finiteness, seed identity,
+    /// config identity, plastic bounds/masks, and the derived effective cache
+    /// are validated rather than silently repaired or reset.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn restore(
+        snapshot: ContinuousAgentSnapshot,
+        actor_cfg: Actor,
+        learning: Learning,
+        inherited: InheritedParams,
+        cue_count: usize,
+        root_seed: u64,
+        namespace: &str,
+        outer_seed: u64,
+        lifetime_index: u64,
+    ) -> Result<Self, ContinuousError> {
+        if !learning.enabled {
+            return Err(invalid(
+                "continuous learner requires learning.enabled = true".to_owned(),
+            ));
+        }
+        if learning.rule != "gaussian_transition_score" {
+            return Err(invalid(format!(
+                "unknown learning rule '{}'; expected \"gaussian_transition_score\"",
+                learning.rule
+            )));
+        }
+        if learning.trace_policy != "persistent" {
+            return Err(invalid(format!(
+                "continuous learner requires trace_policy 'persistent'; found '{}'",
+                learning.trace_policy
+            )));
+        }
+        if learning.plastic_decay != 0.0 {
+            return Err(invalid(format!(
+                "plastic_decay must be exactly 0.0; found {}",
+                learning.plastic_decay
+            )));
+        }
+        let n = actor_cfg.neuron_count;
+        inherited.validate(&actor_cfg, feature_dim(cue_count))?;
+        if inherited.topology.neuron_count != n {
+            return Err(invalid(format!(
+                "topology has {} neurons but actor config has {n}",
+                inherited.topology.neuron_count
+            )));
+        }
+        if learning.eta > 0.0 && !(actor_cfg.noise_sigma.is_finite() && actor_cfg.noise_sigma > 0.0)
+        {
+            return Err(invalid(
+                "score-noise contract: eta > 0 requires actor.noise_sigma > 0".to_owned(),
+            ));
+        }
+        if snapshot.plastic.plastic_mask != learning.plastic_mask {
+            return Err(invalid(format!(
+                "snapshot mask '{}' disagrees with resolved '{}'",
+                snapshot.plastic.plastic_mask, learning.plastic_mask
+            )));
+        }
+        if snapshot.plastic.trace_policy != learning.trace_policy {
+            return Err(invalid(format!(
+                "snapshot trace '{}' disagrees with resolved '{}'",
+                snapshot.plastic.trace_policy, learning.trace_policy
+            )));
+        }
+        if snapshot.plastic.tau_e != learning.tau_e {
+            return Err(invalid(format!(
+                "snapshot tau_e {} disagrees with resolved {}",
+                snapshot.plastic.tau_e, learning.tau_e
+            )));
+        }
+        if snapshot.h.len() != n || snapshot.a.len() != n || snapshot.last_perturbations.len() != n
+        {
+            return Err(invalid(format!(
+                "agent state len ({}/{}/{}) must match {n} neurons",
+                snapshot.h.len(),
+                snapshot.a.len(),
+                snapshot.last_perturbations.len()
+            )));
+        }
+        if !snapshot.h.iter().all(|v| v.is_finite())
+            || !snapshot.a.iter().all(|v| v.is_finite())
+            || !snapshot.last_perturbations.iter().all(|v| v.is_finite())
+        {
+            return Err(invalid("restored agent state must be finite".to_owned()));
+        }
+        if !snapshot.q.iter().all(|v| v.is_finite()) {
+            return Err(invalid("restored motor filters must be finite".to_owned()));
+        }
+        if !snapshot.last_output.action_0.is_finite() || !snapshot.last_output.action_1.is_finite()
+        {
+            return Err(invalid("restored motor readout must be finite".to_owned()));
+        }
+        if snapshot.q != [snapshot.last_output.action_0, snapshot.last_output.action_1] {
+            return Err(invalid("motor readout disagrees with filters".to_owned()));
+        }
+        for (name, state) in [
+            (NOISE_STREAM, &snapshot.noise_rng),
+            (TIE_STREAM, &snapshot.tie_rng),
+        ] {
+            let tuple = SeedTuple::new(root_seed, namespace, outer_seed, lifetime_index, name);
+            let expected = crate::rng::derive_seed_bytes(&tuple)
+                .map_err(|e| ContinuousError::InvalidConfig(e.to_string()))?;
+            if state.seed_bytes != expected || state.word_pos >= (1_u128 << 68) {
+                return Err(invalid(format!(
+                    "rng stream '{name}' seed does not match the checkpoint seed identity"
+                )));
+            }
+        }
+        let state = ActorState::from_snapshot(snapshot.h, snapshot.a, snapshot.last_perturbations)?;
+        let motor = MotorState::from_q(snapshot.q)?;
+        let plastic = PlasticState::restore(
+            snapshot.plastic,
+            &inherited.topology,
+            &inherited.weights.w0,
+            learning.plastic_bound,
+        )?;
+        if snapshot.effective_weights != plastic.effective_weights() {
+            return Err(invalid(
+                "stored effective-weight cache disagrees with derived W0 + P".to_owned(),
+            ));
+        }
+        check_state(
+            snapshot.ticks_advanced,
+            state.h(),
+            state.a(),
+            state.r(),
+            motor.q(),
+        )?;
+        let update = FeedbackUpdateParams::from_learning_config(&learning);
+        Ok(Self {
+            actor_cfg,
+            update,
+            inherited,
+            state,
+            motor,
+            plastic,
+            noise_rng: snapshot.noise_rng.restore(),
+            tie_rng: snapshot.tie_rng.restore(),
+            cue_count,
+            ticks_advanced: snapshot.ticks_advanced,
+            last_output: snapshot.last_output,
+        })
+    }
+}
+
+/// Versioned-envelope payload for the live continuous learner (M4-06).
+/// Every optional lifetime value lives in the environment snapshot and uses
+/// an explicit required-option deserializer; this agent half has no defaults.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ContinuousAgentSnapshot {
+    pub h: Vec<f64>,
+    pub a: Vec<f64>,
+    pub last_perturbations: Vec<f64>,
+    pub q: [f64; 2],
+    pub last_output: MotorOutput,
+    pub ticks_advanced: u64,
+    pub noise_rng: RngState,
+    pub tie_rng: RngState,
+    pub plastic: PlasticSnapshot,
+    pub effective_weights: Vec<Vec<f64>>,
 }
 
 /// Stream names owned by the continuous learner (spec 5.8): perturbations

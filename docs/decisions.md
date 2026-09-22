@@ -1183,3 +1183,35 @@ make code or a result look successful.**
   reward was not monotonic. M4-07, not this sensitivity record, owns
   acquisition claims. Verification:
   [M4-05 evidence](evidence/m4-05/summary.md).
+
+## 2026-09-21 UTC — M4-06 continuous-learning checkpoints (spec 10.7, 17.7, 20)
+
+- **A separate schema-4 envelope preserves the earlier contracts.**
+  `ContinuousCheckpoint` carries the fully persistent learner and shared
+  environment snapshot without changing M1 schema 2 or episodic schema 3.
+  Cross-loads reject. The continuous learner snapshot contains live
+  `h`/`a`/last-`xi`, motor filters/readout, tick count, agent RNG positions,
+  and the versioned `PlasticSnapshot` with nonzero `P`/`E`, baseline, and
+  dedup identity. The envelope retains resolved config/hash, seed/platform
+  identity, inherited parameters, environment RNGs, phase/pending reward,
+  action latch, and delivery/confirmation ledgers.
+- **The effective cache is asserted and re-derived.** Schema 4 records the
+  live `W_effective` value, but restore never trusts it as an independent
+  weight source: `PlasticState::restore` recomputes `W0 + P` through the
+  single refresh path, then rejects any mismatch with the stored assertion.
+  This keeps inherited `W0` and acquired `P` authoritative while detecting a
+  stale or incompatible cache.
+- **Checkpoint boundaries remain completed ticks.** Immediately before due
+  feedback means the last completed tick with environment phase `Feedback`
+  and the sampled reward still pending. After feedback means the first fully
+  processed boundary after apply/confirm, neural transition, and tick finish.
+  A delivered-but-unfinished tick is still not checkpointable driver state.
+  This preserves M4-01 ordering and makes resume re-delivery deterministic.
+- **Replay and rejection are state-complete.** A production-faithful manual
+  driver matches the continuous runner, then splits during cue activity,
+  immediately before feedback, and after feedback with nonzero `P/E`; all
+  continuations are exact on linux/x86_64. Duplicate learner/environment
+  delivery rejects without mutation. Missing cache/baseline/dedup/pending/
+  latch fields, mismatched resolved learning settings, corrupt checksums, and
+  cross-schema files reject rather than resetting. Verification:
+  [M4-06 evidence](evidence/m4-06/summary.md).

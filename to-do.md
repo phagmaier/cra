@@ -30,19 +30,20 @@ and [continuation guide](docs/handoff.md).
 
 | Field | Current value |
 | --- | --- |
-| Current milestone | M4 in progress (M3-GATE passed; M4-01 through M4-05 verified 2026-09-21 UTC) |
+| Current milestone | M4 in progress (M3-GATE passed; M4-01 through M4-06 verified 2026-09-21 UTC) |
 | Claim track | family_only for the first study; broader track not authorized |
-| Last verified task | M4-05 — gradual timing/delay profiles and measured sensitivity |
+| Last verified task | M4-06 — exact continuous-learning checkpoint/replay |
 | Claimed task | None |
-| Next eligible task | M4-06 |
+| Next eligible task | M4-07 |
 | Current blocker | None |
 | Final-test status | No reserved final-test results inspected |
-| Last evidence record | 2026-09-21 UTC M4-05; ledger below (27/27 timing sensitivity lifetimes, 314 Rust/17 Python pass) |
+| Last evidence record | 2026-09-21 UTC M4-06; ledger below (3 exact nonzero-P/E split replays, 323 Rust/17 Python pass) |
 
 ### Session ownership and handoffs
 
 | Owner/session | Task IDs | Files or interfaces owned | Status / handoff |
 | --- | --- | --- | --- |
+| Codex 2026-09-21 M4-06 | M4-06 | src/checkpoint.rs, src/experiments/continuous.rs, tests/continuous_checkpoint.rs, README.md, docs/{decisions,handoff}.md, docs/evidence/m4-06/, to-do.md | Done; schema-4 exact replay at 3 nonzero-P/E splits, schema 2/3 preserved, full battery green; next M4-07 |
 | omp 2026-09-21 M4-01 | M4-01 | src/environment/mod.rs, src/experiments/{baseline,episodic,reduction}.rs, tests/main_tick_order.rs, docs/evidence/m4-01/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; split tick + 6 migrated drivers + 4 order tests pass, oracle/B3 smokes audited; next M4-02 |
 | omp 2026-09-21 M4-02 | M4-02 | src/experiments/{continuous,mod}.rs, tests/persistent_traces.rs, docs/evidence/m4-02/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; persistent learner + 5 fixtures pass, full battery green; next M4-03 |
 | omp 2026-09-21 M4-03 | M4-03 | src/experiments/continuous.rs, src/config.rs, tests/continuous_runner.rs, docs/evidence/m4-03/, README.md, docs/{decisions,handoff}.md, to-do.md | Done; reset-audited runner + 6 tripwire tests pass, full battery green; next M4-04 |
@@ -391,9 +392,10 @@ Show that the ungated learner still acquires associations with persistent neural
   - Verify: Table tests cover timing endpoints. Measured delay sensitivity is saved together with tau_e, actual trace magnitudes, and update norms; longer traces are not assumed to be strictly better.
   - Evidence: `docs/evidence/m4-05/summary.md` (2026-09-21 UTC). Three timing-only clean profiles (fixed short; variable quiet/gap/delay 1..4; spec-5.7 quiet 8..16/gap 0..8/delay 8..24), frozen 27-lifetime development plan, and `ContinuousChoice.eligibility_l1_before_update`. Four default tests pin normalized non-timing equality, exact low/high cycle endpoints, within-profile `tau_e` 16/32/64 schedule/W0 pairing, and `raw_L1 = eta*|delta|*E_L1`. Explicit release diagnostic: 27/27 lifetimes, 6,912 outcomes, 220,005 ticks; per-point trace/raw/limited/actual norms, clipping, bounds, and reward saved. Longer traces increased scale/clipping but reward was nonmonotonic; no selection/acquisition claim. Full battery: 314 Rust pass (7 ignored), 17 Python pass, fixture audit and both profile validations OK, clean fmt/Clippy.
 
-- [ ] **M4-06 - Extend checkpoints and replay to continuous learning**
+- [x] **M4-06 - Extend checkpoints and replay to continuous learning**
   - Deliver: Checkpoint during nonzero traces/offsets, just before feedback, and after feedback. Include baseline, consumed-event identity, latches, and any derived caches needed for exact continuation.
   - Verify: Split runs match uninterrupted continuous runs on the reference platform. Duplicate resume/delivery does not double-apply a reward; missing new fields are incompatible rather than silently reset.
+  - Evidence: `docs/evidence/m4-06/summary.md` (2026-09-21 UTC). Separate `ContinuousCheckpoint` schema 4 (M1 schema 2 and episodic schema 3 unchanged/cross-rejected) plus `ContinuousAgentSnapshot` for live h/a/xi/q/readout, agent RNGs, schema-3 `PlasticSnapshot`, and an asserted effective cache re-derived from inherited W0 + P. A production-faithful driver is pinned to `run_continuous_lifetime`; exact nonzero-P/E splits during cue activity, immediately before pending feedback, and after applied feedback match uninterrupted continuation across choices/updates and final neural/motor/plastic/environment state. Pending reward/action latch, env RNG/phase/ledgers, baseline/dedup, inherited parameters, config/seed/platform/checksum round-trip; duplicate learner + environment delivery rejects mutation-free. Missing cache/baseline/dedup/pending/latch fields, cache/config mismatch, corrupt/cross-schema files reject. Focused release 5 pass; episodic compatibility 8 pass/1 ignored; full battery 323 Rust pass/7 ignored, 2 doc, 17 Python, fixture audit/profile validation, clean fmt/Clippy/diff. Replay only; acquisition remains M4-07.
 
 - [ ] **M4-07 - Run the declared continuous acquisition comparison**
   - Deliver: Compare the three continuity conditions and matched nonplastic controls across development seeds. Use predeclared per-cue exposure windows and report raw/actual updates, bound occupancy, motor saturation, and failures.
@@ -3436,6 +3438,57 @@ Interpretation and claim limits: timing profiles, endpoint semantics,
 Tracker boxes updated: M4-05 checked after verification. Next M4-06.
 ```
 
+```text
+Date / agent or session: 2026-09-21 / Codex (M4-06)
+Task IDs: M4-06
+Base revision / worktree: 6d6f9ee; M4-06 implementation and evidence dirty
+  during verification.
+Change and affected files: src/checkpoint.rs (separate schema-4
+  ContinuousCheckpoint envelope; schema 2/3 unchanged); src/experiments/
+  continuous.rs (complete continuous learner snapshot/validated restore);
+  tests/continuous_checkpoint.rs (faithful driver + three split replays and
+  rejection coverage); docs/evidence/m4-06/summary.md; README, decisions,
+  handoff, evidence index, and tracker updated.
+Commands actually run:
+  cargo test --release --locked --test continuous_checkpoint
+  cargo test --locked --test episodic_checkpoint
+  cargo fmt --all -- --check
+  cargo clippy --all-targets --locked -- -D warnings
+  cargo test --all-targets --locked
+  cargo test --locked --doc
+  python3 analysis/test_validate_logs.py
+  python3 analysis/validate_logs.py analysis/fixtures/valid
+  cargo run --release --locked -- validate-config \
+    configs/continuous_stationary.toml
+  cargo run --release --locked -- validate-config \
+    configs/continuous_variable_short.toml
+  git diff --check
+Result: focused continuous replay 5 pass; unchanged episodic checkpoint suite
+  8 pass / 1 ignored bounded capture. Full Rust suite 323 pass, 0 fail,
+  7 ignored; 2 compile-fail doc tests pass; 17 Python tests pass; fixture
+  audit and both profile validations OK; fmt/Clippy/diff clean. Linux x86_64,
+  rustc/cargo 1.98.0.
+Replay evidence: the manual authoritative-order driver first matches
+  run_continuous_lifetime over 40 outcomes. With nonzero P/E, splits during
+  cue activity, immediately before due feedback (pending reward + action
+  latch), and at the first completed boundary after feedback resume exactly
+  to the uninterrupted choices, updates, h/a/r/xi/q, P/E/effective cache,
+  baseline/dedup, ticks, phase, pending/latch, consumed ids and counts.
+  Duplicate learner/environment delivery rejects without mutation.
+Rejections: required cache/baseline/dedup/pending/latch fields cannot be
+  omitted; cache and resolved-learning mismatches are incompatible; checksum,
+  garbage/missing files and schema-2/3/4 cross-loads reject explicitly.
+Artifacts: docs/evidence/m4-06/summary.md (source hashes and exact checks).
+  No empirical run or reserved seed consumed; deterministic development
+  replay fixtures only.
+Interpretation and claim limits: exact fully persistent lifetime continuation
+  on the recorded reference platform only. No acquisition comparison,
+  tau_e selection, modulation, evolution, validation/final-test inspection,
+  or broader-track claim. family_only track.
+Tracker boxes updated: M4-06 checked after verification. Next M4-07; M4-07
+  was not begun.
+```
+
 ## Blockers and decision register - keep current
 
 No blockers. M1-GATE re-verified after the 2026-09-21 UTC owner-requested
@@ -3558,7 +3611,16 @@ with exact endpoint and same-seed schedule-pairing tests. The predeclared
 ticks and saved actual pre-feedback trace plus update norms; longer traces
 raised scale/clipping but reward was nonmonotonic, so no winner/acquisition
 claim. Full battery green (314 Rust, 7 ignores, 17 Python, fixture audit,
-both profile validations, clean fmt/Clippy). M4-06 is next.
+both profile validations, clean fmt/Clippy). Checkpoint replay followed in M4-06.
+M4-06 verified 2026-09-21 UTC: separate schema-4 continuous checkpoints
+carry the complete persistent learner/environment state, including nonzero
+P/E, baseline/dedup, pending feedback/action latch, every live RNG, inherited
+parameters, and a re-derived effective-cache assertion. Exact replay passes
+at ongoing-activity, immediately-pre-feedback, and post-feedback boundaries;
+duplicates and missing/incompatible fields reject. M1 schema 2 and episodic
+schema 3 stay compatible. Full battery green (323 Rust, 7 ignores, 2 doc,
+17 Python, fixture audit/profile validation, clean fmt/Clippy/diff). Replay
+only; M4-07 is next and was not begun.
 M1 findings, corrections and claim limits: `docs/m1-review.md`.
 M0 historical evidence remains in `docs/m0-review.md`.
 Scientific decisions remain in the append-only `docs/decisions.md`.
